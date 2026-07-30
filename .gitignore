@@ -1,0 +1,84 @@
+# ── macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# ── 개인 테스트 데이터 (커밋하지 않는다)
+screenshots/
+
+# 스파이크 리포트: 생성물이고 스크린샷이 base64로 박혀 있음
+spike/session-report.html
+
+# ── 모델 아티팩트 (§7: 커밋하지 않고 modelgen이 다운로드+변환)
+*.mlmodel
+*.mlmodelc/
+*.mlpackage/
+*.onnx
+*.ort
+contracts/model/artifacts/
+
+# ── Swift / Xcode / Tuist
+.build/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Tuist 생성물 (선언은 커밋, 생성물은 무시)
+apps/apple/**/*.xcodeproj
+apps/apple/**/*.xcworkspace
+apps/apple/Tuist/.build/
+apps/apple/Tuist/Dependencies/
+apps/apple/.tuist-version
+Derived/
+graph.png
+graph.dot
+
+# SPM
+Package.resolved.bak
+.swiftpm/
+
+# ── Node / pnpm
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+.turbo/
+*.tsbuildinfo
+.vite/
+coverage/
+
+# ── Rust / Tauri
+target/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+
+# ── Supabase
+supabase/.branches/
+supabase/.temp/
+
+# ── 환경 변수 / 시크릿
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.p12
+*.mobileprovision
+*.cer
+
+# ── 로그 / 임시
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.cache/
+tmp/
