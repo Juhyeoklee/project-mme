@@ -1,0 +1,35 @@
+# CI 잡 하나 — 하는 일은 검증기 · 테스트 · 빌드뿐 (ADR 0001 결정 4)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      # 26.x 중 최신을 고른다. 27은 탈락 (WHY.md §5 — 베타 · 구형 SPM 깨짐)
+      - name: Select Xcode 26
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -n 1)"
+
+      - name: Boundary verifier
+        working-directory: apple
+        run: swift scripts/verify-boundaries.swift
+
+      - name: Kernel tests
+        run: swift test --package-path apple/Packages/MomentKernel
+
+      - name: PhotoSource tests
+        run: swift test --package-path apple/Packages/PhotoSource
+
+      - name: Build app (iOS Simulator)
+        run: >
+          xcodebuild build
+          -project apple/Moanogi.xcodeproj
+          -scheme Moanogi
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO

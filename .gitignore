@@ -1,72 +1,20 @@
 # ── macOS
 .DS_Store
 ._*
-.Spotlight-V100
-.Trashes
 
 # ── 개인 데이터 방어선
-# 스크린샷·스파이크·코워크 문서는 이 레포 밖(상위 workspace)에 있다.
+# 스크린샷·스파이크 산출물은 이 레포 밖(상위 workspace)에 있다.
 # 아래는 실수로 안쪽에 들어왔을 때를 대비한 이중 안전장치.
 screenshots*/
 spike/session-report.html
 
-# ── 모델 아티팩트 (§7: 커밋하지 않고 modelgen이 다운로드+변환)
-*.mlmodel
-*.mlmodelc/
-*.mlpackage/
-*.onnx
-*.ort
-contracts/model/artifacts/
-
-# ── Swift / Xcode / Tuist
+# ── Xcode / SPM
 .build/
-DerivedData/
-*.xcuserstate
-*.xcworkspace/xcuserdata/
-*.xcodeproj/xcuserdata/
-*.xcodeproj/project.xcworkspace/xcuserdata/
-xcuserdata/
-*.moved-aside
-*.hmap
-*.ipa
-*.dSYM.zip
-*.dSYM
-
-# Tuist 생성물 (선언은 커밋, 생성물은 무시)
-apps/apple/**/*.xcodeproj
-apps/apple/**/*.xcworkspace
-apps/apple/Tuist/.build/
-apps/apple/Tuist/Dependencies/
-apps/apple/.tuist-version
-Derived/
-graph.png
-graph.dot
-
-# SPM
-Package.resolved.bak
 .swiftpm/
+DerivedData/
+xcuserdata/
 
-# ── Node / pnpm
-node_modules/
-.pnpm-store/
-dist/
-build/
-.next/
-.turbo/
-*.tsbuildinfo
-.vite/
-coverage/
-
-# ── Rust / Tauri
-target/
-apps/desktop/src-tauri/target/
-apps/desktop/src-tauri/gen/
-
-# ── Supabase
-supabase/.branches/
-supabase/.temp/
-
-# ── 환경 변수 / 시크릿
+# ── 시크릿
 .env
 .env.*
 !.env.example
@@ -75,10 +23,3 @@ supabase/.temp/
 *.p12
 *.mobileprovision
 *.cer
-
-# ── 로그 / 임시
-*.log
-npm-debug.log*
-pnpm-debug.log*
-.cache/
-tmp/
