@@ -7,7 +7,7 @@
 # ── 개인 데이터 방어선
 # 스크린샷·스파이크·코워크 문서는 이 레포 밖(상위 workspace)에 있다.
 # 아래는 실수로 안쪽에 들어왔을 때를 대비한 이중 안전장치.
-screenshots/
+screenshots*/
 spike/session-report.html
 
 # ── 모델 아티팩트 (§7: 커밋하지 않고 modelgen이 다운로드+변환)
