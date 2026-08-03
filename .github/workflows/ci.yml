@@ -10,7 +10,7 @@ jobs:
   ci:
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # 26.x 중 최신을 고른다. 27은 탈락 (WHY.md §5 — 베타 · 구형 SPM 깨짐)
       - name: Select Xcode 26
