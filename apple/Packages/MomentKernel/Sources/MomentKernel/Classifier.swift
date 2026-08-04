@@ -2,15 +2,27 @@
 //
 // 순수 함수다. 상태도 부작용도 없고, 플랫폼도 시간대도 로케일도 모른다 (ADR 0001 결정 2·5).
 
-/// 임계값. **전부 초깃값이고 확정은 기준 A(실기기 211장 전량 분류)다.**
-/// 근거는 `docs/experiments/ios-album-2026-08.md`와 `burst-signal-2026-08.md`.
+/// 임계값. **기준 A(실기기 212장 전량 분류, 2026-08-04)로 확정했다.**
+/// 근거는 `docs/experiments/ios-album-2026-08.md`와 `burst-signal-2026-08.md`,
+/// 그리고 그 위에 얹힌 기준 A 판정 — 아래 `placeClusterDistance` 주석.
 public struct Settings: Sendable, Hashable {
     /// 순간을 자르는 시간 간격 (`MOM-01`). 실험 §5.1의 평탄 구간은 10~30분이고,
     /// 5분은 26장짜리 순간을 11장으로 부순다. **덜 쪼개는 쪽이 안전한 실패 방향**이라 위끝을 잡았다.
     public var momentGapSeconds: Int
 
-    /// 같은 구역 안에서 장소를 가르는 카메라 위치 거리 (`MOM-02`). 실험 §5.2의 평탄 구간 20~25.
+    /// 같은 구역 안에서 장소를 가르는 카메라 위치 거리 (`MOM-02`).
     /// **판정 단위는 인접쌍이 아니라 군집이다** — 인접쌍 임계값은 메타값 좌표에서도 실패했다(§4.3).
+    ///
+    /// **20 → 60. 기준 A가 올렸다** (2026-08-04). 실험 §5.2가 고른 20은 평탄 구간 20~25의
+    /// 아래끝인데, 그 구간은 **정답 라벨이 있는 유일한 데이터인 Windows 34장** 위에서 잰 것이고
+    /// 실험 스스로 한계에 *"정답을 보고 골랐다 · 과적합 위험 · 카메라 쪽 평탄 구간이 좁다"* 를
+    /// 적어뒀다. iOS 212장을 사람이 훑은 결과 **거슬린 경계 2건이 나왔고 둘 다 이 값 때문**이었다
+    /// (같은 구역 안에서 카메라 거리 29.1·54.7로 갈린 자리).
+    ///
+    /// 60을 고른 근거는 데이터의 골이다. 구역 내 분할 9자리의 거리가
+    /// `29.1 · 37.6 · 38.1 · 54.7 · 54.7 ┊ 76.7 · 140.8 · 160.9 · 273.7` 로 벌어져 있어
+    /// **56~76이 평탄 구간(1.35배)** 이고, 원래 값의 근거였던 20~25(1.25배)보다 넓다.
+    /// 이 값에서 212장의 순간이 104 → 99가 되고, 덤으로 합쳐지는 3자리는 사람이 보고 승인했다.
     public var placeClusterDistance: Double
 
     /// 연사로 묶는 최대 시간 간격 (`MOM-04`). 시선이 같은 쌍의 pHash 거리가 여기서 꺾인다.
@@ -27,7 +39,7 @@ public struct Settings: Sendable, Hashable {
     public var dayCutoffHour: Int
 
     public init(momentGapSeconds: Int = 1800,
-                placeClusterDistance: Double = 20,
+                placeClusterDistance: Double = 60,
                 burstGapSeconds: Double = 10,
                 burstCameraDistance: Double = 1.0,
                 burstAngleDegrees: Double = 2.0,
