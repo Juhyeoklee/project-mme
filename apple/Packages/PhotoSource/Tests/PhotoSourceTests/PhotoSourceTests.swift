@@ -44,6 +44,32 @@ import Testing
     #expect(reason.contains("무언가"))
 }
 
+@Test func 이미지가_없을_때_이유가_R8과_그밖으로_갈린다() {
+    // 라이브러리가 "클라우드에 있다"고만 말하고 에러를 안 주는 경우가 실재한다.
+    #expect(AlbumPhotoSource.imageFailure([PHImageResultIsInCloudKey: true], assetID: "A")
+            == .originalNotOnDevice(assetID: "A"))
+
+    // 에러가 있으면 그쪽이 이긴다 — 원문을 뭉개지 않는다.
+    let networkRequired = NSError(domain: PHPhotosError.errorDomain,
+                                  code: PHPhotosError.Code.networkAccessRequired.rawValue)
+    #expect(AlbumPhotoSource.imageFailure([PHImageErrorKey: networkRequired,
+                                           PHImageResultIsInCloudKey: true], assetID: "B")
+            == .originalNotOnDevice(assetID: "B"))
+
+    // 아무 단서가 없어도 삼키지 않는다.
+    guard case .loadFailed = AlbumPhotoSource.imageFailure(nil, assetID: "C") else {
+        Issue.record("단서 없는 실패가 loadFailed로 오지 않았다")
+        return
+    }
+}
+
+@Test func continuation은_콜백이_두_번_와도_한_번만_풀린다() {
+    let gate = ResumeGate()
+    #expect(gate.open() == true)
+    #expect(gate.open() == false)
+    #expect(gate.open() == false)
+}
+
 @Test func 조각으로_도착한_바이트가_순서대로_모인다() {
     let sink = ByteSink()
     sink.append(Data([0x89, 0x50]))
