@@ -46,7 +46,7 @@ enum Spacing {
     static let momentGap: CGFloat = 8
     /// `04` 좌우.
     static let screenMargin: CGFloat = 16
-    /// `04` 날짜 그룹 사이. §5 항목 3의 검증 대상 — 값이 바뀌어도 이름은 유지된다.
+    /// `04` 날짜 그룹 사이. 값이 바뀌어도 이름은 유지된다.
     static let dayGap: CGFloat = 32
 }
 
@@ -65,11 +65,8 @@ enum Layout {
     /// *"행으로 써두면 폭이 장수를 정하고, 목록 폭을 바꿔도 규칙이 안 깨진다."*
     static let stripRows = 2
 
-    /// 주어진 폭에 들어가는 썸네일 수. **상수로 박으면 안 되는 값이다.**
-    ///
-    /// 확정 표(§1.2)의 `3장`은 iPhone 361pt와 iPad **가로** pane 374pt에서 나온 결과지 전제가 아니다.
-    /// iPad **세로**에서는 같은 34%가 252pt가 되어 3장이 안 들어간다 — 상수로 두면 셋째 칸이
-    /// 그대로 잘려 나간다(2026-08-04 실기기에서 그렇게 나왔다).
+    /// 주어진 폭에 들어가는 썸네일 수. **상수로 박으면 안 되는 값이다** — §1.2의 `3장`은
+    /// 특정 폭의 결과지 전제가 아니고, iPad 세로(252pt)에서는 3장이 안 들어간다(2026-08-04 실기기).
     static func thumbnailsPerRow(inWidth width: CGFloat) -> Int {
         max(1, Int((width + Spacing.thumbnailGap) / (thumbnail + Spacing.thumbnailGap)))
     }
