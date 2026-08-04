@@ -14,6 +14,9 @@ spike/session-report.html
 DerivedData/
 xcuserdata/
 
+# ── 개발 기기 파생물 (기기 경로가 박힌다 — 재생성: xcode-build-server config)
+buildServer.json
+
 # ── 시크릿
 .env
 .env.*
