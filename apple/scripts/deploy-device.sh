@@ -28,7 +28,7 @@ if [ "$FILTER" != "--build-only" ]; then
   if [ -n "$FILTER" ]; then
     MATCHES="$(printf '%s\n' "$LIST" | grep -iE "$UUID_RE" | grep -i -- "$FILTER" || true)"
   else
-    # 상태 열 앞 공백으로 가른다 — 'available'만 쓰면 'unavailable'까지 문다. Watch는 iOS 앱이 못 간다
+    # 상태 열 앞 공백으로 가른다 — 'available'만 쓰면 'unavailable'까지 문다(2026-08-04 실물 목록). Watch는 iOS 앱이 못 간다
     MATCHES="$(printf '%s\n' "$LIST" | grep -vi 'watch' | grep -i ' connected' || true)"
     # USB 연결이 없으면 무선 페어링(available)까지 넓힌다
     [ -z "$MATCHES" ] && MATCHES="$(printf '%s\n' "$LIST" | grep -vi 'watch' | grep -i ' available' || true)"
