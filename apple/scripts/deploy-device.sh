@@ -10,8 +10,10 @@
 #   기기의 개발자 모드 켜짐 · 이 Mac과 페어링 · 개발자 앱 신뢰.
 #   서명은 -allowProvisioningUpdates 가 처리한다 (인증서가 키체인에 있어야 한다).
 #
-# 검증 상태 (2026-08-04 셋업 세션): 빌드까지는 기기 없이 검증됐다.
-# 설치·실행 단계는 다음 실기기 세션이 첫 사용에서 검증한다 — 어긋나면 이 주석을 고칠 것.
+# 전제 — **매번**: 실행 단계는 기기 잠금이 풀려 있어야 한다. 설치는 잠긴 채로도 된다.
+#
+# 검증 상태: 빌드는 기기 없이 (2026-08-04 셋업), **설치·실행은 실사용으로** (2026-08-07 세션 C2 —
+# 무선 페어링 경로로 붙었다).
 set -euo pipefail
 
 APPLE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -25,14 +27,15 @@ FILTER="${1:-}"
 UDID=""
 if [ "$FILTER" != "--build-only" ]; then
   LIST="$(xcrun devicectl list devices)"
-  if [ -n "$FILTER" ]; then
-    MATCHES="$(printf '%s\n' "$LIST" | grep -iE "$UUID_RE" | grep -i -- "$FILTER" || true)"
-  else
-    # 상태 열 앞 공백으로 가른다 — 'available'만 쓰면 'unavailable'까지 문다(2026-08-04 실물 목록). Watch는 iOS 앱이 못 간다
-    MATCHES="$(printf '%s\n' "$LIST" | grep -vi 'watch' | grep -i ' connected' || true)"
-    # USB 연결이 없으면 무선 페어링(available)까지 넓힌다
-    [ -z "$MATCHES" ] && MATCHES="$(printf '%s\n' "$LIST" | grep -vi 'watch' | grep -i ' available' || true)"
-  fi
+  # 이름 필터를 **먼저** 걸고 상태로 좁힌다. 순서가 뒤바뀌면 지목한 기기가 무선인데 다른 기기가
+  # USB로 붙어 있을 때 후보가 0이 된다. 상태 필터를 공통으로 뽑은 것은 이름 필터 경로에만
+  # 상태 검사가 없어서 꺼진 기기까지 물었기 때문이다 (2026-08-07 실물 목록).
+  POOL="$(printf '%s\n' "$LIST" | grep -iE "$UUID_RE" | grep -vi 'watch' || true)"  # Watch는 iOS 앱이 못 간다
+  [ -n "$FILTER" ] && POOL="$(printf '%s\n' "$POOL" | grep -i -- "$FILTER" || true)"
+  # 상태 열 앞 공백으로 가른다 — 'available'만 쓰면 'unavailable'까지 문다(2026-08-04 실물 목록)
+  MATCHES="$(printf '%s\n' "$POOL" | grep -i ' connected' || true)"
+  # USB 연결이 없으면 무선 페어링(available)까지 넓힌다
+  [ -z "$MATCHES" ] && MATCHES="$(printf '%s\n' "$POOL" | grep -i ' available' || true)"
   COUNT="$(printf '%s\n' "$MATCHES" | grep -cE "$UUID_RE" || true)"
   if [ "$COUNT" -ne 1 ]; then
     echo "기기를 하나로 정하지 못했다 (후보 ${COUNT}대). 이름이나 UDID 일부를 인자로 줘라:" >&2
@@ -62,4 +65,11 @@ echo "▸ 산출물: $APP"
 echo "▸ 설치"
 xcrun devicectl device install app --device "$UDID" "$APP"
 echo "▸ 실행"
-xcrun devicectl device process launch --device "$UDID" --terminate-existing "$BUNDLE_ID"
+# 여기서만 기기 잠금이 걸린다. 설치는 이미 끝났으므로 **앱은 기기에 들어가 있고**,
+# 손으로 열어도 같은 결과다 — 실패를 통째로 실패로 읽지 않게 그 사실을 말해준다.
+if ! xcrun devicectl device process launch --device "$UDID" --terminate-existing "$BUNDLE_ID"; then
+  echo "" >&2
+  echo "실행만 실패했다 — 설치는 끝났으니 앱은 기기에 있다." >&2
+  echo "기기가 잠겨 있으면 여기서 막힌다. 잠금을 풀고 다시 돌리거나 앱을 직접 열어라." >&2
+  exit 3
+fi
