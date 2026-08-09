@@ -1,15 +1,12 @@
 // 입력과 그 해석 결과.
 //
-// **커널 입력 = 사진별 (파일명, 바이트)** — ADR 0002. 바이트가 선택값인 이유는 `PhotoInput`에.
-// 커널에 식별자 개념이 없다는 점도 함께 봐야 한다: 출력은 입력 배열의 **인덱스**를 돌려주고,
-// 원본과 잇는 일은 배열을 쥔 `App`이 한다. 계약 표면에 id 의미론을 만들지 않는다.
+// **커널 입력 = 사진별 (파일명, 바이트)** — ADR `0002`. 바이트가 선택값인 이유는 `PhotoInput`에.
+// **커널에 식별자 개념이 없다** — 출력은 입력 배열의 인덱스고, 원본과 잇는 일은 `App`이 한다.
 
 /// 사진 한 장의 입력.
 ///
-/// **바이트는 없을 수 있다.** `R8`(원본이 iCloud에만 있을 때의 간헐적 극단 지연) 실측이
-/// 로컬 먼저 훑는 2패스를 정당화했는데, 그때 **파일명은 1패스에 전량 들어온다**(열거는
-/// 212장 1.4초). 그래서 바이트 없는 사진도 시각은 갖고, 시간 경계에는 온전히 참여한다.
-/// 자세한 계약은 `Classifier.classify(_:settings:)` 주석.
+/// **바이트는 없을 수 있다** — `R8`(원본이 iCloud에만 있을 때의 극단 지연) 때문에 2패스로 도는데
+/// **파일명은 1패스에 전량 들어오기** 때문이다. 계약은 `Classifier.classify(_:settings:)`에.
 public struct PhotoInput: Sendable, Hashable {
     public let filename: String
     /// `nil` = 아직 안 읽었다. 다음 패스에서 채워진다.
@@ -21,7 +18,7 @@ public struct PhotoInput: Sendable, Hashable {
     }
 }
 
-/// 3차원 벡터. 카메라 위치와 회전이 이 형태로 들어 있다.
+/// 카메라 위치와 회전이 이 형태로 들어 있다.
 public struct Vector3: Sendable, Hashable {
     public let x: Double
     public let y: Double
@@ -39,7 +36,7 @@ public struct Vector3: Sendable, Hashable {
     }
 
     /// 각도 벡터로 볼 때의 거리. **360도 되감기를 접는다** — 안 접으면 359도와 1도가
-    /// 358도 차이로 읽힌다. 표본에 실제로 있었다.
+    /// 358도 차이로 읽힌다. 표본에 실제로 있었다(2026-08-03).
     public func angularDistance(to other: Vector3) -> Double {
         let dx = Vector3.fold(x - other.x)
         let dy = Vector3.fold(y - other.y)
@@ -79,12 +76,10 @@ extension Substring {
     }
 }
 
-/// 바이트에서 꺼낸 분류 신호. 화면에 무엇이 담기는지를 결정하는 값들이다.
-///
-/// 여기 있는 것이 곧 **`M5` 웹 자산 구현이 재현해야 할 전부**다 (ADR 0001 결정 6).
-/// 쓰지 않는 필드는 파싱하지도 노출하지도 않는다 — 노출하면 언젠가 쓰이고, 쓰이면 계약이 된다.
+/// 바이트에서 꺼낸 분류 신호. 여기 있는 것이 곧 **`M5` 웹 자산 구현이 재현해야 할 전부**다
+/// (ADR `0001` 결정 6). 쓰지 않는 필드는 파싱도 노출도 안 한다 — 노출하면 언젠가 계약이 된다.
 public struct CaptureSignals: Sendable, Hashable {
-    /// 구역 이름. **좌표계가 구역마다 별개라** 장소 판정의 하드 파티션으로 쓴다.
+    /// **좌표계가 구역마다 별개라** 장소 판정의 하드 파티션으로 쓴다.
     public let zoneName: String
     public let cameraPosition: Vector3
     public let cameraRotation: Vector3
@@ -98,8 +93,8 @@ public struct CaptureSignals: Sendable, Hashable {
     }
 }
 
-/// 신호를 못 얻은 이유. **제품 규칙이 아니라 사실의 보고다** —
-/// 청크 없는 사진을 목록에서 어떻게 다룰지는 `M2`가 정한다 (`PRD.md` §11.6).
+/// 신호를 못 얻은 이유. **제품 규칙이 아니라 사실의 보고다** — 화면이 이 값으로 무엇을 할지는
+/// 커널이 정하지 않는다.
 public enum SignalStatus: Sendable, Hashable {
     case ok
     /// 바이트를 안 넘겼다. 실패가 아니라 **아직**이다.
@@ -108,7 +103,7 @@ public enum SignalStatus: Sendable, Hashable {
     case malformedPNG
     /// PNG인데 `iTXt`가 없다.
     case textChunkMissing
-    /// 필요한 값이 **압축된** `iTXt` 안에 있다. ADR 0002 대가 2가 예고한 자리 —
+    /// 필요한 값이 **압축된** `iTXt` 안에 있다. ADR `0002` 대가 2가 예고한 자리 —
     /// 풀려면 zlib이 필요하고 그건 import 0을 깬다. **새 결정이 필요하다.**
     case textChunkCompressed
     case fieldMissing(String)
@@ -149,7 +144,7 @@ enum SignalReader {
             return (nil, scan.sawCompressedText ? .textChunkCompressed : .textChunkMissing)
         }
 
-        // 첫 실패 하나를 그대로 보고한다. 순서는 아래 읽기 순서다 — 뭉개지 않는다.
+        // 첫 실패 하나를 그대로 보고한다 — 뭉개지 않는다.
         var failure: SignalStatus?
         func text(_ key: String) -> String? {
             guard let value = scan.text[key] else {

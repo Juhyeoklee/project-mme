@@ -1,11 +1,8 @@
 // PNG 컨테이너 최소 파싱 — `IHDR`의 크기와 `iTXt`의 텍스트만 꺼낸다.
 //
-// **픽셀을 디코딩하지 않는다.** `M1`의 분류 신호 셋(시간·장소·연사)이 전부 파일 내장
-// 메타값으로 갈렸으므로(`docs/experiments/burst-signal-2026-08.md`) 커널이 이미지 내용을
-// 볼 이유가 없다. `IDAT`는 길이만큼 건너뛴다.
-//
-// CRC는 검사하지 않는다. 깨진 데이터는 필드 파싱에서 걸리고, CRC 표를 들이는 값이
-// 이 모듈에서는 나오지 않는다.
+// **픽셀을 디코딩하지 않는다** (ADR `0004` 결정 1) — 분류 신호 셋이 전부 파일 내장 메타값으로
+// 갈려서 이미지 내용을 볼 이유가 없다. `IDAT`는 길이만큼 건너뛴다.
+// **CRC도 안 본다** — 깨진 데이터는 필드 파싱에서 걸리고, CRC 표를 들이는 값이 안 나온다.
 
 /// PNG에서 꺼낸 날것. 값의 뜻은 모른다.
 struct PNGScan {
@@ -13,8 +10,8 @@ struct PNGScan {
     var pixelHeight: Int
     /// 비압축 `iTXt`의 키워드 → 텍스트. 같은 키가 겹치면 **처음 것**이 남는다.
     var text: [String: String]
-    /// 압축된 `iTXt`를 하나라도 봤는가. ADR 0002 대가 2가 예고한 자리다 —
-    /// 만나도 풀지 않는다(zlib은 import 0을 깬다). 필요한 키가 없을 때 이유를 가른다.
+    /// 압축된 `iTXt`를 하나라도 봤는가. **만나도 풀지 않는다** — zlib은 import 0을 깬다
+    /// (ADR `0002` 대가 2가 예고한 자리).
     var sawCompressedText: Bool
 }
 
@@ -93,8 +90,8 @@ enum PNGText {
         else { return nil }
         let textStart = translatedEnd + 1
         guard textStart <= end else { return nil }
-        // 규격상 텍스트는 청크 끝까지고 종료자가 없다. **그런데 실물이 NUL을 하나 더 쓴다**
-        // (2026-08-03, 표본 211/211). 안 떼면 값 끝이 `>`가 아니라 파싱이 통째로 실패한다.
+        // 규격상 종료자가 없는데 **실물이 NUL을 하나 더 쓴다**(2026-08-03, 211/211).
+        // 안 떼면 값 끝이 `>`가 아니라 좌표 파싱이 통째로 실패한다.
         var textEnd = end
         while textEnd > textStart, bytes[textEnd - 1] == 0 { textEnd -= 1 }
         let value = String(decoding: bytes[textStart..<textEnd], as: UTF8.self)
@@ -118,8 +115,7 @@ enum PNGText {
         return Int(value)
     }
 
-    /// 오버플로 없이 더한다. PNG 길이는 최대 2^31-1이라 64bit에서는 넘칠 일이 없지만,
-    /// 깨진 파일의 길이 필드를 그대로 믿지 않는다.
+    /// 오버플로 없이 더한다 — 깨진 파일의 길이 필드를 그대로 믿지 않는다.
     private static func add(_ a: Int, _ b: Int) -> Int? {
         let (sum, overflow) = a.addingReportingOverflow(b)
         return overflow ? nil : sum

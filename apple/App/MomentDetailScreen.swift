@@ -1,12 +1,6 @@
-// `05` 순간 상세 — 한 순간의 사진 전체를 본다.
+// `05` 순간 상세 — 한 순간의 사진 전체를 격자로 본다.
 //
-// **자르지 않는다.** `04`는 훑기라 정사각 크롭으로 충분하지만 여기는 `BRW-05`의 *"그 순간의
-// 사진 전체를 본다"* 를 맡는다. 여기서도 자르면 `05`가 `04`보다 더 보여주는 것이 개수뿐이 되어
-// 층위가 사라진다 (설계서 §3.2).
-//
-// **탭 대상이 둘인 것이 이 화면의 유일한 복잡함이다.** 셀 탭은 어느 셀에서나 `06`으로 가고
-// (*"누르면 커진다"* 가 모든 셀에서 같아야 한다), 펼침은 배지라는 명시적 어포던스가 맡는다.
-// 셀 탭을 펼침으로 하면 연사 셀만 동작이 달라져 그리드가 예측 불가능해진다.
+// **탭 대상이 둘이다** — 셀 탭은 어느 셀에서나 `06`으로 가고, 펼침은 배지가 맡는다.
 
 import MomentKernel
 import PhotoSource
@@ -31,12 +25,10 @@ struct MomentDetailScreen: View {
         .navigationTitle(Wording.detailTitle(moment.start))
         .navigationSubtitle(Wording.counts(photos: moment.photoCount, scenes: moment.sceneCount))
         .navigationBarTitleDisplayMode(.inline)
-        // `05`에는 아래로 당기기가 없다 — 새로고침은 `04`에만.
         .fullScreenCover(item: $viewing) { position in
             PhotoViewerScreen(library: library, moment: moment, start: position.index)
         }
-        // 선택이 바뀌면(iPad) 펼침을 접고 처음으로 돌아간다. 앞 순간의 상태가 따라오면
-        // "무엇이 펼쳐져 있는지"가 설명되지 않는다.
+        // 선택이 바뀌면(iPad) 펼침을 접는다 — 앞 순간의 첨자가 남으면 엉뚱한 셀이 펼쳐진다.
         .onChange(of: moment) { expanded = [] }
     }
 
@@ -61,8 +53,6 @@ struct MomentDetailScreen: View {
     }
 
     private func cellView(_ cell: Cell) -> some View {
-        // `05-G3` — 펼쳐진 셀만 사진에 3pt 인셋. 셀 배경이 사진 둘레에 띠로 보인다.
-        // 사진이 3pt 작아지는 것은 크기 축소가 아니라 **상태 표시**다 — 접으면 돌아온다.
         ZStack {
             Rectangle().fill(cell.isExpanded ? Palette.active : Palette.surface)
             AssetImage(asset: library.asset(at: cell.photoIndex),
@@ -77,10 +67,8 @@ struct MomentDetailScreen: View {
         .overlay(alignment: .topLeading) { badge(cell) }
     }
 
-    /// `05-G2` 연사 배지 / `05-G4` 접기. **장면이 2장 이상일 때만**, 그리고 대표 셀에만 붙는다.
-    ///
-    /// 시각적으로 작게 두되 **히트 영역을 44×44로 넓힌다** — 배지는 셀 탭 위에 얹힌 두 번째
-    /// 탭 대상이라, 작으면 셀 탭을 누르려다 배지가 눌린다.
+    /// 장면이 2장 이상일 때 대표 셀에만 붙는다.
+    /// ⚠️ 작게 보이지만 **히트 영역은 44×44** — 셀 탭 위에 얹힌 두 번째 탭 대상이라 작으면 오폭한다.
     @ViewBuilder
     private func badge(_ cell: Cell) -> some View {
         if cell.isRepresentative, cell.sceneSize > 1 {
@@ -88,8 +76,7 @@ struct MomentDetailScreen: View {
                 if expanded.contains(cell.sceneIndex) {
                     expanded.remove(cell.sceneIndex)
                 } else {
-                    // 펼쳐도 대표 셀의 화면상 위치는 바뀌지 않는다 — 삽입이 **대표 뒤에서**
-                    // 일어나므로 앞선 칸 수가 그대로다. 그래서 스크롤이 튀지 않는다.
+                    // 삽입이 대표 뒤에서 일어나 앞선 칸 수가 그대로다 — 스크롤이 안 튄다.
                     expanded.insert(cell.sceneIndex)
                 }
             } label: {
@@ -105,8 +92,7 @@ struct MomentDetailScreen: View {
 
     // MARK: - 칸 계산
 
-    /// 열 수 규칙 — 최대 iPhone 3 / iPad 4. **접힌 장면 수가 그보다 적으면 장면 수에 맞춘다.**
-    /// `04`에서 1장짜리 순간을 압축하지 않기로 해놓고 여기서 작은 칸 하나로 되돌릴 수는 없다.
+    /// **접힌 장면 수가 최대 열 수보다 적으면 장면 수에 맞춘다.**
     private var columnCount: Int {
         let maximum = sizeClass == .regular ? Layout.detailColumnsRegular : Layout.detailColumnsCompact
         return max(1, min(maximum, moment.sceneCount))
@@ -138,8 +124,7 @@ struct MomentDetailScreen: View {
     }
 }
 
-/// `05-G2` — 겹친 스택 + 숫자. **형태가 "여러 장"을 말하고 숫자는 개수만 말한다** —
-/// `05-N3`이 이미 장수 어휘를 쓰고 있어 여기서 `3장`이라고 또 쓰지 않는다 (설계서 §3.2).
+/// `05-G2` 연사 배지 — 겹친 스택 + 숫자. 펼치면 `05-G4` 접기가 같은 자리를 쓴다.
 struct BurstBadge: View {
     let count: Int
     let expanded: Bool
@@ -147,7 +132,6 @@ struct BurstBadge: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             if !expanded {
-                // 뒤에 겹친 한 장.
                 RoundedRectangle(cornerRadius: Radius.badge)
                     .fill(Palette.surface)
                     .frame(width: 20, height: 16)
@@ -158,7 +142,6 @@ struct BurstBadge: View {
                 .fill(Palette.surface)
                 .frame(width: expanded ? 34 : 20, height: 16)
                 .overlay {
-                    // `05-G4` 접기는 `05-G2` **자리를 대체한다**.
                     Text(expanded ? Wording.collapse : "\(count)")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(.primary)

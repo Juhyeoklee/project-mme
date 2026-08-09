@@ -1,20 +1,17 @@
-// PhotoSource — 사진 라이브러리를 아는 유일한 모듈. 공개 API에 쓰기 연산 없음 (ADR 0001 결정 2).
-// 게임 지식 없음 — 컨테이너를 찾고, 자산을 열거하고, 바이트를 읽는 것까지가 이 모듈의 일이다 (ADR 0002).
-// 어느 앨범이 게임 것인지도 이 모듈의 지식이 아니다 — 앨범 이름은 주입받는다.
-// 쓰기 심볼 금지는 scripts/verify-boundaries.swift가 강제한다.
-//
-// 이 파일은 계약 타입만 담는다. 구현은 AlbumPhotoSource.swift.
+// PhotoSource — 사진 라이브러리를 아는 유일한 모듈. **공개 API에 쓰기 연산 없음**
+// (ADR `0001` 결정 2 · `scripts/verify-boundaries.swift`가 강제한다). **게임 지식도 없다** —
+// 어느 앨범이 게임 것인지는 주입받고, 하는 일은 컨테이너 찾기·열거·바이트 읽기다 (ADR `0002`).
+// 이 파일은 계약 타입만 담는다. 구현은 `AlbumPhotoSource.swift`.
 
 import Foundation
 
 /// 소스 안의 사진 한 장을 가리키는 손잡이. 바이트는 아직 읽지 않았다.
 ///
-/// `filename`은 커널 입력의 절반이다 (ADR 0002 — 커널 입력 = 사진별 (파일명, 바이트)).
-/// 원본이 기기에 없어도 읽히므로, 로드에 실패한 사진도 이름으로 지목할 수 있다.
+/// `filename`은 커널 입력의 절반이고(ADR `0002`) 원본이 기기에 없어도 읽히므로,
+/// 로드에 실패한 사진도 이름으로 지목할 수 있다.
 public struct SourceAsset: Sendable, Hashable, Identifiable {
     /// 라이브러리 안에서의 식별자. 이 모듈 밖에서는 불투명한 문자열이다.
     public let id: String
-    /// 원본 파일 이름.
     public let filename: String
 
     public init(id: String, filename: String) {
@@ -39,10 +36,8 @@ public struct AlbumSummary: Sendable, Hashable {
     }
 }
 
-/// 읽기 접근 상태.
-///
-/// 플랫폼이 제공하는 가장 좁은 읽기 권한이 `.readWrite`라 그것을 요청하지만,
-/// 이 모듈의 공개 API에는 쓰기가 없고 쓰기 심볼 금지는 검증기가 강제한다 (원칙 `P5`).
+/// 읽기 접근 상태. 플랫폼이 주는 가장 좁은 읽기 권한이 `.readWrite`라 그것을 요청하지만,
+/// 공개 API에는 쓰기가 없고 쓰기 심볼 금지는 검증기가 강제한다 (원칙 `P5`).
 public enum ReadAccess: Sendable, Hashable, CustomStringConvertible {
     case notDetermined
     case restricted
@@ -72,13 +67,10 @@ public enum ReadAccess: Sendable, Hashable, CustomStringConvertible {
 
 /// 어댑터가 말하는 실패. 리스크 `R8`이 사는 자리가 `originalNotOnDevice`다.
 public enum PhotoSourceError: Error, Sendable, Hashable, CustomStringConvertible {
-    /// 읽기 권한이 없다.
     case accessNotGranted(ReadAccess)
-    /// 그 이름의 앨범이 없다.
     case albumNotFound(title: String)
     /// 자산이 사라졌거나 식별자가 더 이상 유효하지 않다.
     case assetNotFound(assetID: String)
-    /// 원본 파일에 해당하는 리소스가 없다.
     case noOriginalResource(assetID: String)
     /// **`R8`** — 원본이 기기에 없고 네트워크 접근이 막혀 있다.
     case originalNotOnDevice(assetID: String)

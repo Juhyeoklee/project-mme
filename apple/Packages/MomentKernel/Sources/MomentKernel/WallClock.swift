@@ -1,10 +1,8 @@
 // 시각 — 시간대가 없는 벽시계.
 //
-// 이 모듈은 import 0이라 Foundation의 `Date`·`Calendar`를 쓸 수 없다 (ADR 0001 결정 4 ①).
-// 그런데 그게 손해가 아니다. 입력인 파일명 `..._YYYYMMDDHHMMSSff.png` 는 **촬영 기기의
-// 벽시계**지 타임라인 위의 한 점이 아니다. `Date`를 쓰면 데이터에 없는 시간대를 발명해
-// 넣었다가 도로 빼야 하고, 그 왕복이 약속 `C5`(같은 사진이면 같은 결과)가 깨지는 자리다.
-// 시간대를 아예 만들지 않으면 그 함정이 없다.
+// import 0이라 `Date`·`Calendar`를 쓸 수 없는데(ADR `0001` 결정 4 ①) 그게 손해가 아니다.
+// 파일명이 담은 것은 **촬영 기기의 벽시계**지 타임라인 위의 한 점이 아니다. `Date`를 쓰면
+// 데이터에 없는 시간대를 발명했다 도로 빼야 하고, 그 왕복이 약속 `C5`가 깨지는 자리다.
 
 /// 시간대가 없는 벽시계 시각. 1/100초까지 담는다.
 public struct WallClock: Sendable, Hashable, Comparable {
@@ -48,8 +46,7 @@ public struct WallClock: Sendable, Hashable, Comparable {
         }
     }
 
-    /// 1970-01-01을 0으로 하는 일련 일수. Howard Hinnant의 `days_from_civil`이다.
-    /// 3월을 해의 시작으로 옮겨 윤일을 해 끝으로 몰고, 400년 주기(146097일)를 통째로 접는다.
+    /// 1970-01-01을 0으로 하는 일련 일수 — Howard Hinnant의 `days_from_civil`이다.
     /// Swift의 `/`는 C++와 같이 0쪽으로 자르므로 원문 그대로 옮겨진다.
     public static func daysFromCivil(year: Int, month: Int, day: Int) -> Int {
         let y = year - (month <= 2 ? 1 : 0)
@@ -101,12 +98,9 @@ public struct WallClock: Sendable, Hashable, Comparable {
 
     // MARK: 파일명
 
-    /// 촬영 파일명에서 시각을 읽는다.
-    ///
-    /// 규칙: 확장자를 떼고 **마지막 `_` 뒤가 정확히 숫자 16자**여야 한다
-    /// (`MabinogiMobile_20260802102114_45.png` 가 아니라 `..._2026080210211445.png`).
-    /// 게임 이름을 요구하지 않는 것은 의도다 — 소스가 게임 앨범으로 고정돼 있어(출시 1)
-    /// 접두사를 다시 검사할 이유가 없고, 검사하면 이름이 바뀐 사본을 통째로 잃는다.
+    /// 확장자를 떼고 **마지막 `_` 뒤가 정확히 숫자 16자**여야 한다.
+    /// **게임 이름은 요구하지 않는다** — 소스가 게임 앨범으로 고정돼 있어 접두사를 다시 검사할
+    /// 이유가 없고, 검사하면 이름이 바뀐 사본을 통째로 잃는다.
     public static func fromCaptureFilename(_ filename: String) -> WallClock? {
         var name = Substring(filename)
         if let dot = name.lastIndex(of: "."), dot != name.startIndex {

@@ -1,12 +1,11 @@
-// 문구 — 화면설계서 §1.3이 세 화면의 문구를 **열셋으로** 닫았다. 여기가 그 열셋의 전부다.
+// 문구 — 세 화면의 문구 열셋이 전부 여기 있다.
 //
-// 한 곳에 모은 이유는 두 가지다. ① 같은 문자열이 두 화면에 나타나는 자리가 규칙이다 —
-// `04-C2`와 `05-N3`이 같은 문자열이어야 *"누른 그 순간이 맞다"* 가 확인된다(설계서 §3.2).
-// ② 없는 문구가 규칙이다 — 기록·저장·공유·설정·에러·완료 알림이 없다. 흩어놓으면 슬며시 는다.
+// 한 곳에 모은 이유 둘 — ① 같은 문자열이 두 화면에 나타나는 자리가 규칙이다(`04-C2`와 `05-N3`이
+// 같아야 *"누른 그 순간이 맞다"* 가 확인된다) ② **없는 문구가 규칙이다** — 기록·저장·공유·설정·
+// 에러·완료 알림이 없다. 흩어놓으면 슬며시 는다.
 //
-// `Date`·`Calendar`를 쓰지 않는다. 입력인 `WallClock`은 시간대가 없는 벽시계고
-// (`MomentKernel/WallClock.swift`), 표시하려고 시간대를 발명해 넣으면 자정 근처에서 날짜가
-// 밀린다. 커널이 피한 함정을 화면에서 도로 팔 이유가 없다.
+// `Date`·`Calendar`를 쓰지 않는다. `WallClock`은 시간대가 없는 벽시계고, 표시하려고 시간대를
+// 발명해 넣으면 자정 근처에서 날짜가 밀린다 — 커널이 피한 함정을 화면에서 도로 팔 이유가 없다.
 
 import MomentKernel
 
@@ -21,16 +20,13 @@ enum Wording {
     /// `05-G4`.
     static let collapse = "접기"
 
-    /// `04-N2` · `04-B2` — `순간 128개 · 1,204장`.
-    /// 두 위계가 같은 말투로 갈린다. 새 어휘를 만들지 않는다.
+    /// `순간 128개 · 1,204장`. 두 위계가 같은 말투로 갈린다 — 새 어휘를 만들지 않는다.
     static func summary(moments: Int, photos: Int) -> String {
         "순간 \(moments.formatted())개 · \(photos.formatted())장"
     }
 
-    /// `04-C2` · `05-N3` — `12장 · 8장면`.
-    ///
-    /// **연사 묶음이 없으면 `2장`만 쓴다.** `BRW-03`은 조건 없이 셋을 요구하지만, 연사가 없으면
-    /// 장면 수 = 장수라 `2장 · 2장면`은 같은 값을 두 번 말하는 것이 된다 (설계서 §2.2).
+    /// `12장 · 8장면`. **연사 묶음이 없으면 `2장`만 쓴다** — `BRW-03`은 조건 없이 셋을 요구하지만
+    /// 장면 수 = 장수면 `2장 · 2장면`은 같은 값을 두 번 말하는 것이 된다.
     static func counts(photos: Int, scenes: Int) -> String {
         photos == scenes ? "\(photos)장" : "\(photos)장 · \(scenes)장면"
     }
@@ -43,7 +39,6 @@ enum Wording {
         "\(day.month)월 \(day.day)일 (\(weekdaySymbol(day)))"
     }
 
-    /// `04-C1` · `06-N2` — `18:05`.
     static func time(_ clock: WallClock) -> String {
         "\(clock.hour):\(twoDigits(clock.minute))"
     }
@@ -53,16 +48,15 @@ enum Wording {
         "\(clock.month)월 \(clock.day)일 \(time(clock))"
     }
 
-    /// `06-N3` — `3 / 12`. **장면 수가 아니라 장수 기준이다** (설계서 §4.2).
+    /// `06-N3` — `3 / 12`.
     static func position(_ index: Int, of total: Int) -> String { "\(index + 1) / \(total)" }
 
     // MARK: - 조각
 
-    /// 요일. 1970-01-01이 목요일이라는 사실 하나로 닫힌다 — 커널의 `daysFromCivil`이 일련 일수를 준다.
+    /// 요일. `Calendar` 없이 커널의 일련 일수로 낸다.
     static func weekdaySymbol(_ day: CalendarDay) -> String {
         let days = WallClock.daysFromCivil(year: day.year, month: day.month, day: day.day)
-        // 0 = 1970-01-01 = 목요일. 일요일을 0으로 옮기려면 4를 더한다.
-        // 음수 구간(1970 이전)에서도 맞도록 나머지를 양수로 접는다.
+        // 1970-01-01 = 목요일. 일요일을 0으로 옮기려 4를 더하고, 음수 구간에서도 맞게 접는다.
         let index = ((days + 4) % 7 + 7) % 7
         return ["일", "월", "화", "수", "목", "금", "토"][index]
     }

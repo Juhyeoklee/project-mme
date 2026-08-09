@@ -25,7 +25,7 @@ struct SignalReadingTests {
     }
 
     @Test func 쓰지_않는_필드가_섞여_있어도_읽는다() {
-        // 게임은 10개를 써넣는다. 커널이 쓰는 것은 4개고 나머지는 지나친다.
+        // 게임은 10개를 써넣는다(`ios-album` §3.1). 커널이 쓰는 것은 4개고 나머지는 지나친다.
         let reading = read(PNGFixture.capture(extraText: [
             ("Author", "이모모쨩"),
             ("Erinn Time", "16 : 59"),
@@ -48,9 +48,7 @@ struct SignalReadingTests {
     }
 
     @Test func 실물이_쓰는_종료_NUL을_떼어낸다() {
-        // 규격상 `iTXt` 텍스트는 청크 끝까지고 종료자가 없다. 그런데 게임은 NUL을 하나 더
-        // 쓴다(표본 211/211). 안 떼면 값 끝이 `>` 가 아니라 좌표 파싱이 통째로 실패한다.
-        // **합성 픽스처만으로는 못 잡았던 자리다** — 실물 대조로 잡혔다 (2026-08-03).
+        // **합성 픽스처만으로는 못 잡았던 자리다** — 실물 211/211 대조로 잡혔다 (2026-08-03).
         let bytes = PNGFixture.png(width: 100, height: 50, text: [
             ("Location Display Name", "반호르"),
             ("Camera Position", "<-7.285239, 12.22528, -87.03957>"),
@@ -108,7 +106,7 @@ struct SignalReadingTests {
     }
 
     @Test func 압축된_iTXt는_풀지_않고_상태로_보고한다() {
-        // ADR 0002 대가 2 — zlib은 import 0을 깬다. 만나면 새 결정이 필요하다.
+        // ADR `0002` 대가 2 — zlib은 import 0을 깬다. 만나면 새 결정이 필요하다.
         let bytes = PNGFixture.capture(compressedKeys: ["Location Display Name",
                                                         "Camera Position",
                                                         "Camera Rotation",

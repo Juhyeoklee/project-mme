@@ -1,32 +1,25 @@
-// 분류 — (파일명, 바이트) 컬렉션 → 날짜·순간·장면 구조.
-//
-// 순수 함수다. 상태도 부작용도 없고, 플랫폼도 시간대도 로케일도 모른다 (ADR 0001 결정 2·5).
+// 분류 — 커널의 본체.
 
-/// 임계값. 기준 A(실기기 전량 판정, 2026-08-04)로 확정 —
-/// 근거 원문은 실험 두 편(`ios-album` · `burst-signal`, 2026-08)과 커밋 `0b9d9f7`.
+/// 임계값. 근거 원문은 실험 두 편(`ios-album` · `burst-signal`)과 커밋 `0b9d9f7`.
 public struct Settings: Sendable, Hashable {
-    /// 순간을 자르는 시간 간격 (`MOM-01`). 평탄 구간 10~30분(실험 §5.1)의 위끝 —
-    /// **덜 쪼개는 쪽이 안전한 실패 방향**이다.
+    /// `MOM-01`. 평탄 구간 10~30분의 위끝 — **덜 쪼개는 쪽이 안전한 실패 방향**이다.
     public var momentGapSeconds: Int
 
-    /// 같은 구역 안에서 장소를 가르는 카메라 위치 거리 (`MOM-02`).
-    /// **판정 단위는 인접쌍이 아니라 군집이다** — 인접쌍 임계값은 메타값 좌표에서도 실패했다(§4.3).
-    ///
-    /// 60 — 구역 내 분할 거리 분포의 골(평탄 구간 56~76). 기준 A 실기기 전량 판정으로
-    /// 확정(2026-08-04). 근거 전문: 커밋 `0b9d9f7` · 실험 §5.2.
+    /// `MOM-02` — 같은 구역 안에서 장소를 가르는 카메라 위치 거리.
+    /// **판정 단위는 인접쌍이 아니라 군집이다** (인접쌍은 메타값 좌표에서도 실패했다).
+    /// 60은 기준 A 실기기 전량 판정으로 확정했다 (2026-08-04 · 커밋 `0b9d9f7`).
     public var placeClusterDistance: Double
 
-    /// 연사로 묶는 최대 시간 간격 (`MOM-04`). 시선이 같은 쌍의 pHash 거리가 여기서 꺾인다.
+    /// `MOM-04`. 시선이 같은 쌍의 pHash 거리가 여기서 꺾인다.
     public var burstGapSeconds: Double
-    /// 연사로 묶는 최대 카메라 위치 이동.
+    /// 아래 회전·화각과 함께 실험의 「시선이 같다」 정의 그대로다.
     public var burstCameraDistance: Double
-    /// 연사로 묶는 최대 카메라 회전(도).
     public var burstAngleDegrees: Double
-    /// 화각이 "같다"고 볼 오차. 정확히 같기를 요구하면 부동소수에 취약하다.
+    /// 정확히 같기를 요구하면 부동소수에 취약하다.
     public var burstFieldOfViewTolerance: Double
 
-    /// 새벽 컷오프 (`MOM-06`). 이 시각 전의 순간은 전날에 붙는다.
-    /// 표본에서 촬영이 3~5시에 비고 6시대에 아침 플레이가 있다 — 4시가 그 골이다.
+    /// `MOM-06`. 표본에서 촬영이 3~5시에 비고 6시대에 아침 플레이가 있다 — 4시가 그 골이다
+    /// (2026-08-03 세션 관측. 실험 문서에는 없다).
     public var dayCutoffHour: Int
 
     public init(momentGapSeconds: Int = 1800,
@@ -48,19 +41,19 @@ public struct Settings: Sendable, Hashable {
     public static let `default` = Settings()
 }
 
+/// `MomentKernel`의 입구. **(파일명, 바이트) 컬렉션 → 날짜·순간·장면 구조.**
+///
+/// 순수 함수다 — 상태도 부작용도 없고, 플랫폼·시간대·로케일을 모른다 (ADR `0001` 결정 2·5).
+/// 같은 사진 집합이면 어느 기기에서든 같은 결과가 나온다 (`MOM-07` · 약속 `C5`).
 public enum Classifier {
     /// 사진 집합을 날짜·순간·장면으로 분류한다.
     ///
-    /// **부분 입력 계약** (원문: ADR `0004` 결정 2) —
-    /// 1. 바이트 없는 사진은 **시각만** 갖는다. 시간 경계에는 온전히 참여하고,
-    ///    장소 분할과 연사 접기에는 참여하지 않는다
-    /// 2. 출력은 **입력 집합만의 함수**다 (`MOM-07` · 약속 `C5`)
+    /// **부분 입력 계약** (ADR `0004` 결정 2) — 바이트 없는 사진은 **시각만** 갖고 시간 경계에만
+    /// 참여한다. 출력은 **입력 집합만의 함수**다 (`MOM-07` · 약속 `C5`). 귀결로, 바이트만 채워
+    /// 다시 부르면 순간은 **더 잘게 쪼개질 뿐** 합쳐지거나 순서가 바뀌지 않는다.
+    /// (장면은 반대다 — 연사가 접혀 줄 수 있다.)
     ///
-    /// 귀결: 같은 집합에 바이트만 채워 다시 부르면 순간은 **더 잘게 쪼개질 뿐** 합쳐지거나
-    /// 순서가 바뀌지 않는다 — 화면 `04`의 행이 2패스 도중 재배치되지 않는다.
-    /// (장면은 반대 방향이다 — 연사가 접혀 줄 수 있다.)
-    ///
-    /// 전제: `App`은 1패스에 자산을 **전량 열거해 전부** 넘긴다. 기계가 강제하지 못한다.
+    /// ⚠️ **전제** — `App`은 1패스에 자산을 **전량 열거해 전부** 넘긴다. 기계가 못 막는다.
     public static func classify(_ inputs: [PhotoInput],
                                 settings: Settings = .default) -> Classification {
         let readings = inputs.map { SignalReader.read($0) }
@@ -77,8 +70,7 @@ public enum Classifier {
             }
         }
 
-        // 시각 오름차순. 동시각이면 파일명으로 가른다 — **입력 순서를 타지 않기 위해서다**.
-        // 인덱스는 파일명까지 같은, 구조적으로 구별할 수 없는 경우의 마지막 안전장치다.
+        // ⚠️ 동시각이면 파일명, 그것도 같으면 인덱스 — 입력 순서를 타면 `MOM-07`이 깨진다.
         placed.sort {
             if $0.at != $1.at { return $0.at < $1.at }
             if $0.filename != $1.filename { return $0.filename < $1.filename }
@@ -124,9 +116,8 @@ public enum Classifier {
         return runs
     }
 
-    /// `MOM-02` `MOM-03` — 장소가 바뀌면 더 나누되, 순간은 **시간상 연속 구간**으로 남는다.
-    /// 그래서 군집으로 라벨을 얻고, 시간 순서에서 라벨이 바뀌는 자리를 자른다.
-    /// A→B→A면 순간 3개다.
+    /// `MOM-02` `MOM-03` — 순간이 **시간상 연속 구간**으로 남아야 하므로, 군집으로 라벨을 얻고
+    /// 시간 순서에서 라벨이 바뀌는 자리를 자른다. A→B→A면 순간 3개다.
     static func splitByPlace(_ run: [Placed], distance: Double) -> [[Placed]] {
         guard run.count > 1 else { return run.isEmpty ? [] : [run] }
         let labels = placeLabels(run, distance: distance)
@@ -142,7 +133,7 @@ public enum Classifier {
                 }
                 lastKnown = label
             }
-            // 신호가 없는 사진은 경계를 만들지 않는다. 안 나누는 쪽이 안전한 실패 방향이다.
+            // 신호가 없으면 경계를 만들지 않는다 — 안 나누는 쪽이 안전한 실패 방향이다.
             current.append(item)
         }
         if !current.isEmpty { segments.append(current) }
@@ -151,11 +142,10 @@ public enum Classifier {
 
     /// 장소 라벨. 신호가 없으면 `nil`.
     ///
-    /// **구역 이름이 하드 파티션이다.** 카메라 좌표계가 구역마다 별개라(측정 2026-08-03:
-    /// 던바튼 중심 `<-17,88,-27>` 반경 204 · 이멘마하 `<43,42,16>` 반경 200) 전역 거리로만
-    /// 재면 다른 구역이 우연히 가까워질 수 있다. 이름으로 먼저 가르면 그 구멍이 닫힌다.
+    /// **구역 이름이 하드 파티션이다** — 카메라 좌표계가 구역마다 별개라(2026-08-03 측정)
+    /// 전역 거리로만 재면 다른 구역이 우연히 가까워질 수 있다.
     static func placeLabels(_ run: [Placed], distance: Double) -> [Int?] {
-        // 구역 이름을 **처음 나온 순서**로 모은다. Dictionary 순회는 결정적이지 않다.
+        // ⚠️ 처음 나온 순서로 모은다 — `Dictionary` 순회는 결정적이지 않다.
         var zoneOrder: [String] = []
         var positionsByZone: [String: [Int]] = [:]
         for (position, item) in run.enumerated() {
@@ -188,10 +178,8 @@ public enum Classifier {
     ///
     /// **다른 언어 구현이 같은 결과를 내야 하므로 갱신식과 병합 순서를 못 박는다** (`MOM-07`) —
     /// 거리 갱신은 Lance-Williams `d(A∪B,C) = (|A|·d(A,C) + |B|·d(B,C)) / (|A|+|B|)`,
-    /// 매 단계 가장 가까운 쌍을 합치되 **동률이면 첨자가 작은 쌍**을 먼저 합친다.
-    /// 군집 번호는 **가장 작은 구성원의 첨자 순서**로 매긴다.
-    ///
-    /// 순간 하나의 크기가 작아(표본 최대 26장) 단순한 O(n³)로 충분하다.
+    /// **동률이면 첨자가 작은 쌍**을 먼저 합치고, 군집 번호는 **가장 작은 구성원의 첨자 순서**로.
+    /// 순간 하나가 작아(표본 최대 26장) 단순한 O(n³)로 충분하다.
     static func averageLinkageClusters(_ points: [Vector3], threshold: Double) -> [Int] {
         let n = points.count
         guard n > 1 else { return n == 1 ? [0] : [] }
@@ -249,10 +237,8 @@ public enum Classifier {
         return result
     }
 
-    /// `MOM-04` — 연달아 찍은 거의 같은 컷을 접는다.
-    ///
-    /// 화면에 무엇이 담기는지를 결정하는 것은 **카메라 자세 + 화각 + 종횡비**다. 신호가 없는
-    /// 사진은 접히지 않는다 — **접으면 사진이 숨겨지므로** 안 접는 쪽이 안전한 실패 방향이다.
+    /// `MOM-04` — 화면에 무엇이 담기는지는 **카메라 자세 + 화각 + 종횡비**가 정한다.
+    /// 신호가 없으면 안 접는다 — **접으면 사진이 숨겨지므로** 그쪽이 안전한 실패 방향이다.
     static func foldBursts(_ segment: [Placed], settings: Settings) -> [Scene] {
         guard !segment.isEmpty else { return [] }
         var scenes: [[Int]] = [[segment[0].index]]
@@ -276,8 +262,8 @@ public enum Classifier {
             && first.hasSameAspectRatio(as: second)
     }
 
-    /// `MOM-05` `MOM-06` — 순간을 날짜로 묶는다. 날짜는 **순간의 첫 사진** 시각으로 정한다.
-    /// 순간이 시간상 연속 구간이므로(`MOM-03`) 한 순간이 두 날짜로 찢어지지 않는다.
+    /// `MOM-05` `MOM-06` — 날짜는 **순간의 첫 사진** 시각으로 정한다. 순간이 시간상
+    /// 연속 구간이므로(`MOM-03`) 한 순간이 두 날짜로 찢어지지 않는다.
     static func groupIntoDays(_ moments: [Moment], cutoffHour: Int) -> [Day] {
         var order: [CalendarDay] = []
         var byDate: [CalendarDay: [Moment]] = [:]

@@ -1,11 +1,9 @@
 import Foundation
 
 /// 합성 PNG 픽스처. **개인 스크린샷을 저장소에 넣지 않기 위해** 바이트를 직접 만든다.
-///
-/// CRC까지 제대로 계산한다 — 커널 파서는 CRC를 안 보지만, 픽스처가 진짜 PNG여야
-/// 외부 도구로도 확인할 수 있고 나중에 CRC 검사를 넣어도 안 깨진다.
+/// CRC까지 계산하는 것은 커널이 안 봐도 픽스처가 진짜 PNG여야 외부 도구로 확인되기 때문이다.
 enum PNGFixture {
-    /// 게임이 실제로 써넣는 10개 중 커널이 쓰는 4개 + 자주 쓰는 조합.
+    /// 게임이 써넣는 10개 중 커널이 쓰는 4개 + 자주 쓰는 조합.
     static func capture(width: Int = 1600, height: Int = 738,
                         zone: String = "던바튼",
                         cameraPosition: (Double, Double, Double) = (0, 0, 0),
@@ -30,8 +28,7 @@ enum PNGFixture {
         "<\(v.0), \(v.1), \(v.2)>"
     }
 
-    /// `textAfterIDAT`가 참이면 `iTXt`를 `IDAT` **뒤에** 놓는다 — 파서가 픽셀 데이터를
-    /// 건너뛰고도 텍스트를 찾는지 보기 위해서다.
+    /// `textAfterIDAT` — 파서가 픽셀 데이터를 건너뛰고도 텍스트를 찾는지 보기 위한 손잡이.
     static func png(width: Int, height: Int,
                     text: [(String, String)],
                     compressedKeys: Set<String> = [],
@@ -60,9 +57,8 @@ enum PNGFixture {
         return bytes
     }
 
-    /// `gameStyle`이 기본값인 이유 — **실물이 이렇다**(2026-08-03 확인).
-    /// 번역된 키워드에 키워드를 그대로 되풀이하고, 규격에 없는 **종료 NUL을 하나 더** 쓴다.
-    /// 규격에 맞는 형태(`gameStyle: false`)도 읽혀야 하므로 둘 다 시험한다.
+    /// `gameStyle`이 기본값인 이유 — **실물이 이렇다**(2026-08-03): 번역된 키워드에 키워드를
+    /// 되풀이하고 규격에 없는 **종료 NUL을 하나 더** 쓴다. 규격 형태도 읽혀야 해 둘 다 시험한다.
     static func itxt(keyword: String, value: String, compressed: Bool,
                      gameStyle: Bool = true) -> [UInt8] {
         var data: [UInt8] = Array(keyword.utf8)

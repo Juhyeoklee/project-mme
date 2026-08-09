@@ -1,12 +1,8 @@
 // 프리뷰 데이터. **DEBUG에만 있다 — 출시 바이너리에 들어가지 않는다.**
 //
 // 개인 스크린샷을 저장소에 넣지 않으므로(`CLAUDE.md` 경계 규칙) 사진도 분류도 합성한다.
-// 다만 **분류는 진짜 커널이 한다** — 여기서 만드는 것은 (파일명, 바이트)뿐이고 `Day`·`Moment`·
-// `Scene`은 `Classifier.classify`가 돌려준 것이다. 목업 구조를 손으로 만들면 프리뷰가 커널과
-// 어긋난 채로 예뻐 보일 수 있다.
-//
-// **세션 2의 교훈을 여기에도 적용한다 — 합성만 믿지 않는다.** 실물 확인은 실기기 몫이고,
-// 이 파일이 대신하는 것은 레이아웃·간격·타이포·동적 타입까지다.
+// 다만 **분류는 진짜 커널이 한다** — 여기서 만드는 것은 (파일명, 바이트)뿐이다. 목업 구조를
+// 손으로 만들면 프리뷰가 커널과 어긋난 채로 예뻐 보인다.
 
 #if DEBUG
 import CoreGraphics
@@ -16,10 +12,9 @@ import SwiftUI
 
 @MainActor
 enum Fixture {
-    // **전부 `static let`이다. 프리뷰에서 이건 정확성 문제다.**
-    // 매번 새로 만들면 `.environment(store)`의 객체 신원이 갱신마다 바뀌고, 그러면 캐시가 늘 비어
-    // `AssetImage`의 `.task`가 다시 돌고 → 상태가 바뀌고 → 다시 갱신되는 무한 루프가 된다.
-    // (2026-08-04에 실제로 겪었다 — 렌더가 10분을 넘겨도 스냅샷이 안 나왔다.)
+    // **전부 `static let`이다 — 프리뷰에서 이건 정확성 문제다.** 매번 새로 만들면 `store`의
+    // 객체 신원이 갱신마다 바뀌어 캐시가 늘 비고, `.task` → 상태 변경 → 갱신의 무한 루프가
+    // 된다 (2026-08-04에 겪었다. 렌더가 10분을 넘겨도 스냅샷이 안 나왔다).
     static let inputs = makeInputs()
     static let classification = Classifier.classify(inputs)
     static let assets = inputs.enumerated().map { index, input in
@@ -32,16 +27,16 @@ enum Fixture {
                                                phase: .readingRemote, progress: 0.42)
     static let emptyLibrary = MomentLibrary.preview(Classifier.classify([]), assets: [])
 
-    /// 연사가 섞인 순간 — `05`의 배지·펼침이 붙는 자리를 본다.
+    /// 배지·펼침이 붙는 자리를 본다.
     static let momentWithBurst = allMoments.first { moment in
         moment.scenes.contains { $0.isFolded }
     } ?? allMoments[0]
-    /// 1장짜리 순간 — 열 수를 장면 수에 맞추는 규칙(§3.2)이 실제로 화면 폭 한 장이 되는지.
+    /// 열 수를 장면 수에 맞추는 규칙이 실제로 화면 폭 한 장이 되는지.
     static let singlePhotoMoment = allMoments.first { $0.photoCount == 1 } ?? allMoments[0]
 
     private static let allMoments = classification.days.flatMap(\.moments)
 
-    /// 표본을 닮은 한 세션. 날짜 2개 · 순간 여럿 · 연사 있음/없음 · 1장짜리 · 7장면 초과가 섞이도록 짰다.
+    /// 표본을 닮은 한 세션. 날짜 2개 · 연사 있음/없음 · 1장짜리 · 7장면 초과가 섞이도록 짰다 —
     /// `04`가 실제로 마주치는 모양을 한 화면에 다 올리는 것이 목적이다.
     private static func makeInputs() -> [PhotoInput] {
         var photos: [(stamp: String, zone: String, position: (Double, Double, Double), portrait: Bool)] = []
@@ -50,7 +45,7 @@ enum Fixture {
             photos.append((stamp, zone, (x, 40, -20), portrait))
         }
 
-        // 7월 26일 18:05 — 12장 · 8장면 (설계서 §1.3의 그 문구가 나오도록)
+        // 7월 26일 18:05 — 12장 · 8장면 (설계서의 그 문구가 나오도록)
         add("20260726180500", "던바튼", 0)
         add("20260726180503", "던바튼", 0.2)          // 연사 (같은 장면)
         add("20260726180506", "던바튼", 0.3)          // 연사
@@ -68,7 +63,7 @@ enum Fixture {
         add("20260726203000", "이멘마하", 300)
         add("20260726203040", "이멘마하", 302)
 
-        // 1장짜리 순간 — `04`의 우측 여백이 빈칸으로 보이는지(§5 항목 4)
+        // 1장짜리 순간 — `04`의 우측 여백이 빈칸으로 보이는지
         add("20260726224500", "티르코네일", 700, portrait: true)
 
         // 전날 — 장면이 많아 `+N`이 나오는 순간 (7장면 이상)
@@ -86,10 +81,9 @@ enum Fixture {
     }
 
     /// 합성 이미지를 먹이는 저장소. 세로 사진이 섞여 있어야
-    /// 정사각 크롭(§5 항목 1)과 세로 셀 여백(항목 7)이 프리뷰에서도 눈에 보인다.
+    /// 정사각 크롭과 세로 셀 여백이 프리뷰에서도 눈에 보인다.
     private static func makeStore() -> ImageStore {
-        // 어느 것이 세로인지는 **커널이 읽은 값**으로 판정한다. 픽스처를 만들 때의 의도가 아니라
-        // 실제로 파일에 들어간 `IHDR`을 보는 것이라, 픽스처가 어긋나면 프리뷰에서 티가 난다.
+        // 세로 여부는 의도가 아니라 커널이 읽은 `IHDR`로 판정한다 — 어긋나면 티가 난다.
         let portraitIDs = Set(zip(assets, classification.readings).compactMap { asset, reading in
             guard let signals = reading.signals else { return nil as String? }
             return signals.pixelHeight > signals.pixelWidth ? asset.id : nil
@@ -108,7 +102,7 @@ enum Fixture {
     }
 
     /// 사진 자리에 들어갈 합성 그림. 사진이 아니라 **사진 크기의 무늬**다 —
-    /// 크롭·여백·정렬을 보는 데는 충분하고, "봐서 생각이 나는가"(§5 항목 1)는 실기기가 답한다.
+    /// 크롭·여백·정렬을 보는 데는 충분하고, "봐서 생각이 나는가"는 실기기가 답한다.
     static func synthetic(pixels: Int, portrait: Bool, hue: Double) -> CGImage? {
         let long = max(pixels, 8)
         let short = Int(Double(long) / 1.294)
@@ -167,7 +161,7 @@ private enum PNG {
         data += Array(keyword.utf8)          // 번역된 키워드 = 키워드 (실물이 그렇다)
         data.append(0)
         data += Array(value.utf8)
-        data.append(0)                       // 규격에 없는 종료 NUL — 실물 211/211
+        data.append(0)                       // 규격에 없는 종료 NUL — 실물 211/211 (2026-08-03)
         return data
     }
 
