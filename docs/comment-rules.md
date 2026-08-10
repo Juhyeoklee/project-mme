@@ -73,7 +73,8 @@
 ```
 cd apple
 grep -rnE '(설계서|토큰) §' --include='*.swift' . | grep -v '/.build/'   # 산출물 문서 참조
-grep -rnE 'ADR [0-9]'      --include='*.swift' . | grep -v '/.build/'   # 백틱 없는 ADR 번호
+grep -rnE 'ADR [0-9]'      --include='*.swift' . | grep -v '/.build/' \
+    | grep -v 'scripts/verify-boundaries'   # 백틱 없는 ADR 번호 — 검증기의 출력 문자열은 주석이 아니다 (2026-08-10)
 awk '/^ {8,}(\/\/)/{n++; next} {if(n>=3) print FILENAME":"FNR; n=0}' \
     $(find . -name '*.swift' -not -path '*/.build/*' -not -path '*Tests*')  # 본문 3줄 연속
 ```
