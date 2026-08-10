@@ -33,3 +33,12 @@ jobs:
           -scheme Moanogi
           -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO
+
+      # 앱 테스트는 시뮬레이터를 실제로 띄운다 — generic 목적지로는 안 돈다.
+      # 기기 이름은 러너 이미지마다 다르므로 iOS 26+ 중 마지막 iPhone을 골라 쓴다.
+      - name: App tests (iOS Simulator)
+        run: |
+          SIM=$(xcrun simctl list devices available | awk '/^-- iOS 2[6-9]/{ok=1;next} /^--/{ok=0} ok && /iPhone/{gsub(/ \(.*/,"");gsub(/^ +/,"");n=$0} END{print n}')
+          echo "시뮬레이터: $SIM"
+          xcodebuild test -project apple/Moanogi.xcodeproj -scheme Moanogi \
+            -destination "platform=iOS Simulator,name=$SIM" CODE_SIGNING_ALLOWED=NO

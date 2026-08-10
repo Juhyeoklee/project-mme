@@ -5,7 +5,7 @@
 ## 읽는 순서
 
 1. `docs/WHY.md` — 왜 이 프로젝트를 이렇게 하는가
-2. `docs/adr/` — 결정 기록. `0001` 모듈 경계 · `0002` 커널 입력 계약 · `0003` 에이전트 워크플로우 · `0004` 분류 신호 · **`0005`~`0010` 탈락 기록** — 막다른 길의 표지다. 같은 길을 다시 검토하기 전에 읽는다
+2. `docs/adr/` — 결정 기록. `0001` 모듈 경계 · `0002` 커널 입력 계약 · `0003` 에이전트 워크플로우 · `0004` 분류 신호 · **`0005`~`0010` 탈락 기록**(막다른 길의 표지다 — 같은 길을 다시 검토하기 전에 읽는다) · `0011` 장소 경계 재계산(`0004` 결정 2 (c)를 대체)
 3. **구조의 진실은 `apple/Packages/*/Package.swift`다.** 문서의 모듈 목록은 결정 시점의 스냅샷이다
 
 ## 경계 — 한 줄씩 (원문: ADR `0001`)
@@ -23,6 +23,11 @@ swift test --package-path apple/Packages/MomentKernel
 swift test --package-path apple/Packages/PhotoSource
 xcodebuild build -project apple/Moanogi.xcodeproj -scheme Moanogi \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+
+# 앱 테스트는 시뮬레이터를 실제로 띄운다 — generic 목적지로는 안 돈다
+SIM=$(xcrun simctl list devices available | awk '/^-- iOS 2[6-9]/{ok=1;next} /^--/{ok=0} ok && /iPhone/{gsub(/ \(.*/,"");gsub(/^ +/,"");n=$0} END{print n}')
+xcodebuild test -project apple/Moanogi.xcodeproj -scheme Moanogi \
+  -destination "platform=iOS Simulator,name=$SIM" CODE_SIGNING_ALLOWED=NO
 ```
 
 빌드·테스트 루프에 도구를 더하지 않는다 (ADR `0003` 결정 3). 최종 차단은 컴파일러와 CI다.
@@ -37,6 +42,15 @@ xcodebuild build -project apple/Moanogi.xcodeproj -scheme Moanogi \
 자리(지뢰)** 는 본문에 `⚠️`로 적는다.
 
 **자리별 분량 · 쓰지 않는 것 · 참조 규칙은 `docs/comment-rules.md`.** 주석을 쓰거나 리뷰할 때 읽는다.
+
+## 코드
+
+**규칙은 이 저장소가 실제로 한 선택에서 나왔다** — 타입·실패·접근 수준·화면·테스트.
+층은 미리 만들지 않고, 상한은 줄 수가 아니라 **표면**에 건다(안 쓰는 `public` 0 · 프로토콜 0 ·
+이름 없는 유틸 파일 0). **모듈을 넘는 공유는 유틸이 아니라 경계 결정이라 ADR로 간다.**
+
+**전문은 `docs/code-rules.md`.** 코드를 쓰거나 리뷰할 때 읽는다 — ⚠️ **시험 운행이다**(`M1`에서
+뽑았으므로 `M1` 코드로는 검증되지 않는다. `M2` 구현이 첫 표본이다).
 
 ## 기존 코드를 만나는 법
 
@@ -60,7 +74,8 @@ xcodebuild build -project apple/Moanogi.xcodeproj -scheme Moanogi \
 1. **우회 냄새** — 새 코드가 기존 코드의 결함에 맞춰 기이해진 자리 (위 절. 우회는 만든 눈에 안 보이고 신선한 눈에 보인다)
 2. **계약의 의미층** — 검증기가 못 보는 것: 커널 입력값의 생산 과정(ADR `0001` 결정 6) · 부분 입력 계약(ADR `0004`) · 원칙의 해석 — 원본 불변(`P5`) · 순간과 기록은 서로 모른다(`P2`) · 기록은 순간에서만 시작한다(`P3`)
 3. **주석 규칙** — `docs/comment-rules.md`. 특히 **「쓰지 않는 것」과 분량 상한** — 늘어나는 쪽으로만 샌다
-4. **테스트가 명세인가** — 이름이 요구를 말하는가, 기대값이 구현의 복사가 아닌가
+4. **코드 규칙** — `docs/code-rules.md`. 특히 **「하지 않는 것」과 표면 상한** — 층과 공개 API가 소리 없이 는다
+5. **테스트가 명세인가** — 이름이 요구를 말하는가, 기대값이 구현의 복사가 아닌가
 
 리뷰어가 안 하는 것 — **경계·설계 재심.** 그 판단은 사용자 몫이다.
 
