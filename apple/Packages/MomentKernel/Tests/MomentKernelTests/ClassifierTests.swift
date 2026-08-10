@@ -27,7 +27,7 @@ private extension Classification {
 @Suite("분류")
 struct ClassifierTests {
 
-    // MARK: 시간
+    // MARK: - 시간
 
     @Test func 빈_입력은_빈_결과다() {
         let result = Classifier.classify([])
@@ -62,7 +62,7 @@ struct ClassifierTests {
         #expect(moment.end == WallClock.fromCaptureFilename(captureName("2026080213052500")))
     }
 
-    // MARK: 장소
+    // MARK: - 장소
 
     @Test func 같은_순간_안에서_장소가_바뀌면_더_나눈다() {
         let result = Classifier.classify([
@@ -96,16 +96,15 @@ struct ClassifierTests {
     }
 
     @Test func 판정_단위가_인접쌍이_아니라_군집이다() {
-        // 인접쌍 임계값이면 0→45→90→135가 한 덩어리가 되지만(각 간격 45 < 60) 평균 연결은
-        // 양 끝이 135 떨어진 것을 본다. ⚠️ **간격이 늘 임계값의 0.75배라, 임계값이 바뀌면
-        // 이 좌표도 같이 움직여야 한다.**
-        let result = Classifier.classify([
-            photo("2026080213000000", position: (0, 0, 0)),
-            photo("2026080213010000", position: (45, 0, 0)),
-            photo("2026080213020000", position: (90, 0, 0)),
-            photo("2026080213030000", position: (135, 0, 0)),
-        ])
-        #expect(result.momentCount > 1)
+        // 네 점을 임계값의 0.75배씩 벌린다. 인접쌍 판정이면 한 덩어리지만(간격 < 임계값)
+        // 평균 연결은 양 끝이 세 걸음 떨어진 것을 본다.
+        let step = Settings.default.placeClusterDistance * 0.75
+        let result = Classifier.classify((0..<4).map { index in
+            photo(String(format: "20260802130%d0000", index),
+                  position: (step * Double(index), 0, 0))
+        })
+        #expect(result.momentCount == 2)
+        #expect(result.allMoments.map(\.photoCount) == [2, 2])
     }
 
     @Test func 가까운_것끼리는_한_장소로_남는다() {
@@ -117,7 +116,7 @@ struct ClassifierTests {
         #expect(result.momentCount == 1)
     }
 
-    // MARK: 연사
+    // MARK: - 연사
 
     @Test func 시선이_같고_10초_안이면_한_장면으로_접힌다() {
         let result = Classifier.classify([
@@ -189,7 +188,7 @@ struct ClassifierTests {
         #expect(moment.photoCount == 4)
     }
 
-    // MARK: 날짜
+    // MARK: - 날짜
 
     @Test func 자정을_넘겨_이어진_촬영이_전날에_붙는다() {
         let result = Classifier.classify([
@@ -226,7 +225,7 @@ struct ClassifierTests {
         #expect(result.days[0].photoCount == 2)
     }
 
-    // MARK: 읽지 못한 사진
+    // MARK: - 읽지 못한 사진
 
     @Test func 시각을_못_얻은_사진은_unplaced로_빠진다() {
         let result = Classifier.classify([
@@ -272,7 +271,7 @@ struct ClassifierTests {
         #expect(result.readings[2].capturedAt?.hour == 13)
     }
 
-    // MARK: 계약
+    // MARK: - 계약
 
     @Test func 입력_순서를_바꿔도_같은_결과다() {
         // `MOM-07` · 약속 `C5` — 같은 사진 집합이면 같은 결과.
@@ -306,35 +305,50 @@ struct ClassifierTests {
         #expect(Classifier.classify(inputs) == Classifier.classify(inputs))
     }
 
-    @Test func 바이트가_채워지면_순간은_쪼개지기만_한다() {
-        // 부분 입력 계약의 핵심. 시간 경계는 파일명만으로 이미 확정됐고
-        // 장소는 그 안을 나누기만 한다 — 화면 `04`의 행이 재배치되지 않는다.
+    @Test func 바이트가_채워져도_시간_경계와_순서는_안_바뀐다() {
+        // 부분 입력 계약이 남긴 것 (ADR `0011`). 시간 경계는 파일명만으로 확정됐고
+        // 바이트는 그 안의 장소 경계만 건드린다.
         let positions: [(Double, Double, Double)] = [
             (0, 0, 0), (1, 0, 0), (300, 0, 0), (301, 0, 0), (0, 0, 0), (600, 0, 0),
         ]
         let names = ["2026080213000000", "2026080213000500", "2026080213100000",
                      "2026080213101000", "2026080213200000", "2026080214300000"]
 
-        let withoutBytes = names.map { PhotoInput(filename: captureName($0), bytes: nil) }
-        let withBytes = zip(names, positions).map { photo($0, position: $1) }
+        let coarse = Classifier.classify(names.map { PhotoInput(filename: captureName($0), bytes: nil) })
+        let refined = Classifier.classify(zip(names, positions).map { photo($0, position: $1) })
 
-        let coarse = Classifier.classify(withoutBytes)
-        let refined = Classifier.classify(withBytes)
-
-        #expect(refined.momentCount > coarse.momentCount)
-
-        // 잘게 쪼개진 순간 하나하나가 성긴 순간 하나 **안에** 들어간다.
-        let coarseSets = coarse.allMoments.map { Set($0.photoIndices) }
-        for moment in refined.allMoments {
-            let photos = Set(moment.photoIndices)
-            #expect(coarseSets.contains { photos.isSubset(of: $0) },
-                    "순간 \(moment.photoIndices)가 성긴 순간 어디에도 안 들어간다")
-        }
         // 사진이 사라지거나 늘지 않는다.
         #expect(refined.photoCount == coarse.photoCount)
+        // 시각 오름차순으로 편 사진 순서가 같다.
+        #expect(refined.allMoments.flatMap(\.photoIndices)
+                == coarse.allMoments.flatMap(\.photoIndices))
+        // 시간 경계는 그대로다 — 장소는 그 **안에서만** 다시 갈린다.
+        let timeRuns = coarse.allMoments.map { Set($0.photoIndices) }
+        for moment in refined.allMoments {
+            #expect(timeRuns.contains { Set(moment.photoIndices).isSubset(of: $0) },
+                    "순간 \(moment.photoIndices)가 시간 구간을 넘어섰다")
+        }
     }
 
-    @Test func 바이트가_일부만_채워져도_쪼개지기만_한다() {
+    @Test func 바이트가_채워지면_순간이_합쳐질_수도_있다() {
+        // ⚠️ ADR `0011`이 `0004` 결정 2 (c)를 대체한 자리. 평균 연결은 **그때 있는 점들**의
+        // 함수라, 가운데 점이 뒤늦게 오면 갈라져 있던 둘에 다리를 놓는다.
+        // 한 줄 위 `0 · t/6 · t+1` — 양 끝은 임계값을 넘는데, 가운데가 오면 먼저 붙어
+        // 갱신 거리가 `t + 1 - t/12`로 임계값 안에 들어온다.
+        let t = Settings.default.placeClusterDistance
+        let names = ["2026080213000000", "2026080213010000", "2026080213020000"]
+        let xs: [Double] = [0, t / 6, t + 1]
+
+        let partial = Classifier.classify(zip(names, xs).enumerated().map { index, pair in
+            photo(pair.0, position: (pair.1, 0, 0), withBytes: index != 1)
+        })
+        let full = Classifier.classify(zip(names, xs).map { photo($0, position: ($1, 0, 0)) })
+
+        #expect(partial.momentCount == 2)
+        #expect(full.momentCount == 1)
+    }
+
+    @Test func 바이트가_일부만_채워져도_시간_구간을_넘지_않는다() {
         let names = ["2026080213000000", "2026080213050000", "2026080213100000",
                      "2026080213150000"]
         let positions: [(Double, Double, Double)] = [(0, 0, 0), (0, 0, 0), (500, 0, 0), (500, 0, 0)]
@@ -345,11 +359,12 @@ struct ClassifierTests {
         })
         let all = Classifier.classify(zip(names, positions).map { photo($0, position: $1) })
 
-        for (finer, coarser) in [(half, none), (all, half), (all, none)] {
-            #expect(finer.momentCount >= coarser.momentCount)
-            let coarseSets = coarser.allMoments.map { Set($0.photoIndices) }
-            for moment in finer.allMoments {
-                #expect(coarseSets.contains { Set(moment.photoIndices).isSubset(of: $0) })
+        // 시간 구간(바이트 0장일 때의 순간)이 상한이다 — 어느 단계에서도 이를 넘지 않는다.
+        let timeRuns = none.allMoments.map { Set($0.photoIndices) }
+        for result in [half, all] {
+            #expect(result.photoCount == none.photoCount)
+            for moment in result.allMoments {
+                #expect(timeRuns.contains { Set(moment.photoIndices).isSubset(of: $0) })
             }
         }
     }

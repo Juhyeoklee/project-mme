@@ -8,14 +8,14 @@ struct SignalReadingTests {
         SignalReader.read(PhotoInput(filename: name, bytes: bytes))
     }
 
-    @Test func 정상_촬영본에서_신호_넷을_꺼낸다() {
+    @Test func 정상_촬영본에서_신호_넷을_꺼낸다() throws {
         let reading = read(PNGFixture.capture(
             width: 1600, height: 738, zone: "티르코네일",
             cameraPosition: (-40.77181, 50.41731, -40.99361),
             cameraRotation: (21.54319, 45.90538, 0),
             fieldOfView: 62.97325))
         #expect(reading.signalStatus == .ok)
-        let signals = try! #require(reading.signals)
+        let signals = try #require(reading.signals)
         #expect(signals.zoneName == "티르코네일")
         #expect(signals.cameraPosition == Vector3(x: -40.77181, y: 50.41731, z: -40.99361))
         #expect(signals.cameraRotation == Vector3(x: 21.54319, y: 45.90538, z: 0))

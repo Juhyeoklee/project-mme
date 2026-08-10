@@ -80,7 +80,7 @@ struct MomentCard: View {
     /// 장면을 칸에 앉힌다. 다 안 들어가면 **마지막 칸을 `+N`이 가져간다** — 폭을 뺏지 않고 칸을 쓴다.
     static func plan(sceneCount: Int, width: CGFloat) -> Plan {
         let perRow = Layout.thumbnailsPerRow(inWidth: width)
-        let capacity = perRow * Layout.stripRows
+        let capacity = Layout.stripCapacity(inWidth: width)
         var slots: [Slot] = []
         if sceneCount <= capacity {
             slots = (0..<sceneCount).map { .scene($0) }

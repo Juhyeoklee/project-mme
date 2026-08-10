@@ -6,7 +6,9 @@ import Photos
 import Testing
 @testable import PhotoSource
 
-@Test func 권한이_없으면_자산을_열거하지_않는다() {
+// ⚠️ `assets()`가 실제로 막는지는 여기서 못 본다 — 라이브러리를 부르므로 판정 불가다
+// (재판정: `M2` 실기기). 이 테스트가 보는 것은 그 문지기가 쓰는 값 하나뿐이다.
+@Test func 열거를_시도할_수_있는_권한은_authorized와_limited뿐이다() {
     for access in [ReadAccess.notDetermined, .restricted, .denied] {
         #expect(access.canRead == false)
     }

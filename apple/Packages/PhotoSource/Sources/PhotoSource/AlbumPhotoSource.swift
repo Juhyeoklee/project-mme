@@ -27,34 +27,13 @@ public struct AlbumPhotoSource: Sendable {
         ReadAccess(await PHPhotoLibrary.requestAuthorization(for: .readWrite))
     }
 
-    // MARK: - 앨범
-
-    /// 라이브러리의 앨범 목록. 무엇으로 소스를 고정할지 정하기 위한 읽기 전용 조회다.
-    public static func albums() -> [AlbumSummary] {
-        summaries(of: .album) + summaries(of: .smartAlbum)
-    }
-
-    private static func summaries(of type: PHAssetCollectionType) -> [AlbumSummary] {
-        let fetched = PHAssetCollection.fetchAssetCollections(with: type, subtype: .any, options: nil)
-        var result: [AlbumSummary] = []
-        fetched.enumerateObjects { collection, _, _ in
-            // ⚠️ `estimatedAssetCount`는 스마트 앨범에서 `NSNotFound`가 나온다.
-            let count = PHAsset.fetchAssets(in: collection, options: nil).count
-            result.append(AlbumSummary(
-                id: collection.localIdentifier,
-                title: collection.localizedTitle ?? "",
-                assetCount: count,
-                isSmart: type == .smartAlbum
-            ))
-        }
-        return result
-    }
-
     // MARK: - 자산 열거
 
     /// 앨범 안의 사진을 최신순으로 열거한다. **정렬에만 촬영 시각을 쓰고 값은 안 내보낸다** —
     /// `PHAsset.creationDate`는 파일 안에 대응물이 없어 다른 언어 구현이 재현할 수 없고,
     /// 커널 입력에 섞이면 ADR `0001` 결정 6이 커널 밖에서 깨진다.
+    ///
+    /// **이름을 얻은 사진은 전부 넘긴다** (ADR `0004` 결정 2 (d)).
     public func assets() throws -> [SourceAsset] {
         let access = Self.currentAccess()
         guard access.canRead else { throw PhotoSourceError.accessNotGranted(access) }
@@ -66,10 +45,18 @@ public struct AlbumPhotoSource: Sendable {
 
         var result: [SourceAsset] = []
         PHAsset.fetchAssets(in: collection, options: options).enumerateObjects { asset, _, _ in
-            guard let resource = Self.originalResource(of: asset) else { return }
-            result.append(SourceAsset(id: asset.localIdentifier, filename: resource.originalFilename))
+            guard let filename = Self.filename(of: asset) else { return }
+            result.append(SourceAsset(id: asset.localIdentifier, filename: filename))
         }
         return result
+    }
+
+    /// 커널 입력의 절반인 파일명. **원본(`.photo`)이 없어도 얻는다** — 바이트 없는 사진의
+    /// 취급은 ADR `0004` 결정 2 (a)가 이미 정했다.
+    private static func filename(of asset: PHAsset) -> String? {
+        // ⚠️ 여기서 버리면 그 사진이 소스에 있는데도 어디에도 안 보인다.
+        let resources = PHAssetResource.assetResources(for: asset)
+        return (resources.first { $0.type == .photo } ?? resources.first)?.originalFilename
     }
 
     /// 술어로 제목을 거르지 않는다 — PhotoKit이 어떤 키를 받는지가 문서로 닫혀 있지 않아

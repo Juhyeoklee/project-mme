@@ -17,8 +17,10 @@ public struct WallClock: Sendable, Hashable, Comparable {
     /// 달력상 있을 수 없는 값이면 `nil`. 윤년까지 본다.
     public init?(year: Int, month: Int, day: Int,
                  hour: Int, minute: Int, second: Int, hundredth: Int) {
+        // ⚠️ 말일은 범위가 아니라 부등호로 본다 — `daysInMonth`가 0을 주는 달이면
+        // `1...0`이 트랩이고, 지금 안전한 이유가 앞줄 검사의 **평가 순서**뿐이었다.
         guard (1...12).contains(month),
-              (1...WallClock.daysInMonth(year: year, month: month)).contains(day),
+              day >= 1, day <= WallClock.daysInMonth(year: year, month: month),
               (0...23).contains(hour), (0...59).contains(minute),
               (0...59).contains(second), (0...99).contains(hundredth)
         else { return nil }
@@ -31,7 +33,7 @@ public struct WallClock: Sendable, Hashable, Comparable {
         self.hundredth = hundredth
     }
 
-    // MARK: 달력
+    // MARK: - 달력
 
     public static func isLeapYear(_ year: Int) -> Bool {
         (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
@@ -96,7 +98,7 @@ public struct WallClock: Sendable, Hashable, Comparable {
         lhs.centiseconds < rhs.centiseconds
     }
 
-    // MARK: 파일명
+    // MARK: - 파일명
 
     /// 확장자를 떼고 **마지막 `_` 뒤가 정확히 숫자 16자**여야 한다.
     /// **게임 이름은 요구하지 않는다** — 소스가 게임 앨범으로 고정돼 있어 접두사를 다시 검사할

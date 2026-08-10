@@ -68,7 +68,8 @@ struct MomentDetailScreen: View {
     }
 
     /// 장면이 2장 이상일 때 대표 셀에만 붙는다.
-    /// ⚠️ 작게 보이지만 **히트 영역은 44×44** — 셀 탭 위에 얹힌 두 번째 탭 대상이라 작으면 오폭한다.
+    /// ⚠️ 작게 보이지만 **히트 영역은 `hitTarget`** — 셀 탭 위에 얹힌 두 번째 탭 대상이라
+    /// 작으면 오폭한다.
     @ViewBuilder
     private func badge(_ cell: Cell) -> some View {
         if cell.isRepresentative, cell.sceneSize > 1 {
@@ -81,7 +82,8 @@ struct MomentDetailScreen: View {
                 }
             } label: {
                 BurstBadge(count: cell.sceneSize, expanded: cell.isExpanded)
-                    .frame(width: 44, height: 44, alignment: .topLeading)
+                    .frame(width: Layout.hitTarget, height: Layout.hitTarget,
+                           alignment: .topLeading)
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
@@ -125,7 +127,7 @@ struct MomentDetailScreen: View {
 }
 
 /// `05-G2` 연사 배지 — 겹친 스택 + 숫자. 펼치면 `05-G4` 접기가 같은 자리를 쓴다.
-struct BurstBadge: View {
+private struct BurstBadge: View {
     let count: Int
     let expanded: Bool
 

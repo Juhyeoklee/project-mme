@@ -71,7 +71,7 @@ struct PhotoViewerScreen: View {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark")
                             .font(Typography.time)
-                            .frame(width: 44, height: 44)
+                            .frame(width: Layout.hitTarget, height: Layout.hitTarget)
                     }
                     Spacer()
                 }
@@ -88,9 +88,13 @@ struct PhotoViewerScreen: View {
         .padding(.top, Spacing.momentGap)
     }
 
-    /// ⚠️ 커널이 사진별 시각을 내주지 않아 **순간의 시작 시각을 쓴다.**
-    /// `05`의 타이틀과 같은 값이라 어긋나 보이지는 않는다.
-    private var timeOfCurrent: WallClock { moment.start }
+    /// **지금 보고 있는 그 사진의 시각이다** — 옆의 `06-N3`이 사진 단위라 짝이 맞고,
+    /// 순간의 시각은 바로 앞 화면이 이미 말했다.
+    private var timeOfCurrent: WallClock {
+        guard photos.indices.contains(current),
+              let at = library.capturedAt(at: photos[current]) else { return moment.start }
+        return at
+    }
 
     // MARK: - 아래로 끌어 닫기
 

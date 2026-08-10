@@ -20,22 +20,6 @@ public struct SourceAsset: Sendable, Hashable, Identifiable {
     }
 }
 
-/// 라이브러리가 갖고 있는 앨범 하나의 요약. 무엇으로 소스를 고정할지 정하기 위한 읽기 전용 목록이다.
-public struct AlbumSummary: Sendable, Hashable {
-    public let id: String
-    public let title: String
-    public let assetCount: Int
-    /// 사용자가 만든 앨범인지 시스템이 만든 스마트 앨범인지. 소스 고정 방법을 가르는 값이다.
-    public let isSmart: Bool
-
-    public init(id: String, title: String, assetCount: Int, isSmart: Bool) {
-        self.id = id
-        self.title = title
-        self.assetCount = assetCount
-        self.isSmart = isSmart
-    }
-}
-
 /// 읽기 접근 상태. 플랫폼이 주는 가장 좁은 읽기 권한이 `.readWrite`라 그것을 요청하지만,
 /// 공개 API에는 쓰기가 없고 쓰기 심볼 금지는 검증기가 강제한다 (원칙 `P5`).
 public enum ReadAccess: Sendable, Hashable, CustomStringConvertible {

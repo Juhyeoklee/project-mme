@@ -145,41 +145,26 @@ enum SignalReader {
         }
 
         // 첫 실패 하나를 그대로 보고한다 — 뭉개지 않는다.
-        var failure: SignalStatus?
-        func text(_ key: String) -> String? {
-            guard let value = scan.text[key] else {
-                // 압축 청크를 봤다면 그 안에 있었을 수 있다.
-                failure = failure ?? (scan.sawCompressedText ? .textChunkCompressed
-                                                            : .fieldMissing(key))
-                return nil
-            }
-            return value
-        }
-        func vector(_ key: String) -> Vector3? {
-            guard let raw = text(key) else { return nil }
-            guard let value = Vector3.parse(raw) else {
-                failure = failure ?? .fieldUnparsable(key)
-                return nil
-            }
-            return value
-        }
-        func number(_ key: String) -> Double? {
-            guard let raw = text(key) else { return nil }
-            guard let value = Double(Substring(raw).trimmingSpaces()), value.isFinite else {
-                failure = failure ?? .fieldUnparsable(key)
-                return nil
-            }
-            return value
+        // 압축 청크를 봤다면 없는 값이 그 안에 있었을 수 있다.
+        func missing(_ key: String) -> SignalStatus {
+            scan.sawCompressedText ? .textChunkCompressed : .fieldMissing(key)
         }
 
-        let zone = text(zoneKey)
-        let position = vector(cameraPositionKey)
-        let rotation = vector(cameraRotationKey)
-        let fieldOfView = number(fieldOfViewKey)
+        guard let zone = scan.text[zoneKey] else { return (nil, missing(zoneKey)) }
+        guard let positionText = scan.text[cameraPositionKey]
+        else { return (nil, missing(cameraPositionKey)) }
+        guard let position = Vector3.parse(positionText)
+        else { return (nil, .fieldUnparsable(cameraPositionKey)) }
+        guard let rotationText = scan.text[cameraRotationKey]
+        else { return (nil, missing(cameraRotationKey)) }
+        guard let rotation = Vector3.parse(rotationText)
+        else { return (nil, .fieldUnparsable(cameraRotationKey)) }
+        guard let fieldOfViewText = scan.text[fieldOfViewKey]
+        else { return (nil, missing(fieldOfViewKey)) }
+        guard let fieldOfView = Double(Substring(fieldOfViewText).trimmingSpaces()),
+              fieldOfView.isFinite
+        else { return (nil, .fieldUnparsable(fieldOfViewKey)) }
 
-        guard let zone, let position, let rotation, let fieldOfView else {
-            return (nil, failure ?? .textChunkMissing)
-        }
         return (CaptureSignals(zoneName: zone,
                                cameraPosition: position,
                                cameraRotation: rotation,

@@ -48,7 +48,7 @@ struct MomentListScreen: View {
             // 세로 공간을 잡아두는 빈 자리.
             // ⚠️ 배경을 꺼야 한다 — iOS 26이 툴바 아이템에 유리 캡슐을 깔아 버튼처럼 보인다.
             ToolbarItem(placement: .topBarTrailing) {
-                Color.clear.frame(width: 44, height: 44)
+                Color.clear.frame(width: Layout.hitTarget, height: Layout.hitTarget)
             }
             .sharedBackgroundVisibility(.hidden)
         }
@@ -126,7 +126,7 @@ struct MomentListScreen: View {
 
 /// ⚠️ **채움에 `Palette` 색을 쓰지 마라** — 자리표시 위에 활성색을 얹었더니 다크에서 둘 다
 /// 검정에 가까워 바가 통째로 안 보였다 (2026-08-04).
-struct ProgressBar: View {
+private struct ProgressBar: View {
     let value: Double
 
     var body: some View {

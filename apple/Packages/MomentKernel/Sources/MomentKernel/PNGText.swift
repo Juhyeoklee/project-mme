@@ -74,7 +74,7 @@ enum PNGText {
                                 text: text, sawCompressedText: sawCompressed))
     }
 
-    // MARK: 조각
+    // MARK: - 조각
 
     /// `iTXt` 데이터부 — 키워드\0 압축플래그 압축방식 언어태그\0 번역키워드\0 텍스트(UTF-8).
     private static func parseITXt(
