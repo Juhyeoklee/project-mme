@@ -9,6 +9,8 @@ import SwiftUI
 struct MomentDetailScreen: View {
     let library: MomentLibrary
     let moment: Moment
+    /// 편집기가 뜰 자리는 `RootView`가 정한다 — 화면은 초안을 넣기만 한다.
+    var editing: Binding<RecordDraft?>
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     /// 펼쳐진 장면의 첨자. **접힌 상태의 장면 수로 열 수를 정하므로** 이 값은 열 수에 영향이 없다.
@@ -25,11 +27,41 @@ struct MomentDetailScreen: View {
         .navigationTitle(Wording.detailTitle(moment.start))
         .navigationSubtitle(Wording.counts(photos: moment.photoCount, scenes: moment.sceneCount))
         .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) { createRecordButton }
         .fullScreenCover(item: $viewing) { position in
             PhotoViewerScreen(library: library, moment: moment, start: position.index)
         }
         // 선택이 바뀌면(iPad) 펼침을 접는다 — 앞 순간의 첨자가 남으면 엉뚱한 셀이 펼쳐진다.
         .onChange(of: moment) { expanded = [] }
+    }
+
+    // MARK: - `05-T` 기록 만들기
+
+    /// **카드를 두지 않는다** — 담을 것이 하나뿐이면 컨테이너가 묶을 일이 없어 배경만 한 겹
+    /// 덧대는 꼴이 된다. 「떠 있음」은 그림자가 지고, 카드는 「묶음」을 진다.
+    ///
+    /// 우하단에 뜨는 것은 `04`와 같은 아이콘을 쓰기 위해서다 — **두 화면이 한 어휘를 나눠 갖고**,
+    /// 오른손이 닿는 자리라 사진을 가리지 않는다.
+    private var createRecordButton: some View {
+        Button { editing.wrappedValue = draft() } label: {
+            Image(systemName: Glyph.createRecordCircle)
+                .font(.system(size: Layout.floatingActionDiameter))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(Palette.onAccent, Palette.accent)
+                .shadow(color: Chrome.shadowColor, radius: Chrome.shadowRadius,
+                        y: Chrome.shadowOffset)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Wording.createRecord)
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.trailing, Spacing.screenMargin)
+        .padding(.bottom, 24)
+    }
+
+    /// 이 순간이 속한 날짜는 커널이 안다 — 새벽 컷오프 때문에 시각에서 되짚으면 어긋난다.
+    private func draft() -> RecordDraft? {
+        guard let day = library.days.first(where: { $0.moments.contains(moment) }) else { return nil }
+        return RecordDraft.from(moment: moment, day: day.date, library: library)
     }
 
     // MARK: - `05-G` 그리드
@@ -146,7 +178,7 @@ private struct BurstBadge: View {
                 .overlay {
                     Text(expanded ? Wording.collapse : "\(count)")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Palette.label)
                 }
         }
     }
@@ -161,14 +193,14 @@ struct PhotoPosition: Identifiable, Hashable {
 #if DEBUG
 #Preview("05 연사 있는 순간") {
     NavigationStack {
-        MomentDetailScreen(library: Fixture.library, moment: Fixture.momentWithBurst)
+        MomentDetailScreen(library: Fixture.library, moment: Fixture.momentWithBurst, editing: .constant(nil))
     }
     .environment(Fixture.store)
 }
 
 #Preview("05 1장짜리 순간") {
     NavigationStack {
-        MomentDetailScreen(library: Fixture.library, moment: Fixture.singlePhotoMoment)
+        MomentDetailScreen(library: Fixture.library, moment: Fixture.singlePhotoMoment, editing: .constant(nil))
     }
     .environment(Fixture.store)
 }

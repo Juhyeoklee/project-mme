@@ -17,22 +17,25 @@ struct MomentCard: View {
     var isSelected = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // 크기가 달라 baseline으로 맞춰야 한 줄로 읽힌다.
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: Spacing.cellGap) {
+            // ⚠️ **둘이 붙어 한 줄로 읽혀야 한다** — 양끝으로 벌리면 시각과 장수가 서로 다른
+            // 것을 말하는 두 줄이 된다. 크기가 달라 baseline으로 맞춘다.
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.momentGap) {
                 Text(Wording.time(moment.start))
                     .font(Typography.time)
-                Spacer(minLength: Spacing.thumbnailGap)
+                    .foregroundStyle(Palette.label)
                 Text(Wording.counts(photos: moment.photoCount, scenes: moment.sceneCount))
-                    .font(Typography.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.subtitle)
+                    .foregroundStyle(Palette.secondaryLabel)
             }
 
             strip
         }
-        .padding(.horizontal, Spacing.screenMargin)
-        .padding(.vertical, isSelected ? 6 : 0)
+        // ⚠️ **가로 패딩을 두지 않는다** — `118×3 + 3×2 = 360`이 스트립의 천장이라, 카드가
+        // 안쪽 여백을 먹으면 한 행이 3장에서 2장으로 깨진다. 선택 배경만 세로로 물린다.
+        .padding(.vertical, isSelected ? Spacing.cardInset : 0)
         .background(isSelected ? Palette.active : .clear)
+        .clipShape(.rect(cornerRadius: Radius.card))
         .contentShape(.rect)
     }
 
@@ -55,10 +58,14 @@ struct MomentCard: View {
                                        retryToken: retryToken)
                                 .frame(width: Layout.thumbnail, height: Layout.thumbnail)
                         case .more(let count):
+                            // ⚠️ **배지가 아니라 칸이다** — 사진 위에 얹히지 않으므로 배지 문법을
+                            // 쓰지 않는다. 스트립의 마지막 칸을 채우는 요소다.
                             Text(Wording.more(count))
                                 .font(Typography.time)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Palette.secondaryLabel)
                                 .frame(width: Layout.thumbnail, height: Layout.thumbnail)
+                                .background(Palette.surface)
+                                .clipShape(.rect(cornerRadius: Radius.thumbnail))
                         }
                     }
                 }

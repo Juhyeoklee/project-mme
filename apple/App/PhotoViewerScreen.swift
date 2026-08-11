@@ -81,10 +81,11 @@ struct PhotoViewerScreen: View {
             Spacer()
 
             Text(Wording.position(current, of: photos.count))
-                .font(Typography.caption)
+                .font(Typography.subtitle)
                 .padding(.bottom, Spacing.screenMargin)
         }
-        .foregroundStyle(.white)
+        // 뷰어 크롬의 글자는 모드를 따르지 않는다 — 배경이 늘 검정이다.
+        .foregroundStyle(Paper.step2)
         .padding(.top, Spacing.momentGap)
     }
 
