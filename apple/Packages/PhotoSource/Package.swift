@@ -11,9 +11,13 @@ let package = Package(
     platforms: [.iOS(.v26), .macOS(.v15)],
     products: [
         .library(name: "PhotoSource", targets: ["PhotoSource"]),
+        .library(name: "PhotoSourceUI", targets: ["PhotoSourceUI"]),
     ],
     targets: [
         .target(name: "PhotoSource"),
+        // 사용자가 건네는 사진(`REC-10`). **`PhotoSource`에 의존하지 않는다** —
+        // 소스를 넓히지 않고 바이트만 넘기므로 가져올 타입이 없다 (ADR `0012`).
+        .target(name: "PhotoSourceUI"),
         .testTarget(name: "PhotoSourceTests", dependencies: ["PhotoSource"]),
     ]
 )

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		AA0000000000000000000014 /* MomentKernel in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000012 /* MomentKernel */; };
 		AA0000000000000000000015 /* PhotoSource in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000013 /* PhotoSource */; };
+		AA0000000000000000000031 /* PhotoSourceUI in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000030 /* PhotoSourceUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,6 +47,7 @@
 			files = (
 				AA0000000000000000000014 /* MomentKernel in Frameworks */,
 				AA0000000000000000000015 /* PhotoSource in Frameworks */,
+				AA0000000000000000000031 /* PhotoSourceUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -99,6 +101,7 @@
 			packageProductDependencies = (
 				AA0000000000000000000012 /* MomentKernel */,
 				AA0000000000000000000013 /* PhotoSource */,
+				AA0000000000000000000030 /* PhotoSourceUI */,
 			);
 			productName = Moanogi;
 			productReference = AA0000000000000000000003 /* Moanogi.app */;
@@ -358,6 +361,10 @@
 		AA0000000000000000000013 /* PhotoSource */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = PhotoSource;
+		};
+		AA0000000000000000000030 /* PhotoSourceUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PhotoSourceUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

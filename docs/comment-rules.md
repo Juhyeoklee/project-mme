@@ -75,7 +75,7 @@ cd apple
 grep -rnE '(설계서|토큰) §' --include='*.swift' . | grep -v '/.build/'   # 산출물 문서 참조
 grep -rnE 'ADR [0-9]'      --include='*.swift' . | grep -v '/.build/' \
     | grep -v 'scripts/verify-boundaries'   # 백틱 없는 ADR 번호 — 검증기의 출력 문자열은 주석이 아니다 (2026-08-10)
-awk '/^ {8,}(\/\/)/{n++; next} {if(n>=3) print FILENAME":"FNR; n=0}' \
+awk '/^ {8,}\/\/($|[^\/])/{n++; next} {if(n>=3) print FILENAME":"FNR; n=0}' \
     $(find . -name '*.swift' -not -path '*/.build/*' -not -path '*Tests*')  # 본문 3줄 연속
 ```
 
@@ -83,6 +83,10 @@ awk '/^ {8,}(\/\/)/{n++; next} {if(n>=3) print FILENAME":"FNR; n=0}' \
 **주석이 아니라 터미널에 찍히는 출력 문자열**이다(`"① 커널은 import 0 (ADR 0001 결정 2)"`).
 grep은 주석과 리터럴을 못 가른다. **검사 범위에서 `scripts/`를 빼지 않는다** — 그러면 검증기
 안의 진짜 주석 위반을 못 본다. 이 둘 말고 걸리는 것이 있으면 그건 진짜다.
+
+⚠️ **셋째 검사는 `///`를 빼고 본다** — `//`가 `///`의 접두사라, 안 빼면 **중첩 타입의 문서
+주석이 전부 걸린다**(2026-08-11 실측). 위 「어디에 무엇을 쓰는가」가 타입 `///`를 명시적으로
+허용하므로 그건 검사가 규칙을 어기는 것이다. 세는 대상은 **본문 `//` 세 줄 연속** 하나다.
 
 ⚠️ **주석/코드 비율은 안 잰다.** 선언만 있는 파일은 한 줄씩만 붙여도 치솟아 오탐이 된다 —
 실측에서 가장 잘 정리된 파일 셋(`Wording` 70% · `Classification` 68% · `Tokens` 60%)이 전부 걸렸다.

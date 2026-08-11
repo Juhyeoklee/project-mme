@@ -1,8 +1,8 @@
-// 문구 — 세 화면의 문구 열셋이 전부 여기 있다.
+// 문구 — 화면들의 문구가 전부 여기 있다.
 //
 // 한 곳에 모은 이유 둘 — ① 같은 문자열이 두 화면에 나타나는 자리가 규칙이다(`04-C2`와 `05-N3`이
-// 같아야 *"누른 그 순간이 맞다"* 가 확인된다) ② **없는 문구가 규칙이다** — 기록·저장·공유·설정·
-// 에러·완료 알림이 없다. 흩어놓으면 슬며시 는다.
+// 같아야 *"누른 그 순간이 맞다"* 가 확인된다) ② **화면설계서 밖에서 만든 문구가 어디 있는지가
+// 보여야 한다** — 그 구역은 아래에 따로 모여 있다. 흩어놓으면 슬며시 는다.
 //
 // `Date`·`Calendar`를 쓰지 않는다. `WallClock`은 시간대가 없는 벽시계고, 표시하려고 시간대를
 // 발명해 넣으면 자정 근처에서 날짜가 밀린다 — 커널이 피한 함정을 화면에서 도로 팔 이유가 없다.
@@ -50,6 +50,44 @@ enum Wording {
 
     /// `06-N3` — `3 / 12`.
     static func position(_ index: Int, of total: Int) -> String { "\(index + 1) / \(total)" }
+
+    // MARK: - 기록 만들기
+
+    /// **흐름 서술이 아니라 기능 이름이다** — `IA`·`PRD`가 부르는 이름을 그대로 쓴다.
+    static let createRecord = "기록 만들기"
+    static let cancel = "취소"
+    static let save = "저장"
+    static let confirm = "확정"
+    /// `09-N4`.
+    static let editOccurredAt = "발생일시 수정"
+    /// `09-T`. iPad·macOS에만 선다.
+    static let makeCanvas = "캔버스로 만들기"
+    /// 격자의 마지막 칸이자 사진 더하기 화면의 타이틀. **같은 말이라 같은 문자열이다.**
+    static let addPhotos = "사진 더하기"
+    /// `10-T1` — 소스 밖 사진을 시스템 피커로 지목한다.
+    static let importDirectly = "직접 가져오기"
+    static let captionPlaceholder = "무슨 일이 있었는지 적어보세요"
+
+    /// `09-N3` — 뺀 것이 없을 때. **부제가 어포던스를 진다**(탭이 무엇을 하는지 말한다).
+    static func keptAll(_ count: Int) -> String { "\(count)장 · 탭해서 빼기" }
+    /// `09-N3` — 하나라도 뺀 뒤. 「선택됨」이라는 단어가 없는 것이 값이다.
+    static func kept(_ count: Int, removed: Int) -> String { "\(count)장 · \(removed)장 뺌" }
+
+    /// `10-B` 시각 구분 헤더. 꼬리가 붙는 것은 들어온 그 순간 하나뿐이다.
+    static func momentBreak(_ clock: WallClock, isOrigin: Bool) -> String {
+        isOrigin ? "\(time(clock)) · 이 순간" : time(clock)
+    }
+
+    // MARK: - 확인과 실패 — ⚠️ 화면설계서 밖이다
+
+    /// ⚠️ **이 절의 문구는 화면설계가 정한 것이 아니다.** 오류·확인 문구는 *"어떤 실패가
+    /// 실제로 나는지는 코드가 알려준다"* 는 이유로 구현에 넘겨진 자리다.
+    static let discardTitle = "만들던 기록을 어떻게 할까요?"
+    static let keepAsDraft = "초안으로 남기기"
+    static let discard = "버리기"
+    /// 원본을 못 읽었거나 디스크에 못 썼다. **왜인지는 사용자가 고칠 수 없어 말하지 않는다.**
+    static let saveFailed = "저장하지 못했어요"
+    static let acknowledge = "확인"
 
     // MARK: - 조각
 
