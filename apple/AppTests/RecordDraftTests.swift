@@ -15,7 +15,8 @@ private let day = CalendarDay(year: 2026, month: 8, day: 3)
 
 private func sourcePhoto(_ id: String, at capturedAt: WallClock) -> DraftPhoto {
     DraftPhoto(id: UUID(),
-               origin: .source(asset: SourceAsset(id: id, filename: "\(id).png"),
+               origin: .source(asset: SourceAsset(id: id, filename: "\(id).png",
+                                                  pixelWidth: 1600, pixelHeight: 738),
                                capturedAt: capturedAt),
                isIncluded: true)
 }

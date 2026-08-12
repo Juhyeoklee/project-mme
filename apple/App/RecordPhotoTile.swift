@@ -28,8 +28,7 @@ struct RecordPhotoTile<Photo: View>: View {
             .fill(Palette.badgeSurface)
             .frame(width: Layout.badgeDiameter, height: Layout.badgeDiameter)
             .overlay {
-                Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .semibold))
+                GlyphIcon(Glyph.add, size: 13)
                     .foregroundStyle(Palette.background)
             }
             .padding(8)

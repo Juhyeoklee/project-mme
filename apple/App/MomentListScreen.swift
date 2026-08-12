@@ -66,7 +66,7 @@ struct MomentListScreen: View {
                     // 이 셋은 「이 화면의 도구」라는 한 묶음이다.
                     HStack(spacing: 0) {
                         #if DEBUG
-                        iconButton("tray.full", label: "저장") { showingSaved = true }
+                        iconButton(Glyph.savedRecords, label: "저장") { showingSaved = true }
                         #endif
                         iconButton(Glyph.createRecord, label: Wording.createRecord) { startRecord() }
                         settingsSlot
@@ -89,13 +89,10 @@ struct MomentListScreen: View {
     }
 
     /// 머리의 아이콘 하나. **유리는 이 뷰가 아니라 묶음이 진다.**
-    private func iconButton(_ symbol: String, label: String,
+    private func iconButton(_ glyph: String, label: String,
                             action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            // ⚠️ **심볼에 `.resizable()`을 쓰지 않는다** — 글리프마다 다른 안쪽 여백을 무시해
-            // 광학 중심이 어긋난다. 크기는 활자로 준다.
-            Image(systemName: symbol)
-                .font(.system(size: 20))
+                GlyphIcon(glyph)
                 .frame(width: Layout.hitTarget, height: Layout.hitTarget)
         }
         .buttonStyle(.plain)
@@ -122,8 +119,7 @@ struct MomentListScreen: View {
     /// `04-N3` — **설정 진입점은 앱 전체에서 여기 하나다.**
     /// ⚠️ 갈 화면은 아직 없다. 자리를 지금 세우는 것은 머리의 폭 계산이 그 슬롯을 전제하기 때문이다.
     private var settingsSlot: some View {
-        Image(systemName: "gearshape")
-            .font(.system(size: 20))
+        GlyphIcon(Glyph.settings)
             .foregroundStyle(Palette.accent)
             .frame(width: Layout.hitTarget, height: Layout.hitTarget)
     }

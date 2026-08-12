@@ -1,5 +1,8 @@
-// `06` 사진 전체화면. 순간의 사진 전부를 좌우로 넘긴다 — **연사도 펴서 넘기고, 순환하지 않고,
-// 다음 순간으로도 안 넘어간다.**
+// `06` 사진 전체화면. 넘겨받은 목록을 좌우로 넘긴다 — **순환하지 않고, 다음 순간으로도
+// 안 넘어간다.**
+//
+// ⚠️ **넘길 목록을 스스로 정하지 않는다** — 부르는 격자가 보여준 것이 그대로 와야 한다.
+// 순간 전량을 여기서 펴면 격자에 없던 연사 컷이 튀어나와 `06-N3`의 분모가 안 맞는다.
 
 import MomentKernel
 import PhotoSource
@@ -7,8 +10,8 @@ import SwiftUI
 
 struct PhotoViewerScreen: View {
     let library: MomentLibrary
+    /// 시각을 못 읽은 사진이 나왔을 때 크롬이 기댈 자리. 넘길 목록은 `photos`가 정한다.
     let moment: Moment
-    let start: Int
 
     @Environment(\.dismiss) private var dismiss
     @State private var current: Int
@@ -18,12 +21,11 @@ struct PhotoViewerScreen: View {
 
     private let photos: [Int]
 
-    init(library: MomentLibrary, moment: Moment, start: Int) {
+    init(library: MomentLibrary, moment: Moment, photos: [Int], start: Int) {
         self.library = library
         self.moment = moment
-        self.start = start
-        self.photos = moment.photoIndices
-        _current = State(initialValue: max(0, moment.photoIndices.firstIndex(of: start) ?? 0))
+        self.photos = photos
+        _current = State(initialValue: max(0, photos.firstIndex(of: start) ?? 0))
     }
 
     var body: some View {
@@ -69,10 +71,10 @@ struct PhotoViewerScreen: View {
                     .font(Typography.time)
                 HStack {
                     Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(Typography.time)
+                        GlyphIcon(Glyph.close, size: 18)
                             .frame(width: Layout.hitTarget, height: Layout.hitTarget)
                     }
+                    .accessibilityLabel(Wording.close)
                     Spacer()
                 }
             }
@@ -194,6 +196,7 @@ private struct ZoomablePhoto: View {
 #Preview("06 전체화면") {
     PhotoViewerScreen(library: Fixture.library,
                       moment: Fixture.momentWithBurst,
+                      photos: Fixture.momentWithBurst.photoIndices,
                       start: Fixture.momentWithBurst.photoIndices[0])
         .environment(Fixture.store)
 }

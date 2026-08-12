@@ -17,8 +17,13 @@ enum Fixture {
     // 된다 (2026-08-04에 겪었다. 렌더가 10분을 넘겨도 스냅샷이 안 나왔다).
     static let inputs = makeInputs()
     static let classification = Classifier.classify(inputs)
+    /// 화소 크기는 **커널이 `IHDR`에서 읽은 값을 되쓴다** — 실물에서는 라이브러리가 주는
+    /// 값이라 출처가 다르지만, 합성 데이터에서 둘을 따로 적으면 배치와 그림이 어긋난다.
     static let assets = inputs.enumerated().map { index, input in
-        SourceAsset(id: "preview-\(index)", filename: input.filename)
+        let signals = classification.readings[index].signals
+        return SourceAsset(id: "preview-\(index)", filename: input.filename,
+                           pixelWidth: signals?.pixelWidth ?? 0,
+                           pixelHeight: signals?.pixelHeight ?? 0)
     }
     static let store = makeStore()
     static let library = MomentLibrary.preview(classification, assets: assets)
@@ -80,34 +85,32 @@ enum Fixture {
         }
     }
 
-    /// 합성 이미지를 먹이는 저장소. 세로 사진이 섞여 있어야
-    /// 정사각 크롭과 세로 셀 여백이 프리뷰에서도 눈에 보인다.
+    /// ⚠️ **종횡비는 자산이 말하는 화소 크기 그대로다** — 어림수를 쓰면 셀 높이를 정한 값과
+    /// 그 안을 채우는 그림이 어긋나 배치가 틀린 채로 맞아 보인다.
     private static func makeStore() -> ImageStore {
-        // 세로 여부는 의도가 아니라 커널이 읽은 `IHDR`로 판정한다 — 어긋나면 티가 난다.
-        let portraitIDs = Set(zip(assets, classification.readings).compactMap { asset, reading in
-            guard let signals = reading.signals else { return nil as String? }
-            return signals.pixelHeight > signals.pixelWidth ? asset.id : nil
-        })
         var index = 0
         var hueOf: [String: Double] = [:]
+        var aspectOf: [String: Double] = [:]
         for asset in assets {
             hueOf[asset.id] = Double(index % 12) / 12
+            aspectOf[asset.id] = asset.pixelHeight > 0
+                ? Double(asset.pixelWidth) / Double(asset.pixelHeight) : 1
             index += 1
         }
         return ImageStore(loader: { asset, pixels, _ in
             synthetic(pixels: pixels,
-                      portrait: portraitIDs.contains(asset.id),
+                      aspect: aspectOf[asset.id] ?? 1,
                       hue: hueOf[asset.id] ?? 0)
         })
     }
 
     /// 사진 자리에 들어갈 합성 그림. 사진이 아니라 **사진 크기의 무늬**다 —
     /// 크롭·여백·정렬을 보는 데는 충분하고, "봐서 생각이 나는가"는 실기기가 답한다.
-    static func synthetic(pixels: Int, portrait: Bool, hue: Double) -> CGImage? {
+    static func synthetic(pixels: Int, aspect: Double, hue: Double) -> CGImage? {
         let long = max(pixels, 8)
-        let short = Int(Double(long) / 1.294)
-        let width = portrait ? short : long
-        let height = portrait ? long : short
+        let short = max(8, Int(Double(long) / max(aspect, 1 / aspect)))
+        let width = aspect >= 1 ? long : short
+        let height = aspect >= 1 ? short : long
 
         guard let context = CGContext(data: nil, width: width, height: height,
                                       bitsPerComponent: 8, bytesPerRow: 0,

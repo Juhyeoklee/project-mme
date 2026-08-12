@@ -64,6 +64,9 @@ enum Palette {
     /// 베일 위 작은 칩. 글리프는 `background`.
     static let badgeSurface = mode(light: Paper.step12.opacity(0.75),
                                    dark: Paper.step2.opacity(0.85))
+    /// `05-G2` 연사 배지의 바탕. ⚠️ **모드를 따르지 않는다** — 사진 위에 얹히므로 바탕이
+    /// 지면이 아니라 사진이다. 글자는 `Paper.step1`.
+    static let photoBadge = Paper.black.opacity(0.45)
 
     /// 강조색 — 테라코타. 도구 활성 · 주요 액션 · 입력 캐럿.
     static let accent = mode(light: Color(hex: 0xB0552B), dark: Color(hex: 0xDD8455))
@@ -84,6 +87,10 @@ enum Chrome {
     static let floatingBorder = mode(light: Paper.step1, dark: Paper.step1.opacity(0.15))
     /// 네비 · 스티키 구분 헤더. 지면 위에 얹히므로 한 단만 올린다.
     static let header = mode(light: Paper.step2.opacity(0.9), dark: Paper.step11.opacity(0.9))
+
+    /// 카드 없이 홀로 떠 있는 주요 액션의 유리 틴트. ⚠️ **글리프 색과 묶여 있다** —
+    /// 올리면 같은 강조색 글리프가 원판에 섞인다(2026-08-12 실측: 0.5에서 탁해졌다).
+    static let accentTint = Palette.accent.opacity(0.2)
 
     /// 떠 있는 것의 그림자. 색은 팔레트 밖이다 — 그림자는 색이 아니라 빛의 부재다.
     static let shadowColor = Color.black.opacity(0.2)
@@ -106,12 +113,8 @@ enum Typography {
     static let label = plex(.semiBold, 14, relativeTo: .subheadline)
     static let note = plex(.regular, 12, relativeTo: .caption)
 
-    /// 머리 활자의 두 단. **크기를 보간하지 않는다** — 두 라벨을 교차시킨다.
-    ///
-    /// ⚠️ **하한 18은 더 못 올리는 값이다** — 44pt 네비 바가 상한을 걸어 위로 여지가 없고,
-    /// 액센트 서체의 세로획이 Plex보다 26% 얇아 아래로도 못 내린다.
+    /// 펼친 머리의 활자. 접히면 `time`으로 교차한다 — **크기를 보간하지 않는다.**
     static let headerLarge: CGFloat = 32
-    static let headerInline: CGFloat = 18
 
     /// `04-N1` · `07-N1` 머리. **액센트 서체가 서는 가장 큰 자리다.**
     static func accentTitle(_ size: CGFloat) -> Font {
@@ -217,22 +220,32 @@ enum Radius {
     static let card: CGFloat = 12
 }
 
-/// 시스템 심볼 이름. **관례가 강한 개념만 아이콘으로 말한다** — 약한 것은 글자가 진다.
+/// 번들 아이콘 이름. **관례가 강한 개념만 아이콘으로 말한다** — 약한 것은 글자가 진다.
+///
+/// ⚠️ **시스템 심볼이 아니라 `App/Icons`의 lucide 벡터다.** 새 글리프도 거기서 찾는다 —
+/// 없다고 SF Symbol을 섞으면 한 캡슐 안에 두 계열이 산다(README에 근거).
 enum Glyph {
+    static let back = "chevron-left"
+    static let more = "ellipsis"
+    static let settings = "settings"
+    static let add = "plus"
+    static let close = "x"
+    /// `05-G2` 연사 배지. 숫자가 옆에 서므로 아이콘 혼자 뜻을 다 지지 않는다.
+    static let burst = "copy"
     /// `04-B3`. **`05-T`와 한 어휘를 나눠 갖는다.**
-    static let createRecord = "square.and.pencil"
-    /// `05-T` 원형 액션.
-    ///
-    /// ⚠️ **원을 직접 그리지 않고 합쳐진 심볼을 쓴다** — 심볼에는 글리프마다 다른 안쪽 여백이
-    /// 있어서, 원을 따로 그리고 글리프를 얹으면 광학 중심이 안 맞는다(2026-08-11 실측:
-    /// 연필 끝이 잘리고 우하단으로 밀렸다). 합쳐진 것은 Apple이 맞춰 둔 것이다.
-    static let createRecordCircle = "square.and.pencil.circle.fill"
+    static let createRecord = "pen-line"
+    #if DEBUG
+    static let savedRecords = "inbox"
+    #endif
 }
 
 /// 확정된 레이아웃 상수. 토큰 문서 밖이지만 값이 확정돼 있어 여기 모은다.
 enum Layout {
     /// 탭 대상 한 변의 하한. 플랫폼 규칙이라 화면이 정하지 않는다.
     static let hitTarget: CGFloat = 44
+
+    /// 크롬 아이콘 한 변. 44 탭 대상 안에 놓이는 그림의 크기다.
+    static let glyph: CGFloat = 20
 
     /// `04-C3` 썸네일 한 변. 정사각 중앙 크롭.
     static let thumbnail: CGFloat = 118
@@ -253,10 +266,9 @@ enum Layout {
     /// 34%가 iPhone과 같은 3장/행을 만든다.
     static let listPaneFraction: CGFloat = 0.34
 
-    /// 접힌 장면 수가 이보다 적으면 열 수를 장면 수에 맞춘다.
-    static let detailColumnsCompact = 3
-    static let detailColumnsRegular = 4
-    /// 정사각이 아닌 이유는 대다수인 가로 사진에 여백을 덜 물리기 때문이다.
+    /// `05` 벽돌쌓기의 열 수. 넓어져도 열이 아니라 셀이 커진다 — 사진 한 장인 순간만 한 열이다.
+    static let detailColumns = 2
+    /// 화소 크기를 모르는 자산의 셀 비율. 이 앨범 대다수의 모양이다.
     static let detailCellAspect: CGFloat = 4.0 / 3.0
 
     /// 본문 폭의 상한.
@@ -282,8 +294,9 @@ enum Layout {
     static let floatingBarHeight: CGFloat = 56
     /// `04` 머리를 펼쳤을 때의 높이 — 위 14 + 줄 44 + 사이 2 + 요약 21 + 아래 10.
     static let listHeaderHeight: CGFloat = 91
-    /// `09` 머리 — 위 12 + 버튼 줄 44 + 사이 2 + 큰 날짜 48 + 사이 2 + 부제 21 + 아래 10.
-    static let editorHeaderHeight: CGFloat = 139
+    /// `05`·`09` 머리 — 위 12 + 버튼 줄 44 + 사이 2 + 큰 타이틀 48 + 사이 2 + 부제 21 + 아래 10.
+    /// **두 화면의 머리가 같은 구조다** — 줄 하나, 큰 타이틀, 부제.
+    static let largeTitleHeaderHeight: CGFloat = 139
     /// 사진 위에 얹히는 원형 배지.
     static let badgeDiameter: CGFloat = 22
     /// `05-T` 우하단에 뜨는 원형 액션.

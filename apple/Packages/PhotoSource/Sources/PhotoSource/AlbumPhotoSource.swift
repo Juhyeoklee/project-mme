@@ -46,7 +46,8 @@ public struct AlbumPhotoSource: Sendable {
         var result: [SourceAsset] = []
         PHAsset.fetchAssets(in: collection, options: options).enumerateObjects { asset, _, _ in
             guard let filename = Self.filename(of: asset) else { return }
-            result.append(SourceAsset(id: asset.localIdentifier, filename: filename))
+            result.append(SourceAsset(id: asset.localIdentifier, filename: filename,
+                                      pixelWidth: asset.pixelWidth, pixelHeight: asset.pixelHeight))
         }
         return result
     }

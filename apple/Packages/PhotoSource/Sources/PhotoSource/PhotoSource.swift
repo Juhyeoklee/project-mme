@@ -9,14 +9,23 @@ import Foundation
 ///
 /// `filename`은 커널 입력의 절반이고(ADR `0002`) 원본이 기기에 없어도 읽히므로,
 /// 로드에 실패한 사진도 이름으로 지목할 수 있다.
+///
+/// ⚠️ **화소 크기는 분류 신호가 아니다.** 커널이 읽는 값은 `IHDR`에서 오고(ADR `0004`)
+/// 여기 것은 배치에만 쓴다 — **커널 입력에 넣지 마라.**
 public struct SourceAsset: Sendable, Hashable, Identifiable {
     /// 라이브러리 안에서의 식별자. 이 모듈 밖에서는 불투명한 문자열이다.
     public let id: String
     public let filename: String
+    /// 원본의 화소 크기. **열거 시점에 온다** — 바이트도 네트워크도 안 기다린다.
+    /// 0이면 라이브러리가 크기를 모른다는 뜻이다.
+    public let pixelWidth: Int
+    public let pixelHeight: Int
 
-    public init(id: String, filename: String) {
+    public init(id: String, filename: String, pixelWidth: Int, pixelHeight: Int) {
         self.id = id
         self.filename = filename
+        self.pixelWidth = pixelWidth
+        self.pixelHeight = pixelHeight
     }
 }
 

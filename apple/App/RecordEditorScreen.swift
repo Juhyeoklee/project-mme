@@ -48,7 +48,7 @@ struct RecordEditorScreen: View {
                 .padding(.bottom, 24)
                 .readableWidth()
             }
-            .contentMargins(.top, Layout.editorHeaderHeight, for: .scrollContent)
+            .contentMargins(.top, Layout.largeTitleHeaderHeight, for: .scrollContent)
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
                 geometry.contentOffset.y + geometry.contentInsets.top
             } action: { _, offset in
@@ -103,11 +103,11 @@ struct RecordEditorScreen: View {
                     Menu {
                         Button(Wording.editOccurredAt) { isEditingOccurredAt = true }
                     } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 20))
+                        GlyphIcon(Glyph.more)
                             .frame(width: Layout.hitTarget, height: Layout.hitTarget)
                             .foregroundStyle(Palette.accent)
                     }
+                    .accessibilityLabel(Wording.moreActions)
                     .glassEffect(.regular, in: .circle)
                 }
             }
@@ -178,8 +178,7 @@ struct RecordEditorScreen: View {
     private var addPhotosCell: some View {
         Button { isAddingPhotos = true } label: {
             VStack(spacing: Spacing.cellGap) {
-                Image(systemName: "plus")
-                    .font(.system(size: 26, weight: .light))
+                GlyphIcon(Glyph.add, size: 26)
                 Text(Wording.addPhotos)
                     .font(Typography.subtitle)
             }
