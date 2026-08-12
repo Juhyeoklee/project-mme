@@ -36,10 +36,7 @@ extension View {
     /// 밝은 사진이 지나가면 시각·배터리가 안 읽힌다. 위에서 아래로 사라지는 것이라
     /// 지면은 그대로 비친다.
     func headerScrim() -> some View {
-        background {
-            LinearGradient(stops: Scrim.stops, startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea(edges: .top)
-        }
+        modifier(HeaderScrim())
     }
 
     /// 유리 캡슐.
@@ -50,6 +47,25 @@ extension View {
         self.padding(.horizontal, padding)
             .padding(.vertical, 6)
             .glassEffect(.regular, in: .capsule)
+    }
+}
+
+/// ⚠️ **iPad 지면에서는 가림막을 안 깐다** (사용자 판정 2026-08-12). 지면이 반경과 여백으로
+/// 이미 경계를 갖고 있어 색이 사라지는 띠가 하나 더 생기면 경계가 둘로 읽히고, **무엇보다
+/// 뒤에 지나갈 것을 가려 버리면 유리가 할 일이 없어진다.**
+///
+/// 가림막이 필요한 이유는 iPhone에만 있다 — 유리 캡슐 위쪽의 **상태 표시줄**이 비어서,
+/// 밝은 사진이 지나가면 시각·배터리가 안 읽힌다. iPad 지면은 상태 표시줄 아래에 있다.
+private struct HeaderScrim: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    func body(content: Content) -> some View {
+        content.background {
+            if sizeClass == .compact {
+                LinearGradient(stops: Scrim.stops, startPoint: .top, endPoint: .bottom)
+                    .ignoresSafeArea(edges: .top)
+            }
+        }
     }
 }
 
