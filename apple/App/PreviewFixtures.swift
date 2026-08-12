@@ -6,9 +6,11 @@
 
 #if DEBUG
 import CoreGraphics
+import ImageIO
 import MomentKernel
 import PhotoSource
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 enum Fixture {
@@ -40,6 +42,47 @@ enum Fixture {
     static let singlePhotoMoment = allMoments.first { $0.photoCount == 1 } ?? allMoments[0]
 
     private static let allMoments = classification.days.flatMap(\.moments)
+
+    /// 합성 기록 넷. **실제 저장소에 실제 파일로 쓴다** — 화면들이 전부 디스크에서 읽으므로
+    /// 메모리 목업으로는 경로가 하나도 안 태워진다.
+    static let records = makeRecords()
+
+    private static func makeRecords() -> RecordLibrary {
+        let root = URL.cachesDirectory.appending(path: "FixtureRecords")
+        try? FileManager.default.removeItem(at: root)
+        let library = RecordLibrary(store: RecordStore(root: root))
+
+        let plans: [(month: Int, day: Int, images: Int, caption: String, status: Record.Status)] = [
+            (8, 3, 5, "사막 끝까지 가봤다. 해가 지는 걸 보려고 계속 달렸는데, 도착한 곳은 "
+                + "아무것도 없는 모래 언덕이었다. 그게 좋았다.", .published),
+            (8, 1, 3, "", .draft),
+            (7, 29, 2, "비 오는 날의 던바튼. 광장에 아무도 없었다.", .published),
+            (7, 12, 1, "혼자 낚시.", .published),
+        ]
+        for (index, plan) in plans.enumerated() {
+            guard let occurredAt = WallClock(year: 2026, month: plan.month, day: plan.day,
+                                             hour: 18, minute: 5, second: 0, hundredth: 0)
+            else { continue }
+            var images: [RecordImage] = []
+            var bytes: [UUID: Data] = [:]
+            for slot in 0..<plan.images {
+                let id = UUID()
+                let portrait = (index + slot) % 3 == 2
+                images.append(RecordImage(id: id, fileExtension: "png", origin: .imported))
+                // ⚠️ **`PNG.capture`를 쓰면 안 된다** — 그것은 커널이 읽을 신호만 담은 껍데기라
+                // 화소가 없고, 디스크에서 다시 디코딩하는 이 경로에서는 회색 칸으로만 나온다.
+                bytes[id] = syntheticPNG(pixels: 900,
+                                         aspect: portrait ? 738.0 / 1600 : 1600.0 / 738,
+                                         hue: Double((index * 3 + slot) % 12) / 12) ?? Data()
+            }
+            let record = Record(id: UUID(), occurredAt: occurredAt,
+                                images: images, caption: plan.caption, status: plan.status,
+                                updatedAt: Date(timeIntervalSince1970: 0))
+            try? library.store.save(record, imageData: bytes)
+        }
+        library.reload()
+        return library
+    }
 
     /// 표본을 닮은 한 세션. 날짜 2개 · 연사 있음/없음 · 1장짜리 · 7장면 초과가 섞이도록 짰다 —
     /// `04`가 실제로 마주치는 모양을 한 화면에 다 올리는 것이 목적이다.
@@ -134,6 +177,18 @@ enum Fixture {
                             width: corner, height: corner))
 
         return context.makeImage()
+    }
+
+    /// 위 무늬를 파일로 쓸 수 있게 인코딩한다. 기록은 바이트를 **복사해 두므로** 저장소에
+    /// 넣으려면 진짜 파일이어야 한다.
+    static func syntheticPNG(pixels: Int, aspect: Double, hue: Double) -> Data? {
+        guard let image = synthetic(pixels: pixels, aspect: aspect, hue: hue) else { return nil }
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data, UTType.png.identifier as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
     }
 }
 

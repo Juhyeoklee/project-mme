@@ -13,6 +13,16 @@ private func clock(_ hour: Int, _ minute: Int) throws -> WallClock {
 
 private let day = CalendarDay(year: 2026, month: 8, day: 3)
 
+/// 이미 저장된 기록 하나. 사진 하나가 소스에서 왔고 그 표지를 들고 있다.
+private func storedRecord(caption: String = "") throws -> Record {
+    let capturedAt = try clock(18, 5)
+    return Record(id: UUID(), occurredAt: capturedAt,
+                  images: [RecordImage(id: UUID(), fileExtension: "png",
+                                       origin: .source(assetID: "a", capturedAt: capturedAt))],
+                  caption: caption, status: .draft,
+                  updatedAt: Date(timeIntervalSince1970: 1_780_000_000))
+}
+
 private func sourcePhoto(_ id: String, at capturedAt: WallClock) -> DraftPhoto {
     DraftPhoto(id: UUID(),
                origin: .source(asset: SourceAsset(id: id, filename: "\(id).png",
@@ -212,6 +222,58 @@ struct RecordDraftTests {
 
         #expect(fromMoment.startsFromMoment)
         #expect(!fromDay.startsFromMoment)
+    }
+
+    // MARK: - `ARC-06` 고치러 들어가기
+
+    @Test func 고치는_초안은_그_기록의_신원을_그대로_쓴다() throws {
+        // ⚠️ 새 신원을 뽑으면 저장이 같은 기록을 둘로 늘린다.
+        let record = try storedRecord(caption: "그날")
+
+        let draft = RecordDraft.editing(record)
+
+        #expect(draft.id == record.id)
+        #expect(draft.caption == "그날")
+        #expect(draft.photos.count == record.images.count)
+    }
+
+    @Test func 고치는_초안은_순간을_가리키지_않는다() throws {
+        // 기록은 자기가 어느 순간에서 왔는지 모른다 (`P2`).
+        #expect(!RecordDraft.editing(try storedRecord()).startsFromMoment)
+    }
+
+    @Test func 고치는_중에는_사진을_빼도_발생일시가_안_바뀐다() throws {
+        // 사용자가 이미 본 값이라, 사진 한 장에 조용히 따라 움직이는 것이 안전한 방향이 아니다.
+        let record = try storedRecord()
+        let draft = RecordDraft.editing(record)
+        let first = try #require(draft.photos.first)
+
+        draft.toggle(first.id)
+
+        #expect(draft.occurredAt == record.occurredAt)
+    }
+
+    @Test func 저장된_사진도_이미_담긴_것으로_센다() throws {
+        // ⚠️ 안 세면 `10`이 같은 사진을 못 알아보고 한 장을 더 담는다.
+        let draft = RecordDraft.editing(try storedRecord())
+
+        #expect(draft.includedAssetIDs == ["a"])
+    }
+
+    @Test func 저장된_사진은_바이트를_다시_요구하지_않는다() async throws {
+        let store = RecordStore(root: FileManager.default.temporaryDirectory
+            .appending(path: "RecordDraftTests-\(UUID().uuidString)"))
+        let record = try storedRecord()
+        try store.save(record, imageData: [record.images[0].id: Data("bytes".utf8)])
+
+        let draft = RecordDraft.editing(record)
+        draft.caption = "고쳤다"
+        let saved = await draft.save(status: .published, to: store) { _ in
+            throw CocoaError(.fileNoSuchFile)
+        }
+
+        #expect(saved?.caption == "고쳤다")
+        #expect(try store.all().count == 1)
     }
 
     // MARK: - 계약

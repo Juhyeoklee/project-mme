@@ -57,10 +57,8 @@ enum Palette {
     /// *"여기서 나뉜다"* 가 아니라 *"여기에 쓴다"* 라 보여야 한다. 구분선 값은 다크에서 1.19:1이다.
     static let inputUnderline = mode(light: Paper.step5, dark: Paper.step8)
 
-    /// **또렷함 = 이 기록에 들어 있다.** 베일이 씌워진 사진은 기록에 없다 — `09` 뺀 것 · `10` 후보.
-    ///
-    /// ⚠️ **`opacity`가 아니라 오버레이인 이유 둘** — `opacity`는 자식(`＋` 배지)까지 먹어
-    /// 「비활성」으로 읽히고, 다크에서 사진이 검정에 묻힌다.
+    /// 베일이 씌워진 사진은 그 기록에 없다.
+    /// ⚠️ **`opacity`가 아니라 오버레이다** — `opacity`는 자식 배지까지 흐리게 만든다.
     static let veil = mode(light: Paper.step2.opacity(0.65), dark: Paper.step12.opacity(0.65))
     /// 베일 위 작은 칩. 글리프는 `background`.
     static let badgeSurface = mode(light: Paper.step12.opacity(0.75),
@@ -116,13 +114,13 @@ enum Typography {
     static let body = plex(.regular, 16, relativeTo: .body)
     static let subtitle = plex(.regular, 14, relativeTo: .subheadline)
     /// 채워진 버튼 문구.
-    static let label = plex(.semiBold, 14, relativeTo: .subheadline)
+    static let label = accent(18, relativeTo: .subheadline)
     static let note = plex(.regular, 12, relativeTo: .caption)
 
     /// 펼친 머리의 활자. 접히면 `time`으로 교차한다 — **크기를 보간하지 않는다.**
     static let headerLarge: CGFloat = 32
 
-    /// `04-N1` · `07-N1` 머리. **액센트 서체가 서는 가장 큰 자리다.**
+    /// 머리의 큰 타이틀. **액센트 서체가 서는 가장 큰 자리다.**
     static func accentTitle(_ size: CGFloat) -> Font {
         accent(size, relativeTo: .largeTitle)
     }
@@ -133,14 +131,13 @@ enum Typography {
     }
     /// 빈 상태 — **아무것도 없는 화면에서 앱이 말을 거는 유일한 자리**라 액센트가 톤을 진다.
     static let emptyState = accent(21, relativeTo: .title2)
+    /// 최상위 탭의 낱말. 두 탭 이름이 머리 타이틀과 같은 서체라 어휘가 안 는다.
+    static let tabLabel = accent(18, relativeTo: .title2)
 
     // MARK: - 서체
 
     /// 번들 서체를 프로세스에 등록한다. **첫 렌더 전에 불러야 한다.**
-    ///
-    /// ⚠️ `GENERATE_INFOPLIST_FILE`을 쓰는 프로젝트라 `UIAppFonts` 배열을 넣을 자리가 없어
-    /// 런타임 등록으로 간다. 실패해도 던지지 않는다 — 서체가 시스템 것으로 대체될 뿐이고,
-    /// 그 상태를 잡는 것은 앱 테스트의 몫이다.
+    /// ⚠️ `GENERATE_INFOPLIST_FILE` 프로젝트라 `UIAppFonts` 자리가 없어 런타임 등록으로 간다.
     static func register() {
         for name in faceNames {
             guard let url = Bundle.main.url(forResource: name, withExtension: "ttf") else { continue }
@@ -203,6 +200,9 @@ enum Spacing {
     static let thumbnailGap: CGFloat = 3
     static let expandedInset: CGFloat = 3
     static let momentGap: CGFloat = 8
+    /// `07` 기록 카드 사이. ⚠️ **`momentGap`과 값이 달라 묶지 않는다** — 카드가 크고 하나가
+    /// 한 기록 전체라 순간 카드보다 더 떨어져야 덩어리로 읽힌다.
+    static let recordGap: CGFloat = 12
     /// 우측 여백 전부. `04`는 좌우 둘 다 쓴다.
     static let screenMargin: CGFloat = 16
     /// **좌측(제본 쪽) 여백 — iPhone 한정.** 제본이 왼쪽에만 있어 대칭으로 두면 거기서만
@@ -242,11 +242,7 @@ enum Glyph {
     static let close = "x"
     /// `05-G2` 연사 배지. 숫자가 옆에 서므로 아이콘 혼자 뜻을 다 지지 않는다.
     static let burst = "copy"
-    /// `04-B3`. **`05-T`와 한 어휘를 나눠 갖는다.**
     static let createRecord = "pen-line"
-    #if DEBUG
-    static let savedRecords = "inbox"
-    #endif
 }
 
 /// 확정된 레이아웃 상수. 토큰 문서 밖이지만 값이 확정돼 있어 여기 모은다.
@@ -281,17 +277,12 @@ enum Layout {
     /// 화소 크기를 모르는 자산의 셀 비율. 이 앨범 대다수의 모양이다.
     static let detailCellAspect: CGFloat = 4.0 / 3.0
 
-    /// 본문 폭의 상한.
-    ///
-    /// ⚠️ **넓은 지면에서 안 걸면 전부 늘어난다** — 머리 글자가 화면 끝에 붙고, 툴바의 두
-    /// 버튼이 양 끝으로 벌어지고, 입력 밑줄이 화면을 가로지른다(2026-08-11 iPad 실측).
-    /// 값은 iPad 2단의 상세 지면 폭이라 **전체화면이어도 같은 폭으로 읽힌다.**
+    /// 본문 폭의 상한. 값은 iPad 2단의 상세 지면 폭이다.
+    /// ⚠️ **안 걸면 넓은 지면에서 머리·툴바·밑줄이 전부 화면 끝까지 늘어난다**(2026-08-11 실측).
     static let readableWidth: CGFloat = 750
 
-    /// `09` 사진 격자의 열 수. **`04` 스트립과 같은 이유로 상수가 아니다** — 폭이 정한다.
-    ///
-    /// 한 장씩 확실히 식별되는 층위(iPhone에서 폭 대비 45%대)를 유지하는 것이 규칙이고,
-    /// ⚠️ 2를 박으면 넓은 지면에서 타일이 화면 절반이 된다(2026-08-11 iPad 실측).
+    /// `09` 사진 격자의 열 수 — 폭이 정한다.
+    /// ⚠️ 2를 박으면 넓은 지면에서 타일 하나가 화면 절반이 된다(2026-08-11 실측).
     static func editorColumns(inWidth width: CGFloat) -> Int {
         max(2, Int(width / 380))
     }
@@ -300,13 +291,25 @@ enum Layout {
     static func pickerColumns(inWidth width: CGFloat) -> Int {
         max(3, Int(width / 130))
     }
-    /// 떠 있는 툴바·도구 팔레트의 높이.
-    static let floatingBarHeight: CGFloat = 56
+    /// 떠 있는 툴바·도구 팔레트·탭 바의 높이. **셋이 한 값을 쓴다** — 같은 화면에 나란히
+    /// 서는 자리가 있어 몇 pt만 어긋나도 그대로 보인다(2026-08-13 실기기).
+    static let floatingBarHeight: CGFloat = 50
+    /// 그 툴바의 폭 상한. ⚠️ **본문 폭을 그대로 쓰면 안 된다** — 넓은 지면에서 세 버튼이
+    /// 양 끝으로 벌어져 한 묶음으로 안 읽힌다. iPhone 본문(357)보다 커서 거기서는 안 걸린다.
+    static let floatingBarMaxWidth: CGFloat = 420
     /// `04` 머리를 펼쳤을 때의 높이 — 위 14 + 줄 44 + 사이 2 + 요약 21 + 아래 10.
     static let listHeaderHeight: CGFloat = 91
     /// `05`·`09` 머리 — 위 12 + 버튼 줄 44 + 사이 2 + 큰 타이틀 48 + 사이 2 + 부제 21 + 아래 10.
     /// **두 화면의 머리가 같은 구조다** — 줄 하나, 큰 타이틀, 부제.
     static let largeTitleHeaderHeight: CGFloat = 139
+    /// `07-C4` 대표 이미지의 종횡비. **훑는 화면이라 자른다** — 세로 사진(0.461)을 원본
+    /// 비율로 두면 카드 하나가 781pt가 되어 화면을 넘는다.
+    static let recordCoverAspect: CGFloat = 4.0 / 3.0
+
+    /// `08-G1` 사진 한 장의 높이 상한. **자르지 않는 대신 이 값에서 멈춘다** — 세로 사진이
+    /// 본문 폭 357에서 774가 되어 한 화면(가용 ≈750)을 넘는다.
+    static let recordPhotoMaxHeight: CGFloat = 480
+
     /// 사진 위에 얹히는 원형 배지.
     static let badgeDiameter: CGFloat = 22
     /// `05-T` 우하단에 뜨는 원형 액션.

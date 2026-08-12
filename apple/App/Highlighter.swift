@@ -30,9 +30,10 @@ struct HighlighterStroke: Shape {
         /// 촉이 눕는 각. 양끝이 서로 달라야 도장처럼 안 보인다.
         let headCut: CGFloat, tailCut: CGFloat
 
-        func path(in rect: CGRect) -> Path {
+        /// `drawn`이 1보다 작으면 **긋다 만 획**이다 — 시작점은 그대로 두고 끝만 당겨온다.
+        func path(in rect: CGRect, drawn: CGFloat = 1) -> Path {
             let x0 = rect.minX + rect.width * from
-            let x1 = rect.minX + rect.width * to
+            let x1 = x0 + (rect.minX + rect.width * to - x0) * drawn
             let rise = (x1 - x0) * tan(tilt * .pi / 180)
             let y0 = rect.minY + rect.height * center - rise / 2
             let y1 = y0 + rise
@@ -48,13 +49,8 @@ struct HighlighterStroke: Shape {
         }
     }
 
-    /// 손으로 그은 여섯 벌. **두 번씩 긋고, 두 획이 어긋나는 방식이 패턴마다 다르다.**
-    ///
-    /// ⚠️ **왼쪽은 맞고 오른쪽만 어긋난다** (사용자 판정 2026-08-12) — 형광펜은 시작점을
-    /// 글자 왼쪽에 대고 긋고, **어디서 멈추는지가 매번 다르다.** 시작이 들쭉날쭉하면
-    /// 그은 것이 아니라 흘린 것으로 보인다. 끝 차이도 10%를 안 넘긴다.
-    ///
-    /// ⚠️ 값을 고르는 자리가 아니라 **그림**이다 — 늘리려면 눈으로 보고 더한다.
+    /// 손으로 그은 여섯 벌. ⚠️ **왼쪽 시작은 맞추고 오른쪽만 어긋낸다** — 끝 차이도 10% 안이다.
+    /// ⚠️ **값이 아니라 그림이다** — 늘리려면 눈으로 보고 더한다.
     fileprivate static let patterns: [[Swipe]] = [
         // 아래 획이 조금 더 나가고 더 눕는다
         [Swipe(from: -0.01, to: 0.96, center: 0.36, thickness: 12, tilt: -1.1, headCut: 3, tailCut: 1.5),
@@ -75,6 +71,33 @@ struct HighlighterStroke: Shape {
         [Swipe(from: 0.0, to: 0.94, center: 0.40, thickness: 13, tilt: 2.0, headCut: 2.5, tailCut: 4),
          Swipe(from: -0.01, to: 1.0, center: 0.60, thickness: 13, tilt: 0.4, headCut: 3, tailCut: 2)],
     ]
+}
+
+/// 눈앞에서 그어지는 한 획.
+///
+/// **두 획이 아니라 하나다** — 두 번 긋는 것은 *이미 그어져 있던* 자국의 표현이고, 여기는
+/// 사용자가 방금 고른 자리라 손이 한 번 지나간다.
+struct HighlighterSweep: Shape {
+    /// 0이면 안 그었고 1이면 끝까지 그었다.
+    var drawn: CGFloat
+
+    var animatableData: CGFloat {
+        get { drawn }
+        set { drawn = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        // ⚠️ **0에서 빈 획이어야 한다** — 촉이 비스듬히 잘려 있어 길이를 0으로 줄여도
+        // 시작점에 삼각형 조각이 남는다. 안 고른 탭에 얼룩이 하나 붙는다.
+        guard drawn > 0.001 else { return Path() }
+        return Self.swipe.path(in: rect, drawn: drawn)
+    }
+
+    /// 낱말을 덮는 굵은 획. ⚠️ **글자 높이를 안 따라간다** — 마커 촉의 굵기는 활자가 아니라
+    /// 펜이 정하는 값이고, 글자에 맞추면 획이 얇아져 배경 칩처럼 읽힌다(2026-08-13 실물).
+    private static let swipe = HighlighterStroke.Swipe(
+        from: -0.02, to: 1.02, center: 0.5, thickness: 20,
+        tilt: -1.5, headCut: 3, tailCut: 2)
 }
 
 /// 형광펜을 요약 줄 뒤에 긋는다.

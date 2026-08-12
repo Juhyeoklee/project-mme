@@ -1,4 +1,7 @@
 // `09` 기록 작성기 — 사진을 확정하고 설명을 쓴다. **모든 기록이 여기서 시작한다.**
+//
+// ⚠️ **시스템 네비 바를 쓰지 않는다** — iOS 26의 유리 바는 `UINavigationBarAppearance`를
+// 무시하고, 타이틀이 흰색으로 뒤집혀 밝은 지면에서 사라진다(2026-08-11 실측).
 
 import MomentKernel
 import PhotoSource
@@ -93,13 +96,8 @@ struct RecordEditorScreen: View {
 
     // MARK: - `09-N` 머리
 
-    /// ⚠️ **시스템 네비 바를 쓰지 않는다.** 활자(제목 32 bold)와 부제 색이 토큰으로 정해져
-    /// 있는데 SwiftUI에 그걸 주는 API가 없고, iOS 26의 유리 바는 `UINavigationBarAppearance`도
-    /// 무시한다 — 타이틀이 흰색으로 뒤집혀 밝은 지면에서 통째로 사라졌다(2026-08-11 실측).
-    ///
-    /// 스크롤에 따라 줄어드는 동작을 잃지만, 이 화면은 원래 정지한 머리로 설계됐다.
-    /// ⚠️ **iPad 2단에서는 지면이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이 되어
-    /// 두 장의 종이가 통째로 안 보인다. 「지면은 바깥보다 밝다」가 그래서 토큰을 갈라 뒀다.
+    /// ⚠️ **iPad 2단에서는 `지면`이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이
+    /// 되어 두 장의 종이가 통째로 안 보인다.
     private var paneBackground: Color {
         sizeClass == .regular ? Palette.pane : Palette.background
     }
@@ -113,7 +111,7 @@ struct RecordEditorScreen: View {
                 // 두 버튼이 각자 유리를 진다 — 하나로 묶으면 화면 폭을 가로지르는 알약이 된다.
                 HStack(spacing: 0) {
                     Button(Wording.cancel) { isConfirmingCancel = true }
-                        .buttonStyle(PlainActionStyle(font: Typography.body))
+                        .buttonStyle(PlainActionStyle())
                         .glassEffect(.regular, in: .capsule)
                     Spacer(minLength: 0)
                     Menu {
@@ -212,6 +210,11 @@ struct RecordEditorScreen: View {
         if let asset = photo.asset {
             AssetImage(asset: asset, pixels: ImageStore.gridPixels, fills: true,
                        retryToken: library.generation)
+        } else if let stored = photo.storedImage {
+            // `ARC-06` — 고치는 중인 기록의 사진은 앨범이 아니라 그 기록의 디렉터리에서 온다.
+            RecordImageView(url: store.imageURL(recordID: draft.id, image: stored),
+                            pixels: ImageStore.gridPixels,
+                            fit: .free(fills: true))
         } else {
             ImportedImage(data: draft.importedData(of: photo.id))
         }

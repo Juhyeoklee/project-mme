@@ -10,6 +10,13 @@ import MomentKernel
 ///
 /// 배치는 `<root>/<기록 id>/record.json` + `<root>/<기록 id>/images/<이미지 id>.<확장자>`다.
 /// **디렉터리 하나가 통째로 한 기록**이라 삭제가 한 번이고, 나중에 올라갈 단위와도 같다.
+///
+/// ⚠️ **원자성은 매니페스트에만 걸린다** — 이미지를 먼저 쓰고 `record.json`을 마지막에 원자
+/// 교체한다. 디렉터리를 통째로 갈면 안 바뀐 이미지까지 매번 복사하게 되기 때문이다.
+///
+/// ⚠️ **그 대가가 고아 이미지다.** 매니페스트를 쓰기 전에 죽거나 던지면 이미지가 남고,
+/// **회수하는 것은 같은 기록의 다음 저장뿐이다** — 그 초안을 버리면 아무도 안 지운다.
+/// `all()`은 매니페스트가 없는 디렉터리를 건너뛰므로 화면에는 안 보인다.
 struct RecordStore: Sendable {
     /// 기록 디렉터리들이 서는 자리.
     let root: URL
@@ -33,9 +40,7 @@ struct RecordStore: Sendable {
     // MARK: - 읽기
 
     /// 저장된 기록 전부. **발생일시 역순**(`ARC-01`), 같으면 `id` 역순이라 순서가 결정적이다.
-    ///
-    /// ⚠️ 하나라도 못 읽으면 던진다 — 조용히 빼면 사용자가 무엇을 잃었는지 영영 모른다.
-    /// 매니페스트는 원자 쓰기라 정상 경로에서 반쪽 파일이 생기지 않는다.
+    /// ⚠️ **하나라도 못 읽으면 던진다** — 조용히 빼면 무엇을 잃었는지 아무도 모른다.
     func all() throws -> [Record] {
         var records: [Record] = []
         for directory in try Self.contents(of: root) {
@@ -58,13 +63,7 @@ struct RecordStore: Sendable {
     // MARK: - 쓰기
 
     /// 기록을 저장한다. `imageData`에는 **아직 저장소에 없는 이미지의 바이트만** 담는다.
-    ///
-    /// ⚠️ **원자성은 매니페스트에만 건다** — 이미지를 먼저 쓰고 `record.json`을 마지막에
-    /// 원자 교체한다. 디렉터리를 통째로 바꾸면 안 바뀐 이미지까지 매번 복사하게 된다.
-    ///
-    /// ⚠️ **대가는 고아 이미지다.** 매니페스트를 쓰기 전에 죽거나 던지면 이미지가 남고,
-    /// **회수하는 것은 같은 기록의 다음 저장뿐이다** — 그 초안을 버리면 아무도 안 지운다.
-    /// `all()`은 매니페스트가 없는 디렉터리를 건너뛰므로 화면에는 안 보인다.
+    /// ⚠️ **원자성은 매니페스트에만 건다** — 대가는 아래 타입 문서의 고아 이미지다.
     func save(_ record: Record, imageData: [UUID: Data]) throws {
         let directory = directory(of: record.id)
         let images = directory.appending(path: Self.imagesDirectoryName)

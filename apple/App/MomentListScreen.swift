@@ -24,9 +24,6 @@ struct MomentListScreen: View {
     @State private var collapse: Double = 0
     /// 지금 네비가 말하는 날짜. 접힌 타이틀과 `04-B3`의 대상이 함께 이 값을 본다.
     @State private var topDayIndex = 0
-    #if DEBUG
-    @State private var showingSaved = false
-    #endif
 
     var body: some View {
         // ⚠️ **머리를 겹쳐 띄운다** — 나란히 쌓으면 콘텐츠가 머리 아래로 지나가지 못해
@@ -41,19 +38,12 @@ struct MomentListScreen: View {
                 ProgressBar(value: library.progress)
             }
         }
-        #if DEBUG
-        .sheet(isPresented: $showingSaved) { SavedRecordsDebugScreen() }
-        #endif
     }
 
     // MARK: - `04-N` 머리
 
-    /// **스크롤해도 남는다** — `04-N3` 설정이 여기 살아서, 사라지면 진입점이 사라진다.
-    ///
-    /// 대신 **줄어든다** — 타이틀이 32에서 18로 가고 요약 줄이 접힌다. 훑는 화면에서 상시
-    /// 머리가 세로를 계속 먹는 것을 그렇게 갚는다.
-    /// ⚠️ **iPad 2단에서는 지면이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이 되어
-    /// 두 장의 종이가 통째로 안 보인다. 「지면은 바깥보다 밝다」가 그래서 토큰을 갈라 뒀다.
+    /// ⚠️ **iPad 2단에서는 `지면`이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이
+    /// 되어 두 장의 종이가 통째로 안 보인다.
     private var paneBackground: Color {
         sizeClass == .regular ? Palette.pane : Palette.background
     }
@@ -72,9 +62,6 @@ struct MomentListScreen: View {
                     // **아이콘들이 유리 하나를 나눠 쓴다** — 낱개로 띄우면 알약이 흩어져 보이고,
                     // 이 셋은 「이 화면의 도구」라는 한 묶음이다.
                     HStack(spacing: 0) {
-                        #if DEBUG
-                        iconButton(Glyph.savedRecords, label: "저장") { showingSaved = true }
-                        #endif
                         iconButton(Glyph.createRecord, label: Wording.createRecord) { startRecord() }
                         settingsSlot
                     }
@@ -113,10 +100,8 @@ struct MomentListScreen: View {
             .foregroundStyle(Palette.label)
     }
 
-    /// 접히면 **지금 보고 있는 날짜**가 된다 — 목록에서 걷어낸 스티키가 하던 일이다.
-    ///
-    /// ⚠️ **액센트 서체를 쓰지 않는다.** 그 서체는 숫자 폭 편차가 17.8%라 날짜처럼 숫자가
-    /// 쌓이는 자리에서 자릿수가 흔들린다. 네비 inline은 UI 서체의 몫이다.
+    /// 접히면 지금 보고 있는 날짜가 된다.
+    /// ⚠️ **액센트 서체를 쓰지 않는다** — 숫자 폭 편차가 17.8%라 자릿수가 흔들린다.
     private var collapsedTitle: Text {
         Text(topDay.map(Wording.dateHeader) ?? Wording.listTitle)
             .font(Typography.time)
@@ -147,9 +132,8 @@ struct MomentListScreen: View {
 
     // MARK: - 목록
 
-    /// ⚠️ **스티키를 끈다** (사용자 판정 2026-08-11). 날짜가 상단에 늘 붙어 있는 것이 촌스럽고,
-    /// 네비와 두 띠로 갈리는 문제도 거기서 왔다. 대신 **지금 보고 있는 날짜가 네비에 뜬다** —
-    /// 목록의 헤더는 날짜 경계를 표시하는 일만 남기고 함께 흘러간다.
+    /// ⚠️ **스티키를 안 쓴다** — 「지금 어느 날인가」는 네비의 접힌 타이틀이 지고, 목록의
+    /// 헤더는 경계만 표시하며 함께 흘러간다.
     private var list: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
@@ -226,10 +210,7 @@ struct MomentListScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// `04-B3` — `REC-02`의 진입점.
-    ///
-    /// ⚠️ **날짜마다 있던 것이 네비로 하나 올라왔다** (사용자 판정 2026-08-11). 대상은
-    /// **지금 네비에 뜬 그 날짜**다 — 스크롤 위치가 곧 맥락이라, 무엇을 남기는지가 화면에 보인다.
+    /// `REC-02`의 진입점. **대상은 지금 네비에 뜬 그 날짜다** — 스크롤 위치가 곧 맥락이다.
     private func startRecord() {
         guard library.days.indices.contains(topDayIndex) else { return }
         editing.wrappedValue = RecordDraft.from(day: library.days[topDayIndex], library: library)

@@ -17,6 +17,9 @@ struct DraftPhoto: Identifiable, Hashable, Sendable {
     enum Origin: Hashable, Sendable {
         case source(asset: SourceAsset, capturedAt: WallClock)
         case imported(fileExtension: String)
+        /// `ARC-06` — 이미 저장된 기록의 이미지. **바이트가 기록 디렉터리에 있어 다시 읽지
+        /// 않는다**, 그래서 원본이 앨범에서 사라졌어도 고칠 수 있다.
+        case stored(RecordImage)
     }
 
     var asset: SourceAsset? {
@@ -24,9 +27,28 @@ struct DraftPhoto: Identifiable, Hashable, Sendable {
         return nil
     }
 
+    /// 소스 안에서 왔다는 표지. **`.stored`도 값을 갖는다** — 안 그러면 `10`이 이미 든 사진을
+    /// 못 알아보고 같은 사진을 한 번 더 담는다.
+    var assetID: String? {
+        switch origin {
+        case .source(let asset, _): asset.id
+        case .stored(let image): image.assetID
+        case .imported: nil
+        }
+    }
+
     /// 소스 안에서 온 사진만 값이 있다 — 가져온 사진의 촬영 정보는 읽지 않는다.
     var capturedAt: WallClock? {
-        if case .source(_, let capturedAt) = origin { return capturedAt }
+        switch origin {
+        case .source(_, let capturedAt): capturedAt
+        case .stored(let image): image.capturedAt
+        case .imported: nil
+        }
+    }
+
+    /// 저장된 이미지면 그 자리를 아는 데 필요한 값.
+    var storedImage: RecordImage? {
+        if case .stored(let image) = origin { return image }
         return nil
     }
 }
@@ -54,8 +76,9 @@ final class RecordDraft: Identifiable {
         var isFailed: Bool { if case .failed = self { true } else { false } }
     }
 
-    /// 저장이 두 번 돌아도 같은 기록이다.
-    let id = UUID()
+    /// 저장이 두 번 돌아도 같은 기록이다. **고치러 들어오면 그 기록의 것을 그대로 쓴다** —
+    /// 새로 뽑으면 같은 기록이 둘로 늘어난다 (`ARC-06`).
+    let id: UUID
     /// `10`의 후보 범위.
     let day: CalendarDay
     /// 이 기록이 시작된 자리의 시각. 날짜에서 시작하면 그 날 가장 이른 순간의 시작이다.
@@ -73,12 +96,18 @@ final class RecordDraft: Identifiable {
     /// 사용자가 발생일시를 직접 고쳤나. 고친 뒤에는 사진이 바뀌어도 자동 계산이 덮지 않는다.
     private var occurredAtIsManual = false
 
-    init(day: CalendarDay, start: WallClock, startsFromMoment: Bool, photos: [DraftPhoto]) {
+    init(id: UUID = UUID(), day: CalendarDay, start: WallClock, startsFromMoment: Bool,
+         photos: [DraftPhoto], caption: String = "", occurredAt: WallClock? = nil) {
+        self.id = id
         self.day = day
         self.start = start
         self.startsFromMoment = startsFromMoment
         self.photos = photos
-        self.occurredAt = Self.automaticOccurredAt(of: photos) ?? start
+        self.caption = caption
+        self.occurredAt = occurredAt ?? Self.automaticOccurredAt(of: photos) ?? start
+        // ⚠️ **고치러 들어오면 자동 계산이 다시 돌지 않는다** — 사용자가 저장된 값을 이미 봤고,
+        // 사진 한 장을 빼는 것만으로 그 값이 조용히 바뀌는 것이 안전한 실패 방향이 아니다.
+        self.occurredAtIsManual = occurredAt != nil
     }
 
     // MARK: - 화면이 보는 것
@@ -90,7 +119,7 @@ final class RecordDraft: Identifiable {
 
     /// `10`이 「이미 든 사진」을 또렷하게 그릴 때 본다.
     var includedAssetIDs: Set<String> {
-        Set(included.compactMap(\.asset?.id))
+        Set(included.compactMap(\.assetID))
     }
 
     // MARK: - 편집
@@ -103,15 +132,13 @@ final class RecordDraft: Identifiable {
     }
 
     /// `10` 확정 — 소스 안 사진의 담김 상태를 통째로 맞춘다.
-    ///
-    /// 이미 있던 사진은 자리를 지키고, 새로 든 것만 **끝에 붙는다**. 시간순으로 꽂으면
-    /// 사용자가 방금 더한 것이 목록 어디로 갔는지 모른다.
+    /// 이미 있던 사진은 자리를 지키고 **새로 든 것만 끝에 붙는다.**
     func apply(includedAssets: Set<String>, candidates: [DraftPhoto]) {
         for index in photos.indices {
-            guard let assetID = photos[index].asset?.id else { continue }
+            guard let assetID = photos[index].assetID else { continue }
             photos[index].isIncluded = includedAssets.contains(assetID)
         }
-        let known = Set(photos.compactMap { $0.asset?.id })
+        let known = Set(photos.compactMap(\.assetID))
         for candidate in candidates {
             guard let assetID = candidate.asset?.id,
                   includedAssets.contains(assetID), !known.contains(assetID) else { continue }
@@ -146,9 +173,7 @@ final class RecordDraft: Identifiable {
     // MARK: - 저장
 
     /// 기록을 만들어 저장한다. 성공하면 그 기록, 실패하면 `nil`이고 `saveState`가 실패를 든다.
-    ///
-    /// ⚠️ **여기서 원본 바이트를 처음 요구한다** — 사용자가 명시적으로 누른 자리라 네트워크를
-    /// 연다. 훑는 동안 안 여는 규칙(`R8`)은 목록 화면의 것이고 여기에는 걸리지 않는다.
+    /// ⚠️ **여기서 원본 바이트를 처음 요구하고 네트워크를 연다** — `R8`이 사는 자리다.
     func save(status: Record.Status, to store: RecordStore,
               bytes: @escaping OriginalBytesLoader) async -> Record? {
         guard canSave else { return nil }
@@ -175,6 +200,9 @@ final class RecordDraft: Identifiable {
                 data[photo.id] = loaded
                 images.append(RecordImage(id: photo.id, fileExtension: fileExtension,
                                           origin: .imported))
+            case .stored(let image):
+                // 바이트는 이미 이 기록의 디렉터리에 있다. 저장소가 있는 파일을 건너뛴다.
+                images.append(image)
             }
         }
 
@@ -216,14 +244,26 @@ extension RecordDraft {
     }
 
     /// 날짜 하나에서 시작한다 (`REC-02`) — 그 날 **모든 순간**의 사진이 대상이다.
-    ///
-    /// 순간 목록은 최신 먼저라 뒤집어 담는다. 사진이 시간 오름차순으로 놓이는 것이
-    /// 「이 날은 뭘 했구나」라는 하루 서사와 같은 방향이다.
+    /// ⚠️ 순간 목록은 최신 먼저라 **뒤집어 담는다** — 사진은 시간 오름차순으로 놓인다.
     static func from(day: Day, library: MomentLibrary) -> RecordDraft? {
         guard let earliest = day.moments.last else { return nil }
         let indices = day.moments.reversed().flatMap { $0.scenes.map(\.representative) }
         return RecordDraft(day: day.date, start: earliest.start, startsFromMoment: false,
                            photos: photos(at: indices, library: library))
+    }
+
+    /// `ARC-06` — 이미 저장된 기록을 고치러 들어간다. 신원과 사진과 설명을 그대로 싣는다.
+    static func editing(_ record: Record) -> RecordDraft {
+        RecordDraft(id: record.id,
+                    day: record.occurredAt.calendarDay,
+                    start: record.occurredAt,
+                    // 「이 순간」 꼬리를 달 자리가 없다 — 기록은 순간을 모른다 (원칙 `P2`).
+                    startsFromMoment: false,
+                    photos: record.images.map {
+                        DraftPhoto(id: $0.id, origin: .stored($0), isIncluded: true)
+                    },
+                    caption: record.caption,
+                    occurredAt: record.occurredAt)
     }
 
     /// 커널 인덱스를 화면이 다루는 사진으로 옮긴다. 시각을 못 얻은 사진은 애초에 순간에 없다.

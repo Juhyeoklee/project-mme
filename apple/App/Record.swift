@@ -59,4 +59,10 @@ struct RecordImage: Identifiable, Hashable, Sendable {
         if case .source(_, let capturedAt) = origin { return capturedAt }
         return nil
     }
+
+    /// 출처 표지. ⚠️ **이미지를 다시 읽는 데 쓰지 않는다** — 위 `origin`의 경고 그대로다.
+    var assetID: String? {
+        if case .source(let assetID, _) = origin { return assetID }
+        return nil
+    }
 }

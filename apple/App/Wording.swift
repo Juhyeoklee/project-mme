@@ -1,7 +1,7 @@
 // 문구 — 화면들의 문구가 전부 여기 있다.
 //
-// 한 곳에 모은 이유 둘 — ① 같은 문자열이 두 화면에 나타나는 자리가 규칙이다(`04-C2`와 `05-N3`이
-// 같아야 *"누른 그 순간이 맞다"* 가 확인된다) ② **화면설계서 밖에서 만든 문구가 어디 있는지가
+// 한 곳에 모은 이유 둘 — ① 같은 문자열이 두 화면에 나타나는 자리가 규칙이다(둘이 같아야
+// *"누른 그 순간이 맞다"* 가 확인된다) ② **화면설계서 밖에서 만든 문구가 어디 있는지가
 // 보여야 한다** — 그 구역은 아래에 따로 모여 있다. 흩어놓으면 슬며시 는다.
 //
 // `Date`·`Calendar`를 쓰지 않는다. `WallClock`은 시간대가 없는 벽시계고, 표시하려고 시간대를
@@ -10,9 +10,10 @@
 import MomentKernel
 
 enum Wording {
-    /// `04-N1`. 앱 이름을 쓰지 않는다 — 홈에서 앱 이름은 정보가 0이고,
-    /// 출시 2에서 `기록` 탭이 생기면 `순간` ‖ `기록`으로 짝이 맞는다.
+    /// `04-N1`이자 탭 이름. 앱 이름을 쓰지 않는다 — 홈에서 앱 이름은 정보가 0이다.
     static let listTitle = "순간"
+    /// `07-N1`이자 탭 이름. **두 글자·숫자 없음으로 위와 짝이다.**
+    static let recordsTitle = "기록"
 
     /// `04-E1`. 빈 상태 "화면"이 아니라 목록 자리를 채우는 한 줄이다.
     static let empty = "아직 사진이 없어요"
@@ -86,6 +87,31 @@ enum Wording {
         isOrigin ? "\(time(clock)) · 이 순간" : time(clock)
     }
 
+    // MARK: - 기록 보기
+
+    /// `07-E1`.
+    static let recordsEmpty = "아직 남긴 기록이 없어요"
+
+    /// `07-N2`. 기록에는 「장수」가 전체 요약으로 의미가 없어 개수만 쓴다.
+    static func recordSummary(_ count: Int) -> String { "기록 \(count.formatted())개" }
+
+    /// `07-B1` — `2026년 8월`. **날짜 헤더와 달리 년을 쓴다** — 기록은 여러 해에 걸쳐 쌓이고
+    /// 월 단위라 년이 없으면 8월이 어느 8월인지 구별되지 않는다.
+    static func monthHeader(year: Int, month: Int) -> String { "\(year)년 \(month)월" }
+
+    /// 갤러리는 사진 수, 캔버스는 페이지 수. **둘 다 「이미지 몇 장」이다.**
+    static func images(_ count: Int) -> String { "\(count)장" }
+
+    static let draft = "초안"
+    /// `08-T`.
+    static let flipThrough = "넘겨보기"
+    static let edit = "수정"
+    static let share = "공유"
+    /// `08-T` 초안 — 설명을 붙여 기록으로 만든다.
+    static let publish = "게시"
+    /// **컨텍스트 메뉴와 더보기 밖에는 안 선다.**
+    static let delete = "삭제"
+
     // MARK: - 확인과 실패 — ⚠️ 화면설계서 밖이다
 
     /// ⚠️ **이 절의 문구는 화면설계가 정한 것이 아니다.** 오류·확인 문구는 *"어떤 실패가
@@ -96,6 +122,11 @@ enum Wording {
     /// 원본을 못 읽었거나 디스크에 못 썼다. **왜인지는 사용자가 고칠 수 없어 말하지 않는다.**
     static let saveFailed = "저장하지 못했어요"
     static let acknowledge = "확인"
+    /// 저장소를 못 읽었다. 삭제 실패에는 안 쓴다 — 그때는 지워지지 않은 카드가 그대로 남는 것이
+    /// 이미 결과를 말한다.
+    static let recordsFailed = "기록을 불러오지 못했어요"
+    /// `ARC-07` 확인 한 단계. 파괴에는 색 말고 신호가 하나 더 있어야 한다.
+    static let deleteRecordTitle = "이 기록을 지울까요?"
 
     // MARK: - 조각
 
