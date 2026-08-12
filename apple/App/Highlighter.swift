@@ -48,27 +48,32 @@ struct HighlighterStroke: Shape {
         }
     }
 
-    /// 손으로 그은 여섯 벌. **두 번씩 긋고, 두 획이 서로 안 맞는 방식이 패턴마다 다르다.**
+    /// 손으로 그은 여섯 벌. **두 번씩 긋고, 두 획이 어긋나는 방식이 패턴마다 다르다.**
+    ///
+    /// ⚠️ **왼쪽은 맞고 오른쪽만 어긋난다** (사용자 판정 2026-08-12) — 형광펜은 시작점을
+    /// 글자 왼쪽에 대고 긋고, **어디서 멈추는지가 매번 다르다.** 시작이 들쭉날쭉하면
+    /// 그은 것이 아니라 흘린 것으로 보인다. 끝 차이도 10%를 안 넘긴다.
+    ///
     /// ⚠️ 값을 고르는 자리가 아니라 **그림**이다 — 늘리려면 눈으로 보고 더한다.
     fileprivate static let patterns: [[Swipe]] = [
-        // 아래 획이 길게 삐져나가고 끝이 살짝 올라간다
-        [Swipe(from: -0.01, to: 0.97, center: 0.36, thickness: 12, tilt: -1.1, headCut: 3, tailCut: 1.5),
-         Swipe(from: 0.02, to: 1.04, center: 0.64, thickness: 12, tilt: -2.2, headCut: 2, tailCut: 4)],
-        // 위 획이 왼쪽에서 짧게 끊기고 아래가 이어받는다
-        [Swipe(from: -0.03, to: 0.72, center: 0.34, thickness: 12, tilt: 0.8, headCut: 4, tailCut: 2.5),
-         Swipe(from: 0.06, to: 1.02, center: 0.62, thickness: 13, tilt: 1.8, headCut: 1.5, tailCut: 3)],
-        // 둘 다 오른쪽으로 올라가되 두 번째가 더 눕는다
-        [Swipe(from: 0.0, to: 1.01, center: 0.37, thickness: 12, tilt: -2.0, headCut: 2.5, tailCut: 3.5),
-         Swipe(from: -0.02, to: 0.94, center: 0.63, thickness: 12, tilt: -3.0, headCut: 3.5, tailCut: 2)],
-        // 첫 획이 전체를 덮고 두 번째는 가운데만 덧칠한다
-        [Swipe(from: -0.02, to: 1.03, center: 0.44, thickness: 14, tilt: 0.5, headCut: 2, tailCut: 2),
-         Swipe(from: 0.18, to: 0.82, center: 0.66, thickness: 11, tilt: -1.4, headCut: 4, tailCut: 4)],
-        // 두 획이 반대로 기울어 오른쪽에서 벌어진다
-        [Swipe(from: -0.01, to: 0.99, center: 0.35, thickness: 12, tilt: -1.6, headCut: 3, tailCut: 2),
-         Swipe(from: 0.0, to: 1.05, center: 0.63, thickness: 12, tilt: 1.4, headCut: 2, tailCut: 3.5)],
-        // 짧고 굵게 두 번 — 겹치는 자리가 크다
-        [Swipe(from: 0.01, to: 0.9, center: 0.40, thickness: 13, tilt: 2.0, headCut: 2.5, tailCut: 4),
-         Swipe(from: 0.05, to: 1.0, center: 0.60, thickness: 13, tilt: 0.4, headCut: 3, tailCut: 2)],
+        // 아래 획이 조금 더 나가고 더 눕는다
+        [Swipe(from: -0.01, to: 0.96, center: 0.36, thickness: 12, tilt: -1.1, headCut: 3, tailCut: 1.5),
+         Swipe(from: -0.02, to: 1.03, center: 0.64, thickness: 12, tilt: -2.2, headCut: 2, tailCut: 4)],
+        // 위 획이 먼저 멈춘다
+        [Swipe(from: -0.02, to: 0.93, center: 0.34, thickness: 12, tilt: 0.8, headCut: 4, tailCut: 2.5),
+         Swipe(from: -0.01, to: 1.01, center: 0.62, thickness: 13, tilt: 1.8, headCut: 1.5, tailCut: 3)],
+        // 둘 다 올라가되 두 번째가 더 눕고 조금 짧다
+        [Swipe(from: -0.01, to: 1.02, center: 0.37, thickness: 12, tilt: -2.0, headCut: 2.5, tailCut: 3.5),
+         Swipe(from: -0.02, to: 0.95, center: 0.63, thickness: 12, tilt: -3.0, headCut: 3.5, tailCut: 2)],
+        // 첫 획이 굵고 길게, 두 번째가 얇고 짧게
+        [Swipe(from: -0.02, to: 1.04, center: 0.44, thickness: 14, tilt: 0.5, headCut: 2, tailCut: 2),
+         Swipe(from: -0.01, to: 0.94, center: 0.66, thickness: 11, tilt: -1.4, headCut: 4, tailCut: 4)],
+        // 반대로 기울어 오른쪽에서 벌어진다
+        [Swipe(from: -0.01, to: 0.98, center: 0.35, thickness: 12, tilt: -1.6, headCut: 3, tailCut: 2),
+         Swipe(from: -0.02, to: 1.04, center: 0.63, thickness: 12, tilt: 1.4, headCut: 2, tailCut: 3.5)],
+        // 거의 나란하고 끝만 살짝 갈린다
+        [Swipe(from: 0.0, to: 0.94, center: 0.40, thickness: 13, tilt: 2.0, headCut: 2.5, tailCut: 4),
+         Swipe(from: -0.01, to: 1.0, center: 0.60, thickness: 13, tilt: 0.4, headCut: 3, tailCut: 2)],
     ]
 }
 
