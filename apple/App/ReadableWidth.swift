@@ -8,4 +8,11 @@ extension View {
         frame(maxWidth: Layout.readableWidth, alignment: alignment)
             .frame(maxWidth: .infinity)
     }
+
+    /// iPad 2단의 지면 한 장. **분할선을 안 그린다** — 여백과 반경이 경계를 진다.
+    func pane() -> some View {
+        frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Palette.pane)
+            .clipShape(.rect(cornerRadius: Radius.pane))
+    }
 }

@@ -17,6 +17,7 @@ struct MomentListScreen: View {
     /// 편집기가 뜰 자리는 `RootView`가 정한다 — 화면은 초안을 넣기만 한다.
     var editing: Binding<RecordDraft?>
 
+    @Environment(\.horizontalSizeClass) private var sizeClass
     /// **한 행의 장수를 이 값이 정한다** — iPad 세로에서 pane이 좁아지면 3장이 안 들어간다.
     @State private var stripWidth: CGFloat = Layout.thumbnail
     /// 머리가 얼마나 줄었나. 0이면 펼침, 1이면 접힘.
@@ -32,7 +33,7 @@ struct MomentListScreen: View {
         // 유리가 비출 것이 없다. 첫 화면에서 가려지지 않는 것은 목록의 상단 여백이 맡는다.
         list
             .overlay(alignment: .top) { header }
-            .background(Palette.background)
+            .background(paneBackground)
         .overlay(alignment: .topLeading) { ThreadBinding() }
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top, spacing: 0) {
@@ -51,6 +52,12 @@ struct MomentListScreen: View {
     ///
     /// 대신 **줄어든다** — 타이틀이 32에서 18로 가고 요약 줄이 접힌다. 훑는 화면에서 상시
     /// 머리가 세로를 계속 먹는 것을 그렇게 갚는다.
+    /// ⚠️ **iPad 2단에서는 지면이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이 되어
+    /// 두 장의 종이가 통째로 안 보인다. 「지면은 바깥보다 밝다」가 그래서 토큰을 갈라 뒀다.
+    private var paneBackground: Color {
+        sizeClass == .regular ? Palette.pane : Palette.background
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
             // ⚠️ **접힌 타이틀은 아이콘과 같은 줄에 선다** — 나눠 두면 스크롤한 뒤에도 두 줄이

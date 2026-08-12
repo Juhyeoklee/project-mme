@@ -155,22 +155,32 @@ struct RootView: View {
     ///
     /// ⚠️ **편집기도 여기 산다** — 전체를 덮으면 어디서 시작했는지가 사라지고, iPad에서는
     /// 우측 지면이 이미 iPhone 전체화면보다 넓다 (사용자 판정 2026-08-11).
+    /// ⚠️ **`NavigationSplitView`를 안 쓴다** — 두 지면이 **종이 두 장**이라 시스템이 그리는
+    /// 사이드바 재질·분할선과 싸우게 된다. 사이드바는 늘 보이고 접히지 않으므로
+    /// 그 컨테이너가 주는 것 중 이 화면이 쓰는 것이 없다.
     private var splitLayout: some View {
         GeometryReader { geometry in
-            NavigationSplitView {
+            HStack(spacing: Spacing.paneGap) {
                 MomentListScreen(library: library, selection: $selected, editing: $editing)
-                    .navigationSplitViewColumnWidth(geometry.size.width * Layout.listPaneFraction)
-            } detail: {
-                if let draft = editing {
-                    RecordEditorScreen(library: library, draft: draft,
-                                       initialAddingPhotos: opensPhotoAdd) { editing = nil }
-                } else if let moment = selected ?? library.days.first?.moments.first {
-                    MomentDetailScreen(library: library, moment: moment, editing: $editing)
-                } else {
-                    Color.clear
-                }
+                    .frame(width: geometry.size.width * Layout.listPaneFraction)
+                    .pane()
+                detailPane
+                    .pane()
             }
-            .navigationSplitViewStyle(.balanced)
+            .padding(Spacing.paneGap)
+        }
+        .background(Palette.paneOutside)
+    }
+
+    @ViewBuilder
+    private var detailPane: some View {
+        if let draft = editing {
+            RecordEditorScreen(library: library, draft: draft,
+                               initialAddingPhotos: opensPhotoAdd) { editing = nil }
+        } else if let moment = selected ?? library.days.first?.moments.first {
+            MomentDetailScreen(library: library, moment: moment, editing: $editing)
+        } else {
+            Color.clear
         }
     }
 }

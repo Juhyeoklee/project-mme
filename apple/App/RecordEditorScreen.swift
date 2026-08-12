@@ -66,7 +66,7 @@ struct RecordEditorScreen: View {
             }
             header
         }
-        .background(Palette.background)
+        .background(paneBackground)
         // ⚠️ **머리를 직접 그리므로 시스템 바를 숨긴다** — iPad 2단의 지면에서는 빈 바가
         // 위쪽 ~145pt를 그대로 먹어 화면이 그만큼 짧아진다(2026-08-11 시뮬레이터 실측).
         .toolbar(.hidden, for: .navigationBar)
@@ -98,6 +98,12 @@ struct RecordEditorScreen: View {
     /// 무시한다 — 타이틀이 흰색으로 뒤집혀 밝은 지면에서 통째로 사라졌다(2026-08-11 실측).
     ///
     /// 스크롤에 따라 줄어드는 동작을 잃지만, 이 화면은 원래 정지한 머리로 설계됐다.
+    /// ⚠️ **iPad 2단에서는 지면이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이 되어
+    /// 두 장의 종이가 통째로 안 보인다. 「지면은 바깥보다 밝다」가 그래서 토큰을 갈라 뒀다.
+    private var paneBackground: Color {
+        sizeClass == .regular ? Palette.pane : Palette.background
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
             // ⚠️ **접힌 날짜가 두 버튼과 같은 줄에 선다** — 아래 줄에 두면 스크롤한 뒤에도

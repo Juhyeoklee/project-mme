@@ -53,7 +53,7 @@ struct MomentDetailScreen: View {
             }
             header
         }
-        .background(Palette.background)
+        .background(paneBackground)
         .toolbar(.hidden, for: .navigationBar)
         .overlay(alignment: .topLeading) { binding }
         .safeAreaInset(edge: .bottom) { createRecordButton }
@@ -64,6 +64,12 @@ struct MomentDetailScreen: View {
     }
 
     // MARK: - `05-N` 머리
+
+    /// ⚠️ **iPad 2단에서는 지면이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이 되어
+    /// 두 장의 종이가 통째로 안 보인다. 「지면은 바깥보다 밝다」가 그래서 토큰을 갈라 뒀다.
+    private var paneBackground: Color {
+        sizeClass == .regular ? Palette.pane : Palette.background
+    }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {

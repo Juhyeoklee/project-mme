@@ -206,6 +206,8 @@ enum Spacing {
     /// 20/16(=36)이면 스트립이 3장/행에서 2장/행으로 깨진다.
     static let listLeading: CGFloat = 17
     static let dayGap: CGFloat = 32
+    /// iPad 지면 바깥 여백이자 지면 사이 간격.
+    static let paneGap: CGFloat = 12
     /// 카드 자기 패딩 — 선택 배경이 들어갈 자리.
     static let cardInset: CGFloat = 6
 }
@@ -218,6 +220,8 @@ enum Radius {
     static let badge: CGFloat = 4
     static let button: CGFloat = 8
     static let card: CGFloat = 12
+    /// iPad 2단의 지면. **두 장의 종이가 나란히 놓인다** — 분할선이 아니라 여백이 가른다.
+    static let pane: CGFloat = 22
 }
 
 /// 번들 아이콘 이름. **관례가 강한 개념만 아이콘으로 말한다** — 약한 것은 글자가 진다.
