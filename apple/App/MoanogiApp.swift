@@ -59,11 +59,20 @@ struct MoanogiApp: App {
     private var rootScreen: some View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        if usesFixture, arguments.contains("09"), let day = Fixture.library.days.first {
+        if usesFixture, arguments.contains("10"), let day = Fixture.library.days.first {
+            RootView(library: Fixture.library,
+                     initialEditing: .from(moment: Fixture.momentWithBurst, day: day.date,
+                                           library: Fixture.library),
+                     opensPhotoAdd: true)
+        } else if usesFixture, arguments.contains("09"), let day = Fixture.library.days.first {
             // 사진이 여럿인 순간으로 연다 — 1장짜리로는 격자도 스크롤도 안 보인다.
             RootView(library: Fixture.library,
                      initialEditing: .from(moment: Fixture.momentWithBurst, day: day.date,
                                            library: Fixture.library))
+        } else if usesFixture, arguments.contains("06") {
+            PhotoViewerScreen(library: Fixture.library, moment: Fixture.momentWithBurst,
+                              photos: Fixture.momentWithBurst.photoIndices,
+                              start: Fixture.momentWithBurst.photoIndices[0])
         } else if usesFixture, arguments.contains("05") {
             NavigationStack {
                 MomentDetailScreen(library: Fixture.library,
@@ -113,6 +122,8 @@ struct RootView: View {
     let library: MomentLibrary
     /// 합성 데이터로 편집기를 바로 띄울 때만 채운다.
     var initialEditing: RecordDraft?
+    /// 그 편집기 위에 `10` 시트까지 띄운다.
+    var opensPhotoAdd = false
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var selected: Moment?
@@ -132,7 +143,8 @@ struct RootView: View {
                         }
                 }
                 .fullScreenCover(item: $editing) { draft in
-                    RecordEditorScreen(library: library, draft: draft) { editing = nil }
+                    RecordEditorScreen(library: library, draft: draft,
+                                       initialAddingPhotos: opensPhotoAdd) { editing = nil }
                 }
             }
         }
@@ -150,7 +162,8 @@ struct RootView: View {
                     .navigationSplitViewColumnWidth(geometry.size.width * Layout.listPaneFraction)
             } detail: {
                 if let draft = editing {
-                    RecordEditorScreen(library: library, draft: draft) { editing = nil }
+                    RecordEditorScreen(library: library, draft: draft,
+                                       initialAddingPhotos: opensPhotoAdd) { editing = nil }
                 } else if let moment = selected ?? library.days.first?.moments.first {
                     MomentDetailScreen(library: library, moment: moment, editing: $editing)
                 } else {

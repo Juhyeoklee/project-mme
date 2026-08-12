@@ -12,7 +12,8 @@ struct RecordEditorScreen: View {
     /// 닫는 방법은 뜬 자리가 안다 — iPhone은 덮개를 내리고 iPad는 우측 지면을 되돌린다.
     let onClose: () -> Void
 
-    @State private var isAddingPhotos = false
+    @State private var isAddingPhotos: Bool
+
     @State private var isConfirmingCancel = false
     @State private var isEditingOccurredAt = false
     /// 격자가 놓일 실제 폭. **열 수를 이 값이 정한다.**
@@ -20,6 +21,15 @@ struct RecordEditorScreen: View {
     /// 머리가 얼마나 줄었나. 0이면 펼침, 1이면 접힘.
     @State private var collapse: Double = 0
     @FocusState private var captionFocused: Bool
+
+    /// 합성 데이터로 `10`을 바로 띄울 때만 켠다 — `RootView.initialEditing`과 같은 문이다.
+    init(library: MomentLibrary, draft: RecordDraft,
+         initialAddingPhotos: Bool = false, onClose: @escaping () -> Void) {
+        self.library = library
+        self.draft = draft
+        self.onClose = onClose
+        _isAddingPhotos = State(initialValue: initialAddingPhotos)
+    }
 
     @Environment(\.recordStore) private var store
     @Environment(\.originalBytes) private var originalBytes
@@ -234,12 +244,10 @@ struct RecordEditorScreen: View {
                     Button(Wording.makeCanvas) {}
                         .buttonStyle(PlainActionStyle())
                     Spacer(minLength: 0)
-                    saveButton
+                    saveButton(PrimaryActionStyle())
                 }
             } else {
-                saveButton
-                    .shadow(color: Chrome.shadowColor, radius: Chrome.shadowRadius,
-                            y: Chrome.shadowOffset)
+                saveButton(GlassActionStyle())
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
@@ -249,9 +257,10 @@ struct RecordEditorScreen: View {
         .readableWidth(alignment: .center)
     }
 
-    private var saveButton: some View {
+    /// 재질은 자리가 정한다 — 카드 안이면 내용물이라 불투명, 홀로 뜨면 유리다.
+    private func saveButton(_ style: some ButtonStyle) -> some View {
         Button(Wording.save) { Task { await save(status: .published) } }
-            .buttonStyle(PrimaryActionStyle())
+            .buttonStyle(style)
             .disabled(!draft.canSave)
     }
 
