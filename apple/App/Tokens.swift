@@ -37,7 +37,8 @@ enum Palette {
     static let surface = mode(light: Paper.step3, dark: Paper.step11)
     /// 사진 자리 · 스켈레톤 · 구분선 · 진행 트랙.
     static let placeholder = mode(light: Paper.step4, dark: Paper.step10)
-    /// 연사 펼침 띠 · 선택 카드.
+    /// ⚠️ **쓰는 곳이 없다** — 연사 펼침 띠는 `05`에서 빠졌고(펼치기가 `06`으로 갔다) 선택
+    /// 카드는 형광펜이 대신한다. 토큰 문서가 아직 자리를 갖고 있어 지우지 않았다.
     static let active = mode(light: Paper.step5, dark: Paper.step9)
 
     /// ⚠️ **`background`와 이름을 합치면 안 되는 자리다.** 라이트에서는 값이 같지만 다크에서는
@@ -67,6 +68,11 @@ enum Palette {
     /// `05-G2` 연사 배지의 바탕. ⚠️ **모드를 따르지 않는다** — 사진 위에 얹히므로 바탕이
     /// 지면이 아니라 사진이다. 글자는 `Paper.step1`.
     static let photoBadge = Paper.black.opacity(0.45)
+
+    /// `04-C1` 형광펜. 앱이 **자기가 준 도구**로 자기 상태를 말한다 — 새 어휘가 0이다.
+    /// ⚠️ 합성 모드가 모드마다 다르다(라이트 곱하기 · 다크 일반) — 그건 `Highlighter`가 안다.
+    static let highlighter = mode(light: Color(hex: 0xB0552B).opacity(0.28),
+                                  dark: Color(hex: 0xDD8455).opacity(0.38))
 
     /// 강조색 — 테라코타. 도구 활성 · 주요 액션 · 입력 캐럿.
     static let accent = mode(light: Color(hex: 0xB0552B), dark: Color(hex: 0xDD8455))

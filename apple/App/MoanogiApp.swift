@@ -161,7 +161,7 @@ struct RootView: View {
     private var splitLayout: some View {
         GeometryReader { geometry in
             HStack(spacing: Spacing.paneGap) {
-                MomentListScreen(library: library, selection: $selected, editing: $editing)
+                MomentListScreen(library: library, selection: effectiveSelection, editing: $editing)
                     .frame(width: geometry.size.width * Layout.listPaneFraction)
                     .pane()
                 detailPane
@@ -178,10 +178,18 @@ struct RootView: View {
         if let draft = editing {
             RecordEditorScreen(library: library, draft: draft,
                                initialAddingPhotos: opensPhotoAdd) { editing = nil }
-        } else if let moment = selected ?? library.days.first?.moments.first {
+        } else if let moment = effectiveSelection.wrappedValue {
             MomentDetailScreen(library: library, moment: moment, editing: $editing)
         } else {
             Color.clear
         }
+    }
+
+    /// ⚠️ **목록과 지면이 같은 값을 봐야 한다** — 아무것도 안 고른 상태에서도 지면은 첫
+    /// 순간을 보여주므로, 그 사실을 목록에도 돌려주지 않으면 **어느 카드가 그것인지 화면이
+    /// 말하지 않는다**(선택 표시가 아무 데도 안 붙는다).
+    private var effectiveSelection: Binding<Moment?> {
+        Binding(get: { selected ?? library.days.first?.moments.first },
+                set: { selected = $0 })
     }
 }

@@ -28,16 +28,18 @@ struct MomentCard: View {
                     .font(Typography.subtitle)
                     .foregroundStyle(Palette.secondaryLabel)
             }
+            .fixedSize()
+            .highlighted(isSelected, seed: seed)
 
             strip
         }
         // ⚠️ **가로 패딩을 두지 않는다** — `118×3 + 3×2 = 360`이 스트립의 천장이라, 카드가
-        // 안쪽 여백을 먹으면 한 행이 3장에서 2장으로 깨진다. 선택 배경만 세로로 물린다.
-        .padding(.vertical, isSelected ? Spacing.cardInset : 0)
-        .background(isSelected ? Palette.active : .clear)
-        .clipShape(.rect(cornerRadius: Radius.card))
+        // 안쪽 여백을 먹으면 한 행이 3장에서 2장으로 깨진다.
         .contentShape(.rect)
     }
+
+    /// 획의 신원. **순간의 첫 사진 첨자를 쓴다** — 목록이 다시 분류돼도 같은 순간이면 같은 획이다.
+    private var seed: UInt64 { UInt64(truncatingIfNeeded: moment.photoIndices.first ?? 0) &+ 7 }
 
     // MARK: - `04-C3` 스트립
 
