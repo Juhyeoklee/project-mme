@@ -10,8 +10,11 @@ extension View {
     }
 
     /// iPad 2단의 지면 한 장. **분할선을 안 그린다** — 여백과 반경이 경계를 진다.
+    ///
+    /// ⚠️ **폭을 건드리지 않는다.** 여기서 `maxWidth: .infinity`를 걸면 부르는 쪽이 정한
+    /// 폭을 도로 늘려, 지면만 넓어지고 내용은 가운데로 몰린다(2026-08-12 실측).
     func pane() -> some View {
-        frame(maxWidth: .infinity, maxHeight: .infinity)
+        frame(maxHeight: .infinity)
             .background(Palette.pane)
             .clipShape(.rect(cornerRadius: Radius.pane))
     }

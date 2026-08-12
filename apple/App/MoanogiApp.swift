@@ -165,6 +165,7 @@ struct RootView: View {
                     .frame(width: geometry.size.width * Layout.listPaneFraction)
                     .pane()
                 detailPane
+                    .frame(maxWidth: .infinity)
                     .pane()
             }
             .padding(Spacing.paneGap)
