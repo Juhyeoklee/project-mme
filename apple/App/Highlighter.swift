@@ -5,67 +5,71 @@
 
 import SwiftUI
 
-/// 손으로 그은 형광펜 한 획.
+/// 마커로 두 번 그은 자국.
 ///
-/// ⚠️ **시드를 밖에서 받는다.** 획이 카드마다 미세하게 달라야 손으로 그은 티가 나는데,
-/// 매 렌더마다 새로 뽑으면 스크롤할 때마다 같은 카드의 획이 바뀐다.
+/// ⚠️ **가장자리를 절차적으로 흔들지 않는다** — 흔든 사각형은 손맛이 아니라 얼룩이 된다.
+/// 손맛은 **획이 곧게 그어지되 두 번이 서로 안 맞는 데서** 나온다. 그래서 미리 그려 둔
+/// 패턴을 시드로 고른다: 결정적이면서 카드마다 다르다.
 struct HighlighterStroke: Shape {
     let seed: UInt64
 
-    /// 글자 상자보다 얇다 — 글자를 거의 채우되 넘치지 않는다.
-    private static let thickness: ClosedRange<CGFloat> = 15...19
-    /// 직선은 도장처럼 보인다.
-    private static let waveAmplitude: ClosedRange<CGFloat> = 1...1.5
-    private static let tiltDegrees: ClosedRange<CGFloat> = 0.6...1.2
-
     func path(in rect: CGRect) -> Path {
-        var random = Splitmix64(seed: seed)
-        let thickness = min(random.value(in: Self.thickness), rect.height)
-        let amplitude = random.value(in: Self.waveAmplitude)
-        let tilt = random.value(in: Self.tiltDegrees) * (random.bool() ? 1 : -1)
-        let rise = rect.width * tan(tilt * .pi / 180)
-
-        // 양끝이 서로 다르게 끝난다. 대칭이면 도장처럼 보인다.
-        let head = random.value(in: 1...4)
-        let tail = random.value(in: 1...4)
-        let left = rect.minX - head
-        let right = rect.maxX + tail
-
-        // 위아래 가장자리가 각자 물결친다 — 같은 파형을 쓰면 굵기가 일정해 인쇄처럼 보인다.
-        let topPhase = random.value(in: 0...(2 * .pi))
-        let bottomPhase = random.value(in: 0...(2 * .pi))
-        let cycles = random.value(in: 1.5...2.5)
-
         var path = Path()
-        let steps = 24
-        func center(_ t: CGFloat) -> CGFloat { rect.midY - rise / 2 + rise * t }
-        func wave(_ t: CGFloat, _ phase: CGFloat) -> CGFloat {
-            sin(t * cycles * 2 * .pi + phase) * amplitude
+        for swipe in Self.patterns[Int(seed % UInt64(Self.patterns.count))] {
+            path.addPath(swipe.path(in: rect))
         }
-
-        for step in 0...steps {
-            let t = CGFloat(step) / CGFloat(steps)
-            let x = left + (right - left) * t
-            let y = center(t) - thickness / 2 + wave(t, topPhase)
-            step == 0 ? path.move(to: CGPoint(x: x, y: y)) : path.addLine(to: CGPoint(x: x, y: y))
-        }
-        for step in stride(from: steps, through: 0, by: -1) {
-            let t = CGFloat(step) / CGFloat(steps)
-            let x = left + (right - left) * t
-            path.addLine(to: CGPoint(x: x, y: center(t) + thickness / 2 + wave(t, bottomPhase)))
-        }
-        path.closeSubpath()
         return path
     }
 
-    /// 눌린 자리 — 시작 쪽 약 3분의 1이 한 겹 더 진하다.
-    func pressed(in rect: CGRect) -> Path {
-        var random = Splitmix64(seed: seed &+ 1)
-        let share = random.value(in: 0.28...0.4)
-        return path(in: rect).intersection(
-            Path(CGRect(x: rect.minX - 4, y: rect.minY,
-                        width: rect.width * share, height: rect.height)))
+    /// 한 번의 긋기. 곧은 사각형이되 양끝이 마커 촉처럼 비스듬히 잘린다.
+    fileprivate struct Swipe {
+        /// 폭에 대한 비율. **1을 넘거나 0 미만이면 글자 밖으로 삐져나온다** — 그게 자연스럽다.
+        let from: CGFloat, to: CGFloat
+        /// 높이에 대한 비율(중심) · 두께(pt) · 기울기(도)
+        let center: CGFloat, thickness: CGFloat, tilt: CGFloat
+        /// 촉이 눕는 각. 양끝이 서로 달라야 도장처럼 안 보인다.
+        let headCut: CGFloat, tailCut: CGFloat
+
+        func path(in rect: CGRect) -> Path {
+            let x0 = rect.minX + rect.width * from
+            let x1 = rect.minX + rect.width * to
+            let rise = (x1 - x0) * tan(tilt * .pi / 180)
+            let y0 = rect.minY + rect.height * center - rise / 2
+            let y1 = y0 + rise
+            let half = thickness / 2
+
+            var path = Path()
+            path.move(to: CGPoint(x: x0 + headCut, y: y0 - half))
+            path.addLine(to: CGPoint(x: x1 + tailCut, y: y1 - half))
+            path.addLine(to: CGPoint(x: x1 - tailCut, y: y1 + half))
+            path.addLine(to: CGPoint(x: x0 - headCut, y: y0 + half))
+            path.closeSubpath()
+            return path
+        }
     }
+
+    /// 손으로 그은 여섯 벌. **두 번씩 긋고, 두 획이 서로 안 맞는 방식이 패턴마다 다르다.**
+    /// ⚠️ 값을 고르는 자리가 아니라 **그림**이다 — 늘리려면 눈으로 보고 더한다.
+    fileprivate static let patterns: [[Swipe]] = [
+        // 아래 획이 길게 삐져나가고 끝이 살짝 올라간다
+        [Swipe(from: -0.01, to: 0.97, center: 0.36, thickness: 12, tilt: -1.1, headCut: 3, tailCut: 1.5),
+         Swipe(from: 0.02, to: 1.04, center: 0.64, thickness: 12, tilt: -2.2, headCut: 2, tailCut: 4)],
+        // 위 획이 왼쪽에서 짧게 끊기고 아래가 이어받는다
+        [Swipe(from: -0.03, to: 0.72, center: 0.34, thickness: 12, tilt: 0.8, headCut: 4, tailCut: 2.5),
+         Swipe(from: 0.06, to: 1.02, center: 0.62, thickness: 13, tilt: 1.8, headCut: 1.5, tailCut: 3)],
+        // 둘 다 오른쪽으로 올라가되 두 번째가 더 눕는다
+        [Swipe(from: 0.0, to: 1.01, center: 0.37, thickness: 12, tilt: -2.0, headCut: 2.5, tailCut: 3.5),
+         Swipe(from: -0.02, to: 0.94, center: 0.63, thickness: 12, tilt: -3.0, headCut: 3.5, tailCut: 2)],
+        // 첫 획이 전체를 덮고 두 번째는 가운데만 덧칠한다
+        [Swipe(from: -0.02, to: 1.03, center: 0.44, thickness: 14, tilt: 0.5, headCut: 2, tailCut: 2),
+         Swipe(from: 0.18, to: 0.82, center: 0.66, thickness: 11, tilt: -1.4, headCut: 4, tailCut: 4)],
+        // 두 획이 반대로 기울어 오른쪽에서 벌어진다
+        [Swipe(from: -0.01, to: 0.99, center: 0.35, thickness: 12, tilt: -1.6, headCut: 3, tailCut: 2),
+         Swipe(from: 0.0, to: 1.05, center: 0.63, thickness: 12, tilt: 1.4, headCut: 2, tailCut: 3.5)],
+        // 짧고 굵게 두 번 — 겹치는 자리가 크다
+        [Swipe(from: 0.01, to: 0.9, center: 0.40, thickness: 13, tilt: 2.0, headCut: 2.5, tailCut: 4),
+         Swipe(from: 0.05, to: 1.0, center: 0.60, thickness: 13, tilt: 0.4, headCut: 3, tailCut: 2)],
+    ]
 }
 
 /// 형광펜을 요약 줄 뒤에 긋는다.
@@ -73,6 +77,9 @@ struct HighlighterStroke: Shape {
 /// ⚠️ **합성 모드가 모드마다 다르다.** 곱하기는 어둡게 만드는 연산이라 다크에서 원리적으로
 /// 안 통한다 — 어두운 지면 위에서 획이 사라진다. 스크린은 빛나 보여 네온이 되고 종이
 /// 은유를 깬다. 다크는 일반 합성이 잉크에 가장 가깝다.
+///
+/// **획을 하나씩 따로 칠한다** — 한 `Path`로 합치면 겹친 자리가 안 진해져서, 두 번 그은
+/// 티가 사라지고 한 덩어리로 보인다.
 private struct Highlighted: ViewModifier {
     let isOn: Bool
     let seed: UInt64
@@ -83,12 +90,13 @@ private struct Highlighted: ViewModifier {
             if isOn {
                 GeometryReader { geometry in
                     let rect = CGRect(origin: .zero, size: geometry.size)
-                    let stroke = HighlighterStroke(seed: seed)
-                    ZStack {
-                        stroke.path(in: rect).fill(Palette.highlighter)
-                        stroke.pressed(in: rect).fill(Palette.highlighter)
+                    let swipes = HighlighterStroke.patterns[
+                        Int(seed % UInt64(HighlighterStroke.patterns.count))]
+                    ForEach(Array(swipes.enumerated()), id: \.offset) { _, swipe in
+                        swipe.path(in: rect)
+                            .fill(Palette.highlighter)
+                            .blendMode(scheme == .dark ? .normal : .multiply)
                     }
-                    .blendMode(scheme == .dark ? .normal : .multiply)
                 }
             }
         }
@@ -96,29 +104,9 @@ private struct Highlighted: ViewModifier {
 }
 
 extension View {
-    /// 이 줄에 형광펜을 긋는다. **`seed`는 그 줄이 속한 것의 신원이어야 한다.**
+    /// 이 줄에 형광펜을 긋는다. **`seed`는 그 줄이 속한 것의 신원이어야 한다** —
+    /// 매 렌더마다 다시 뽑으면 스크롤할 때마다 같은 카드의 획이 바뀐다.
     func highlighted(_ isOn: Bool, seed: UInt64) -> some View {
         modifier(Highlighted(isOn: isOn, seed: seed))
     }
-}
-
-/// 결정적 난수. **알고리즘을 고르는 자리가 아니라 「같은 시드면 같은 획」을 보장하는 자리다.**
-private struct Splitmix64 {
-    private var state: UInt64
-
-    init(seed: UInt64) { state = seed &* 0x9E37_79B9_7F4A_7C15 &+ 0x1234_5678 }
-
-    private mutating func next() -> UInt64 {
-        state &+= 0x9E37_79B9_7F4A_7C15
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-        return z ^ (z >> 31)
-    }
-
-    mutating func unit() -> CGFloat { CGFloat(next() >> 11) / CGFloat(1 << 53) }
-    mutating func value(in range: ClosedRange<CGFloat>) -> CGFloat {
-        range.lowerBound + unit() * (range.upperBound - range.lowerBound)
-    }
-    mutating func bool() -> Bool { next() & 1 == 0 }
 }
