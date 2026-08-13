@@ -113,7 +113,10 @@ enum Typography {
     /// 네비 바 버튼도 겸한다. 16은 iOS 관례 17보다 작지만 Plex로 찍으면 같은 크기로 읽힌다.
     static let body = plex(.regular, 16, relativeTo: .body)
     static let subtitle = plex(.regular, 14, relativeTo: .subheadline)
-    /// 채워진 버튼 문구.
+    /// 목록을 끊는 구분 머리 — `10-B`. ⚠️ **`label`과 갈라 둔다** — 한때 둘이 한 토큰이었는데
+    /// 버튼이 손글씨로 가면서 구분 머리까지 18로 끌려갔다(2026-08-13 pen 대조에서 잡았다).
+    static let sectionLabel = plex(.semiBold, 14, relativeTo: .subheadline)
+    /// 버튼 문구. **네비 평문 버튼도 겸한다** — 한 화면에 서체가 둘이 되지 않게.
     static let label = accent(18, relativeTo: .subheadline)
     static let note = plex(.regular, 12, relativeTo: .caption)
 
@@ -243,6 +246,8 @@ enum Glyph {
     /// `05-G2` 연사 배지. 숫자가 옆에 서므로 아이콘 혼자 뜻을 다 지지 않는다.
     static let burst = "copy"
     static let createRecord = "pen-line"
+    /// `09-T` iPhone. 만들기가 펜이면 확정은 체크고, `확정`이 쓰는 개념과 같아 어휘가 안 는다.
+    static let save = "check"
 }
 
 /// 확정된 레이아웃 상수. 토큰 문서 밖이지만 값이 확정돼 있어 여기 모은다.

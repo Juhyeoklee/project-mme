@@ -31,6 +31,6 @@ struct RecordPhotoTile<Photo: View>: View {
                 GlyphIcon(Glyph.add, size: 13)
                     .foregroundStyle(Palette.background)
             }
-            .padding(8)
+            .padding(6)
     }
 }

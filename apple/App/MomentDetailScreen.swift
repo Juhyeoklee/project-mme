@@ -146,6 +146,7 @@ struct MomentDetailScreen: View {
         .buttonStyle(.plain)
         .glassEffect(.regular.tint(Chrome.accentTint).interactive(), in: .circle)
         .accessibilityLabel(Wording.createRecord)
+        .blocksNearbyTaps()
         .frame(maxWidth: .infinity, alignment: .trailing)
         .padding(.trailing, Spacing.screenMargin)
         .padding(.bottom, 24)

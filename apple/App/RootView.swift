@@ -34,6 +34,12 @@ struct RootView: View {
     var opensFirstRecord = false
 
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.recordStore) private var store
+    @Environment(\.originalBytes) private var originalBytes
+    /// 편집 중에 이 지면을 떠나려는 시도. **확인을 받아야 실행된다.**
+    @State private var pendingExit: (() -> Void)?
+    /// 지우려는 기록. ⚠️ **iPad에서만 채워진다** — iPhone은 부른 화면이 자기가 시트를 띄운다.
+    @State private var pendingDelete: Record?
     @State private var selectedMoment: Moment?
     @State private var selectedRecord: Record?
     @State private var editing: RecordDraft?
@@ -62,7 +68,68 @@ struct RootView: View {
         .onChange(of: tab) { if tab == .records { records.reload() } }
         .modifier(EditorCover(editing: $editing, library: library, records: records,
                               opensPhotoAdd: opensPhotoAdd, isCompact: sizeClass == .compact))
+        .confirmationDialog(Wording.discardTitle, isPresented: isConfirmingExit,
+                            titleVisibility: .visible) {
+            if editing?.canSave == true {
+                Button(Wording.keepAsDraft) { leave(keepingDraft: true) }
+            }
+            Button(Wording.discard, role: .destructive) { leave(keepingDraft: false) }
+        }
+        .confirmationDialog(Wording.deleteRecordTitle, isPresented: isConfirmingDelete,
+                            titleVisibility: .visible) {
+            Button(Wording.delete, role: .destructive) { confirmDelete() }
+        }
         .task { if editing == nil { editing = initialEditing } }
+    }
+
+    /// iPad에서 확인 시트는 전부 여기서 뜬다 — **같은 결정이 부른 자리마다 다른 데 서지 않게.**
+    /// ⚠️ 지면 안에서 띄우면 팝오버가 그 지면을 앵커로 잡는다 (사용자 판정 2026-08-13).
+    private var isConfirmingDelete: Binding<Bool> {
+        Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
+    }
+
+    private func confirmDelete() {
+        guard let record = pendingDelete else { return }
+        pendingDelete = nil
+        records.delete(id: record.id)
+    }
+
+    // MARK: - 편집 중 이탈
+
+    /// 편집 중이면 떠나기를 가로채 확인을 먼저 받는다.
+    /// ⚠️ **iPhone에서는 안 걸린다** — 덮개가 목록과 탭 바를 통째로 덮어 누를 것이 없다.
+    private func guardingEditor<Value>(_ binding: Binding<Value>) -> Binding<Value> {
+        Binding(get: { binding.wrappedValue }, set: { new in
+            if editing == nil {
+                binding.wrappedValue = new
+            } else {
+                pendingExit = { binding.wrappedValue = new }
+            }
+        })
+    }
+
+    private var isConfirmingExit: Binding<Bool> {
+        Binding(get: { pendingExit != nil }, set: { if !$0 { pendingExit = nil } })
+    }
+
+    /// ⚠️ **저장을 기다렸다가 떠난다** — 먼저 떠나면 실패를 말할 화면이 이미 사라지고 없어
+    /// 만들던 것이 소리 없이 증발한다.
+    private func leave(keepingDraft: Bool) {
+        guard let go = pendingExit else { return }
+        pendingExit = nil
+        guard keepingDraft, let draft = editing else {
+            editing = nil
+            go()
+            return
+        }
+        Task {
+            guard await draft.save(status: .draft, to: store, bytes: originalBytes) != nil else {
+                return
+            }
+            editing = nil
+            records.reload()
+            go()
+        }
     }
 
     /// 안 보이는 탭은 자리에 남되 눈과 손과 낭독에서 빠진다.
@@ -80,7 +147,8 @@ struct RootView: View {
     @ViewBuilder
     private var momentsTab: some View {
         if sizeClass == .regular {
-            twoPanes(list: MomentListScreen(library: library, selection: effectiveMoment,
+            twoPanes(list: MomentListScreen(library: library,
+                                            selection: guardingEditor(effectiveMoment),
                                             editing: $editing),
                      detail: momentPane)
         } else {
@@ -111,7 +179,9 @@ struct RootView: View {
     @ViewBuilder
     private var recordsTab: some View {
         if sizeClass == .regular {
-            twoPanes(list: RecordListScreen(records: records, selection: effectiveRecord),
+            twoPanes(list: RecordListScreen(records: records,
+                                            selection: guardingEditor(effectiveRecord),
+                                            onRequestDelete: { pendingDelete = $0 }),
                      detail: recordPane)
         } else {
             NavigationStack(path: $recordPath) {
@@ -136,7 +206,7 @@ struct RootView: View {
             editor(draft)
         } else if let record = effectiveRecord.wrappedValue {
             RecordDetailScreen(library: library, records: records, record: record,
-                               editing: $editing)
+                               editing: $editing, onRequestDelete: { pendingDelete = $0 })
         } else {
             Color.clear
         }
@@ -155,7 +225,8 @@ struct RootView: View {
                     .overlay(alignment: .bottom) {
                         // ⚠️ **아래 여백이 `08` 툴바와 같아야 한다** — 다르면 나란히 선 두 바의
                         // 바닥선이 어긋나 높이가 달라 보인다(2026-08-13 실측).
-                        RootTabBar(selection: $tab).padding(.bottom, 12)
+                        RootTabBar(selection: guardingEditor($tab))
+                            .padding(.bottom, 12)
                     }
                 detail
                     .frame(maxWidth: .infinity)
@@ -166,9 +237,12 @@ struct RootView: View {
         .background(Palette.paneOutside)
     }
 
+    /// iPad 지면의 편집기. ⚠️ **`취소`의 확인 시트를 여기가 띄운다** — 지면 안에서 띄우면
+    /// 지면 가운데에 서서 목록·탭에서 부른 같은 시트와 자리가 달라진다 (사용자 판정 2026-08-13).
     private func editor(_ draft: RecordDraft) -> some View {
         RecordEditorScreen(library: library, draft: draft,
-                           initialAddingPhotos: opensPhotoAdd) {
+                           initialAddingPhotos: opensPhotoAdd,
+                           onRequestDiscard: { pendingExit = {} }) {
             editing = nil
             records.reload()
         }
@@ -249,6 +323,7 @@ private struct RootTabBar: View {
         // 어긋나고, 둘이 한 화면에 서는 iPad에서 그 차이가 그대로 보인다(2026-08-13 실기기).
         .frame(height: Layout.floatingBarHeight)
         .glassEffect(.regular, in: .rect(cornerRadius: Radius.card))
+        .blocksNearbyTaps()
     }
 
     /// ⚠️ **획은 낱말 자체를 덮는다** — 배경을 패딩 바깥에 두면 알약만큼 길어져 마커가 아니라

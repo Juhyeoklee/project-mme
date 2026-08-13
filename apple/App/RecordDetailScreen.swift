@@ -11,6 +11,8 @@ struct RecordDetailScreen: View {
     let record: Record
     /// 편집기가 뜰 자리는 최상위가 정한다 — 화면은 초안을 넣기만 한다.
     var editing: Binding<RecordDraft?>
+    /// 확인 시트를 최상위가 대신 띄운다. **iPhone은 `nil`** — 밀고 들어간 화면이라 자기가 띄운다.
+    var onRequestDelete: ((Record) -> Void)?
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.dismiss) private var dismiss
@@ -58,6 +60,8 @@ struct RecordDetailScreen: View {
         .fullScreenCover(item: $flipping) { start in
             FlipThrough(record: shown, store: records.store, start: start.value)
         }
+        // ⚠️ **화면 뿌리에 매단다** — iOS 26은 시트를 **매단 뷰**를 앵커로 잡아서, 버튼에 달면
+        // iPhone에서까지 팝오버가 된다(2026-08-13 실물). 결정은 화면 전체에 걸린 것이다.
         .confirmationDialog(Wording.deleteRecordTitle, isPresented: $isConfirmingDelete,
                             titleVisibility: .visible) {
             Button(Wording.delete, role: .destructive) { delete() }
@@ -128,7 +132,7 @@ struct RecordDetailScreen: View {
             if shown.status == .draft {
                 Button(Wording.flipThrough) { flipping = FlipStart(value: 0) }
             }
-            Button(Wording.delete, role: .destructive) { isConfirmingDelete = true }
+            Button(Wording.delete, role: .destructive) { requestDelete() }
         } label: {
             GlyphIcon(Glyph.more)
                 .frame(width: Layout.hitTarget, height: Layout.hitTarget)
@@ -136,6 +140,11 @@ struct RecordDetailScreen: View {
         }
         .accessibilityLabel(Wording.moreActions)
         .glassEffect(.regular, in: .circle)
+    }
+
+    /// `08-N4` — 같은 결정이 부른 자리마다 다른 데 서지 않게 iPad는 최상위에 넘긴다.
+    private func requestDelete() {
+        if let onRequestDelete { onRequestDelete(shown) } else { isConfirmingDelete = true }
     }
 
     private var collapsedTitle: Text {
@@ -202,7 +211,6 @@ struct RecordDetailScreen: View {
                     .buttonStyle(PrimaryActionStyle())
             }
         }
-        .frame(maxWidth: Layout.floatingBarMaxWidth)
         .padding(.leading, leadingMargin)
         .padding(.trailing, Spacing.screenMargin)
         .padding(.bottom, 12)

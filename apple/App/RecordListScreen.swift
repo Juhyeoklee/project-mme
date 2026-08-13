@@ -11,6 +11,8 @@ struct RecordListScreen: View {
     let records: RecordLibrary
     /// iPad 2단에서 우측 pane이 보고 있는 기록. iPhone에서는 `nil`을 넘긴다.
     var selection: Binding<Record?>?
+    /// 확인 시트를 최상위가 대신 띄운다. **iPhone은 `nil`** — 지면이 창 전체라 자기가 띄운다.
+    var onRequestDelete: ((Record) -> Void)?
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     /// 카드가 놓일 실제 폭. **대표 이미지 높이를 이 값이 정한다.**
@@ -167,7 +169,7 @@ struct RecordListScreen: View {
         // ⚠️ **`07`에서만 길게 누르기가 생긴다** — `M1` 세 화면이 그것을 안 둔 근거는 `P1`
         // (순간은 읽기 전용)인데, 기록은 사용자가 만든 것이라 그 원칙이 안 걸린다.
         .contextMenu {
-            Button(Wording.delete, role: .destructive) { deleting = record }
+            Button(Wording.delete, role: .destructive) { requestDelete(record) }
         }
     }
 
@@ -197,6 +199,11 @@ struct RecordListScreen: View {
 
     private var isConfirmingDelete: Binding<Bool> {
         Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })
+    }
+
+    /// 같은 결정이 부른 자리마다 다른 데 서지 않게 iPad는 최상위에 넘긴다.
+    private func requestDelete(_ record: Record) {
+        if let onRequestDelete { onRequestDelete(record) } else { deleting = record }
     }
 }
 

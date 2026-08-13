@@ -14,6 +14,8 @@ struct RecordEditorScreen: View {
     let draft: RecordDraft
     /// 닫는 방법은 뜬 자리가 안다 — iPhone은 덮개를 내리고 iPad는 우측 지면을 되돌린다.
     let onClose: () -> Void
+    /// 확인 시트를 최상위가 대신 띄운다. **iPhone은 `nil`** — 덮개가 창을 다 덮어 여기서 띄워야 한다.
+    let onRequestDiscard: (() -> Void)?
 
     @State private var isAddingPhotos: Bool
 
@@ -26,10 +28,11 @@ struct RecordEditorScreen: View {
     @FocusState private var captionFocused: Bool
 
     /// 합성 데이터로 `10`을 바로 띄울 때만 켠다 — `RootView.initialEditing`과 같은 문이다.
-    init(library: MomentLibrary, draft: RecordDraft,
-         initialAddingPhotos: Bool = false, onClose: @escaping () -> Void) {
+    init(library: MomentLibrary, draft: RecordDraft, initialAddingPhotos: Bool = false,
+         onRequestDiscard: (() -> Void)? = nil, onClose: @escaping () -> Void) {
         self.library = library
         self.draft = draft
+        self.onRequestDiscard = onRequestDiscard
         self.onClose = onClose
         _isAddingPhotos = State(initialValue: initialAddingPhotos)
     }
@@ -81,14 +84,10 @@ struct RecordEditorScreen: View {
         .sheet(isPresented: $isEditingOccurredAt) {
             OccurredAtSheet(initial: draft.occurredAt) { draft.setOccurredAt($0) }
         }
+        // ⚠️ **화면 뿌리에 매단다** — iOS 26은 시트를 **매단 뷰**를 앵커로 잡아서, 버튼에 달면
+        // iPhone에서까지 팝오버가 된다(2026-08-13 실물). 결정은 화면 전체에 걸린 것이다.
         .confirmationDialog(Wording.discardTitle, isPresented: $isConfirmingCancel,
-                            titleVisibility: .visible) {
-            // ⚠️ 사진을 전부 뺐으면 초안도 못 만든다 — 내놓으면 눌러도 아무 일이 안 일어난다.
-            if draft.canSave {
-                Button(Wording.keepAsDraft) { Task { await save(status: .draft) } }
-            }
-            Button(Wording.discard, role: .destructive) { onClose() }
-        }
+                            titleVisibility: .visible) { discardActions }
         .alert(Wording.saveFailed, isPresented: saveFailed) {
             Button(Wording.acknowledge) { draft.clearFailure() }
         }
@@ -110,8 +109,11 @@ struct RecordEditorScreen: View {
                 collapsedTitle.collapsingInlineTitle(collapse)
                 // 두 버튼이 각자 유리를 진다 — 하나로 묶으면 화면 폭을 가로지르는 알약이 된다.
                 HStack(spacing: 0) {
-                    Button(Wording.cancel) { isConfirmingCancel = true }
+                    Button(Wording.cancel) { requestDiscard() }
                         .buttonStyle(PlainActionStyle())
+                        // ⚠️ **유리를 씌우기 전에 탭 대상 높이로 맞춘다** — 버튼 자기 패딩에
+                        // 맡기면 옆에 선 글리프 원(44 프레임)보다 12pt 낮게 앉는다(2026-08-13 실측).
+                        .frame(height: Layout.hitTarget)
                         .glassEffect(.regular, in: .capsule)
                     Spacer(minLength: 0)
                     Menu {
@@ -141,6 +143,21 @@ struct RecordEditorScreen: View {
         .padding(.trailing, Spacing.screenMargin)
         .readableWidth()
         .headerScrim()
+    }
+
+    /// `09-N1` — 같은 결정이 이탈 확인과 한 자리에서 뜨도록 iPad는 최상위에 넘긴다.
+    private func requestDiscard() {
+        if let onRequestDiscard { onRequestDiscard() } else { isConfirmingCancel = true }
+    }
+
+    /// `09-N1` 확인 시트의 갈래.
+    /// ⚠️ 사진을 전부 뺐으면 초안도 못 만든다 — 내놓으면 눌러도 아무 일이 안 일어난다.
+    @ViewBuilder
+    private var discardActions: some View {
+        if draft.canSave {
+            Button(Wording.keepAsDraft) { Task { await save(status: .draft) } }
+        }
+        Button(Wording.discard, role: .destructive) { onClose() }
     }
 
     private func dateTitle(_ font: Font) -> Text {
@@ -256,8 +273,7 @@ struct RecordEditorScreen: View {
                     saveButton(PrimaryActionStyle())
                 }
             } else {
-                saveButton(GlassActionStyle())
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                saveAction.frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .padding(.leading, leadingMargin)
@@ -266,11 +282,28 @@ struct RecordEditorScreen: View {
         .readableWidth(alignment: .center)
     }
 
-    /// 재질은 자리가 정한다 — 카드 안이면 내용물이라 불투명, 홀로 뜨면 유리다.
+    /// 카드 안이라 내용물이다 — 불투명한 주요 면.
     private func saveButton(_ style: some ButtonStyle) -> some View {
         Button(Wording.save) { Task { await save(status: .published) } }
             .buttonStyle(style)
             .disabled(!draft.canSave)
+    }
+
+    /// `09-T` iPhone — **글리프 원판이다.** 활자를 유리에 얹으면 잉크 대비가 뒤에 오는 사진에
+    /// 끌려다니고(실측 4.82 ↔ 3.28), 무게를 대신 질 지름도 없다. `05-T`와 같은 문법이다.
+    private var saveAction: some View {
+        Button { Task { await save(status: .published) } } label: {
+            GlyphIcon(Glyph.save, size: 26)
+                .foregroundStyle(draft.canSave ? Palette.accent : Palette.disabled)
+                .frame(width: Layout.floatingActionDiameter,
+                       height: Layout.floatingActionDiameter)
+        }
+        .buttonStyle(.plain)
+        .disabled(!draft.canSave)
+        .glassEffect(draft.canSave ? .regular.tint(Chrome.accentTint).interactive() : .regular,
+                     in: .circle)
+        .accessibilityLabel(Wording.save)
+        .blocksNearbyTaps()
     }
 
     // MARK: - 제본
@@ -328,14 +361,18 @@ private struct OccurredAtSheet: View {
             .navigationTitle(Wording.editOccurredAt)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
+                    // ⚠️ **활자를 손으로 준다** — 네비 바 버튼은 시스템 외양이 안 덮어 그냥
+                    // 두면 SF로 뜨고, 타이틀만 번들 서체라 한 줄 안에서 서체가 둘이 된다.
                     ToolbarItem(placement: .cancellationAction) {
                         Button(Wording.cancel) { dismiss() }
+                            .font(Typography.label)
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button(Wording.confirm) {
                             if let picked = WallClock(local: date) { onPick(picked) }
                             dismiss()
                         }
+                        .font(Typography.label)
                     }
                 }
         }

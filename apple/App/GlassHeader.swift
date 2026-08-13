@@ -28,9 +28,16 @@ extension View {
         opacity(max(collapse * 2 - 1, 0))
     }
 
-    /// 머리 뒤의 가림막. 유리 캡슐이 안 덮는 위쪽(상태 표시줄)을 이것이 진다.
+    /// 머리 뒤의 가림막이자 **자기 자리를 통째로 막는 층** — 네비 바가 원래 스크롤을 안 받는다.
+    /// ⚠️ iPad는 가림막을 안 깔아 통째로 투명했고, 타이틀 옆 탭이 뒤로 샜다(2026-08-13 로그).
     func headerScrim() -> some View {
-        modifier(HeaderScrim())
+        modifier(HeaderScrim()).contentShape(.rect)
+    }
+
+    /// 떠 있는 크롬이 **자기 둘레까지** 탭을 삼킨다 — 캡슐 옆 투명 여백은 히트 테스트를 안 잡는다.
+    /// ⚠️ 띠 전체를 막으면 그 자리에서 **스크롤이 죽는다** — 머리와 갈리는 자리다(2026-08-13 실물).
+    func blocksNearbyTaps(halo: CGFloat = 8) -> some View {
+        padding(halo).contentShape(.rect).padding(-halo)
     }
 
     /// 유리 캡슐 — 글자와 아이콘만 띄우고 지면은 그 사이로 계속 보인다.

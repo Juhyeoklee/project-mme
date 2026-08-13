@@ -47,6 +47,21 @@ enum Fixture {
     /// 메모리 목업으로는 경로가 하나도 안 태워진다.
     static let records = makeRecords()
 
+    /// 격자가 그리는 세 갈래를 한 화면에 올린다 — 앨범 자산 · 가져온 바이트 · 저장된 파일.
+    /// 발생일시가 합성 앨범에 없는 날이라 **`10`도 빈 상태로 열린다.**
+    static let mixedDraft: RecordDraft? = {
+        guard let record = records.records.first, let moment = allMoments.first else { return nil }
+        let draft = RecordDraft.editing(record)
+        let candidates = RecordDraft.photos(at: moment.scenes.map(\.representative),
+                                            library: library)
+        draft.apply(includedAssets: Set(candidates.compactMap { $0.asset?.id }),
+                    candidates: candidates)
+        if let data = syntheticPNG(pixels: 900, aspect: 1.4, hue: 0.55) {
+            draft.addImported(data, fileExtension: "png")
+        }
+        return draft
+    }()
+
     private static func makeRecords() -> RecordLibrary {
         let root = URL.cachesDirectory.appending(path: "FixtureRecords")
         try? FileManager.default.removeItem(at: root)

@@ -81,6 +81,8 @@ struct ImageViewer<Page: View>: View {
                     }
                     .accessibilityLabel(Wording.close)
                     .glassEffect(.regular, in: .circle)
+                    // ⚠️ 빗나간 탭이 크롬을 접어버리면 되돌아갈 버튼이 사라진다.
+                    .blocksNearbyTaps()
                     Spacer()
                 }
             }

@@ -127,6 +127,8 @@ enum Wording {
     static let recordsFailed = "기록을 불러오지 못했어요"
     /// `ARC-07` 확인 한 단계. 파괴에는 색 말고 신호가 하나 더 있어야 한다.
     static let deleteRecordTitle = "이 기록을 지울까요?"
+    /// `REC-05` 후보가 0장이다. **길이 끊긴 것이 아니라 후보가 없는 것**이라 시킬 일을 안 말한다.
+    static let noPhotosToAdd = "더할 사진이 없어요"
 
     // MARK: - 조각
 

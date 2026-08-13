@@ -26,6 +26,9 @@ struct PhotoAddSheet: View {
         self.library = library
         self.draft = draft
         _included = State(initialValue: draft.includedAssetIDs)
+        // ⚠️ **여기서 한 번만 세운다** — 갱신마다 다시 만들면 신원이 바뀌어 격자가 흔들리고,
+        // 나중에 채우면 빈 상태 문구가 한 프레임 스쳤다 사라진다.
+        _groups = State(initialValue: Self.makeGroups(library: library, draft: draft))
     }
 
     var body: some View {
@@ -37,6 +40,7 @@ struct PhotoAddSheet: View {
                         grid(group)
                     }
                     importedGrid
+                    emptyLine
                 }
                 .padding(.horizontal, Spacing.screenMargin)
             }
@@ -47,11 +51,13 @@ struct PhotoAddSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(Wording.cancel) { dismiss() }
-                        .font(Typography.body)
+                        .font(Typography.label)
                 }
             }
         }
         .presentationCornerRadius(Radius.card)
+        // 시트라는 것을 그래버가 말한다 — 아래로 끌기가 `취소`와 같은 일을 한다는 유일한 표지다.
+        .presentationDragIndicator(.visible)
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.size.width
         } action: { contentWidth = max(1, $0 - Spacing.screenMargin * 2) }
@@ -60,8 +66,19 @@ struct PhotoAddSheet: View {
         .photoImporter(isPresented: $isImporting) { photo in
             imported.append(ImportedDraft(photo: photo))
         }
-        // 신원이 매번 새로 만들어지면 격자가 갱신마다 흔들린다 — 한 번만 세운다.
-        .task { if groups.isEmpty { groups = makeGroups() } }
+    }
+
+    /// **`직접 가져오기`는 툴바에 그대로 살아 있다** — 후보가 없는 것이지 길이 끊긴 것이 아니라
+    /// 문구가 그 사실만 말하고 무엇을 하라고는 말하지 않는다 (`P4`).
+    @ViewBuilder
+    private var emptyLine: some View {
+        if groups.isEmpty, imported.isEmpty {
+            Text(Wording.noPhotosToAdd)
+                .font(Typography.emptyState)
+                .foregroundStyle(Palette.secondaryLabel)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 44)
+        }
     }
 
     // MARK: - `10-B` 시각 구분
@@ -70,10 +87,10 @@ struct PhotoAddSheet: View {
     /// 순간이 셋일 때만 성립하는 말이라 하루 전체에서는 안 선다.
     private func header(_ group: MomentGroup) -> some View {
         Text(Wording.momentBreak(group.start, isOrigin: group.isOrigin))
-            .font(Typography.label)
+            .font(Typography.sectionLabel)
             .foregroundStyle(Palette.secondaryLabel)
             .padding(.top, 12)
-            .padding(.bottom, 2)
+            .padding(.bottom, 8)
     }
 
     // MARK: - `10-G` 격자
@@ -136,7 +153,7 @@ struct PhotoAddSheet: View {
     // MARK: - 조각
 
     /// `REC-05` 후보 — **같은 날의 소스 안 사진 전체 · 시간 오름차순.**
-    private func makeGroups() -> [MomentGroup] {
+    private static func makeGroups(library: MomentLibrary, draft: RecordDraft) -> [MomentGroup] {
         guard let day = library.days.first(where: { $0.date == draft.day }) else { return [] }
         return day.moments.reversed().enumerated().map { offset, moment in
             MomentGroup(id: offset,

@@ -54,7 +54,11 @@ struct MoanogiApp: App {
     private var rootScreen: some View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        if usesFixture, arguments.contains("10"), let day = Fixture.library.days.first {
+        if usesFixture, arguments.contains("09-mixed") {
+            root(editing: Fixture.mixedDraft)
+        } else if usesFixture, arguments.contains("10-empty") {
+            root(editing: Fixture.mixedDraft, opensPhotoAdd: true)
+        } else if usesFixture, arguments.contains("10"), let day = Fixture.library.days.first {
             root(editing: .from(moment: Fixture.momentWithBurst, day: day.date,
                                 library: Fixture.library),
                  opensPhotoAdd: true)
