@@ -52,7 +52,7 @@ enum Wording {
     /// `06-N3` — `3 / 12`.
     static func position(_ index: Int, of total: Int) -> String { "\(index + 1) / \(total)" }
 
-    /// 낭독 이름 셋. **화면에 안 보이지만 문자열이다** — 규칙은 `App/Icons/README-icons.md`.
+    /// 낭독 이름 셋. **화면에 안 보이지만 문자열이다** — 규칙은 `App/Design/Icons/README-icons.md`.
     /// `05-N1`.
     static let back = "뒤로"
     /// `06-N1`.

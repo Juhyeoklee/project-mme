@@ -1,7 +1,7 @@
 # 번들 아이콘
 
 ⚠️ **파일 이름이 `README.md`가 아닌 이유** — `App/`은 Xcode 동기화 루트 그룹이라 하위 폴더가
-번들 루트로 **평탄화된다.** `App/Fonts/README.md`가 이미 그 자리를 쓰고 있어 같은 이름을 두면
+번들 루트로 **평탄화된다.** `App/Design/Fonts/README.md`가 이미 그 자리를 쓰고 있어 같은 이름을 두면
 *"Multiple commands produce …/README.md"* 로 빌드가 깨진다(2026-08-12 실측).
 
 **시스템 심볼을 쓰지 않는다.** 앱 크롬의 글리프는 전부 [lucide](https://lucide.dev)에서 오고

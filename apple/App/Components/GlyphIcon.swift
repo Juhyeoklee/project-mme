@@ -1,6 +1,6 @@
 // 번들 아이콘 한 칸. 크롬을 가진 화면이 전부 이걸 쓴다.
 //
-// **시스템 심볼을 안 쓴다** — 근거와 아이콘 추가 절차는 `App/Icons/README-icons.md`.
+// **시스템 심볼을 안 쓴다** — 근거와 아이콘 추가 절차는 `App/Design/Icons/README-icons.md`.
 
 import SwiftUI
 

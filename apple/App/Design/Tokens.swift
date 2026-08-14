@@ -235,7 +235,7 @@ enum Radius {
 
 /// 번들 아이콘 이름. **관례가 강한 개념만 아이콘으로 말한다** — 약한 것은 글자가 진다.
 ///
-/// ⚠️ **시스템 심볼이 아니라 `App/Icons`의 lucide 벡터다.** 새 글리프도 거기서 찾는다 —
+/// ⚠️ **시스템 심볼이 아니라 `App/Design/Icons`의 lucide 벡터다.** 새 글리프도 거기서 찾는다 —
 /// 없다고 SF Symbol을 섞으면 한 캡슐 안에 두 계열이 산다(README에 근거).
 enum Glyph {
     static let back = "chevron-left"
