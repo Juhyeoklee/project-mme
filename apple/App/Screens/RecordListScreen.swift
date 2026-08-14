@@ -28,8 +28,8 @@ struct RecordListScreen: View {
         // 유리가 비출 것이 없다. 첫 화면에서 가려지지 않는 것은 목록의 상단 여백이 맡는다.
         list
             .overlay(alignment: .top) { header }
-            .background(paneBackground)
-            .overlay(alignment: .topLeading) { binding }
+            .paneBackground()
+            .threadBinding(.list)
             .toolbar(.hidden, for: .navigationBar)
             .task { records.reload() }
             .confirmationDialog(Wording.deleteRecordTitle, isPresented: isConfirmingDelete,
@@ -41,12 +41,6 @@ struct RecordListScreen: View {
     }
 
     // MARK: - `07-N` 머리
-
-    /// ⚠️ **iPad 2단에서는 지면이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이 되어
-    /// 두 장의 종이가 통째로 안 보인다.
-    private var paneBackground: Color {
-        sizeClass == .regular ? Palette.pane : Palette.background
-    }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -127,17 +121,8 @@ struct RecordListScreen: View {
             .readableWidth()
         }
         .contentMargins(.top, Layout.listHeaderHeight, for: .scrollContent)
-        .onScrollGeometryChange(for: CGFloat.self) { geometry in
-            geometry.contentOffset.y + geometry.contentInsets.top
-        } action: { _, offset in
-            collapse = min(max(offset / Layout.hitTarget, 0), 1)
-        }
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.size.width
-        } action: {
-            contentWidth = max(1, min($0, Layout.readableWidth)
-                - leadingMargin - Spacing.screenMargin)
-        }
+        .tracksHeaderCollapse($collapse)
+        .measuresContentWidth($contentWidth)
     }
 
     /// 달 경계를 표시하는 일만 하고 목록과 함께 흘러간다.
@@ -187,15 +172,7 @@ struct RecordListScreen: View {
 
     // MARK: - 조각
 
-    @ViewBuilder
-    private var binding: some View {
-        if sizeClass == .compact { ThreadBinding() }
-    }
-
-    /// 좌우가 비대칭인 것은 제본이 왼쪽에만 있기 때문이다.
-    private var leadingMargin: CGFloat {
-        sizeClass == .compact ? Spacing.bindingMargin : Spacing.screenMargin
-    }
+    private var leadingMargin: CGFloat { Layout.leadingMargin(sizeClass) }
 
     private var isConfirmingDelete: Binding<Bool> {
         Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })

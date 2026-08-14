@@ -38,24 +38,15 @@ struct MomentDetailScreen: View {
                     .readableWidth()
             }
             .contentMargins(.top, Layout.largeTitleHeaderHeight, for: .scrollContent)
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top
-            } action: { _, offset in
-                collapse = min(max(offset / Layout.hitTarget, 0), 1)
-            }
+            .tracksHeaderCollapse($collapse)
             // ⚠️ **격자가 이 값을 되먹인다** — 격자가 받은 폭보다 넓어지면 값이 상한까지
             // 기어오른다 (2026-08-12 실측: 간격 하나가 더 껴서 패스마다 6씩 늘었다).
-            .onGeometryChange(for: CGFloat.self) { proxy in
-                proxy.size.width
-            } action: {
-                contentWidth = max(1, min($0, Layout.readableWidth)
-                    - leadingMargin - Spacing.screenMargin)
-            }
+            .measuresContentWidth($contentWidth)
             header
         }
-        .background(paneBackground)
+        .paneBackground()
         .toolbar(.hidden, for: .navigationBar)
-        .overlay(alignment: .topLeading) { binding }
+        .threadBinding(.detail)
         .safeAreaInset(edge: .bottom) { createRecordButton }
         .fullScreenCover(item: $viewing) { run in
             PhotoViewerScreen(library: library, moment: moment,
@@ -64,12 +55,6 @@ struct MomentDetailScreen: View {
     }
 
     // MARK: - `05-N` 머리
-
-    /// ⚠️ **iPad 2단에서는 지면이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이 되어
-    /// 두 장의 종이가 통째로 안 보인다. 「지면은 바깥보다 밝다」가 그래서 토큰을 갈라 뒀다.
-    private var paneBackground: Color {
-        sizeClass == .regular ? Palette.pane : Palette.background
-    }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -125,11 +110,6 @@ struct MomentDetailScreen: View {
         Text(Wording.detailTitle(moment.start))
             .font(Typography.time)
             .foregroundStyle(Palette.label)
-    }
-
-    @ViewBuilder
-    private var binding: some View {
-        if sizeClass == .compact { ThreadBinding() }
     }
 
     // MARK: - `05-T` 기록 만들기
@@ -258,10 +238,7 @@ struct MomentDetailScreen: View {
         return CGFloat(asset.pixelWidth) / CGFloat(asset.pixelHeight)
     }
 
-    /// 좌우가 비대칭인 것은 제본이 왼쪽에만 있기 때문이다. 일기장에서도 안쪽 여백이 더 넓다.
-    private var leadingMargin: CGFloat {
-        sizeClass == .compact ? Spacing.bindingMargin : Spacing.screenMargin
-    }
+    private var leadingMargin: CGFloat { Layout.leadingMargin(sizeClass) }
 }
 
 /// `05-G2` 연사 배지 — 겹친 스택 + 숫자.

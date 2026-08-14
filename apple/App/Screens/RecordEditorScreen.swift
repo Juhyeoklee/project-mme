@@ -42,13 +42,7 @@ struct RecordEditorScreen: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
-        content
-            .onGeometryChange(for: CGFloat.self) { proxy in
-                proxy.size.width
-            } action: {
-                contentWidth = max(1, min($0, Layout.readableWidth)
-                    - leadingMargin - Spacing.screenMargin)
-            }
+        content.measuresContentWidth($contentWidth)
     }
 
     private var content: some View {
@@ -65,18 +59,14 @@ struct RecordEditorScreen: View {
                 .readableWidth()
             }
             .contentMargins(.top, Layout.largeTitleHeaderHeight, for: .scrollContent)
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top
-            } action: { _, offset in
-                collapse = min(max(offset / Layout.hitTarget, 0), 1)
-            }
+            .tracksHeaderCollapse($collapse)
             header
         }
-        .background(paneBackground)
+        .paneBackground()
         // ⚠️ **머리를 직접 그리므로 시스템 바를 숨긴다** — iPad 2단의 지면에서는 빈 바가
         // 위쪽 ~145pt를 그대로 먹어 화면이 그만큼 짧아진다(2026-08-11 시뮬레이터 실측).
         .toolbar(.hidden, for: .navigationBar)
-        .overlay(alignment: .topLeading) { binding }
+        .threadBinding(.detail)
         .safeAreaInset(edge: .bottom) { toolbar }
         .sheet(isPresented: $isAddingPhotos) {
             PhotoAddSheet(library: library, draft: draft)
@@ -94,12 +84,6 @@ struct RecordEditorScreen: View {
     }
 
     // MARK: - `09-N` 머리
-
-    /// ⚠️ **iPad 2단에서는 `지면`이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이
-    /// 되어 두 장의 종이가 통째로 안 보인다.
-    private var paneBackground: Color {
-        sizeClass == .regular ? Palette.pane : Palette.background
-    }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -306,20 +290,9 @@ struct RecordEditorScreen: View {
         .blocksNearbyTaps()
     }
 
-    // MARK: - 제본
-
-    /// 좌측 여백 **안쪽**에 흐른다 — 거터를 새로 만들지 않으므로 격자 상수가 안 움직인다.
-    @ViewBuilder
-    private var binding: some View {
-        if sizeClass == .compact { ThreadBinding() }
-    }
-
     // MARK: - 조각
 
-    /// 좌우가 비대칭인 것은 제본이 왼쪽에만 있기 때문이다. 일기장에서도 안쪽 여백이 더 넓다.
-    private var leadingMargin: CGFloat {
-        sizeClass == .compact ? Spacing.bindingMargin : Spacing.screenMargin
-    }
+    private var leadingMargin: CGFloat { Layout.leadingMargin(sizeClass) }
 
     private var captionText: Binding<String> {
         Binding(get: { draft.caption }, set: { draft.caption = $0 })

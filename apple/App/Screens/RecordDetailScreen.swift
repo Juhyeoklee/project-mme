@@ -40,22 +40,13 @@ struct RecordDetailScreen: View {
                     .readableWidth()
             }
             .contentMargins(.top, Layout.largeTitleHeaderHeight, for: .scrollContent)
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top
-            } action: { _, offset in
-                collapse = min(max(offset / Layout.hitTarget, 0), 1)
-            }
-            .onGeometryChange(for: CGFloat.self) { proxy in
-                proxy.size.width
-            } action: {
-                contentWidth = max(1, min($0, Layout.readableWidth)
-                    - leadingMargin - Spacing.screenMargin)
-            }
+            .tracksHeaderCollapse($collapse)
+            .measuresContentWidth($contentWidth)
             header
         }
-        .background(paneBackground)
+        .paneBackground()
         .toolbar(.hidden, for: .navigationBar)
-        .overlay(alignment: .topLeading) { binding }
+        .threadBinding(.detail)
         .safeAreaInset(edge: .bottom) { toolbar }
         .fullScreenCover(item: $flipping) { start in
             FlipThrough(record: shown, store: records.store, start: start.value)
@@ -69,11 +60,6 @@ struct RecordDetailScreen: View {
     }
 
     // MARK: - `08-N` 머리
-
-    /// ⚠️ **iPad 2단에서는 지면이다** — `바탕`을 칠하면 다크에서 지면과 바깥이 같은 값이 된다.
-    private var paneBackground: Color {
-        sizeClass == .regular ? Palette.pane : Palette.background
-    }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -230,14 +216,7 @@ struct RecordDetailScreen: View {
         if sizeClass == .compact { dismiss() }
     }
 
-    @ViewBuilder
-    private var binding: some View {
-        if sizeClass == .compact { ThreadBinding() }
-    }
-
-    private var leadingMargin: CGFloat {
-        sizeClass == .compact ? Spacing.bindingMargin : Spacing.screenMargin
-    }
+    private var leadingMargin: CGFloat { Layout.leadingMargin(sizeClass) }
 }
 
 /// 넘겨보기를 어느 장에서 열었나. `Int`는 `Identifiable`이 아니라 감싼다.

@@ -1,11 +1,20 @@
-// 유리 머리의 조각들. 머리를 직접 그리는 화면들이 나눠 쓴다.
+// 유리 크롬의 문법 — **머리와 떠 있는 것이 나눠 쓴다.** 재질의 값은 `Chrome`이 갖고 여기는 쓰임이다.
 //
-// ⚠️ **머리는 콘텐츠 위에 겹쳐 뜬다** — 나란히 쌓으면 아래로 지나갈 것이 없어 유리가
+// ⚠️ **크롬은 콘텐츠 위에 겹쳐 뜬다** — 나란히 쌓으면 아래로 지나갈 것이 없어 유리가
 // 비출 것도 없다. 첫 화면에서 안 가려지는 것은 목록의 상단 여백이 맡는다.
 
 import SwiftUI
 
 extension View {
+    /// 스크롤 양을 머리의 접힘(0…1)으로 옮긴다. **탭 대상 한 변만큼 올리면 다 접힌다.**
+    func tracksHeaderCollapse(_ collapse: Binding<Double>) -> some View {
+        onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top
+        } action: { _, offset in
+            collapse.wrappedValue = min(max(offset / Layout.hitTarget, 0), 1)
+        }
+    }
+
     /// 머리 아래 요약 줄 — 접히면 닫힌다.
     /// ⚠️ 앞 절반에서 다 사라진다. 타이틀 교차와 겹치면 둘 다 어중간하다.
     func collapsingSummary(_ collapse: Double) -> some View {
