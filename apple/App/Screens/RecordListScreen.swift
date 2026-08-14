@@ -249,7 +249,7 @@ private struct RecordCard: View {
         let imageWidth = max(1, width - Spacing.cardInset * 2)
         if let first = record.images.first {
             RecordImageView(url: imageURL(record.id, first),
-                            pixels: RecordImageView.coverPixels,
+                            pixels: Layout.recordCoverPixels,
                             fit: .cropped(width: imageWidth, aspect: Layout.recordCoverAspect),
                             cornerRadius: Radius.thumbnail)
         }

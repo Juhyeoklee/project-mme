@@ -176,7 +176,7 @@ struct RecordDetailScreen: View {
     /// `08-G1` — **자르지 않는다.** 대신 높이 상한에서 멈추고 좌우에 `면`이 남는다.
     private func photo(record: Record, image: RecordImage) -> some View {
         RecordImageView(url: records.store.imageURL(recordID: record.id, image: image),
-                        pixels: RecordImageView.detailPixels,
+                        pixels: Layout.recordPhotoPixels,
                         fit: .fitted(width: contentWidth,
                                      maxHeight: Layout.recordPhotoMaxHeight),
                         cornerRadius: Radius.thumbnail)
@@ -261,7 +261,7 @@ private struct FlipThrough: View {
                     bottomLine: { _ in Wording.dateHeader(record.occurredAt.calendarDay) }) { position in
             RecordImageView(url: store.imageURL(recordID: record.id,
                                                 image: record.images[position]),
-                            pixels: RecordImageView.detailPixels,
+                            pixels: Layout.recordPhotoPixels,
                             fit: .free(fills: false))
         }
     }

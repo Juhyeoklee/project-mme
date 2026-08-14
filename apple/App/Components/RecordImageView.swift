@@ -80,10 +80,3 @@ struct RecordImageView: View {
         ] as CFDictionary)
     }
 }
-
-extension RecordImageView {
-    /// `07-C4` 대표 이미지. 카드 폭 전체라 `04` 썸네일보다 훨씬 크다.
-    static let coverPixels = 1200
-    /// `08-G1`. 높이 상한 480의 3배.
-    static let detailPixels = 1440
-}

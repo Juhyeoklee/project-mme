@@ -225,15 +225,15 @@ struct RecordEditorScreen: View {
     @ViewBuilder
     private func image(of photo: DraftPhoto) -> some View {
         if let asset = photo.asset {
-            AssetImage(asset: asset, pixels: ImageStore.gridPixels, fills: true,
+            AssetImage(asset: asset, pixels: Layout.gridPixels, fills: true,
                        retryToken: library.generation)
         } else if let stored = photo.storedImage {
             // `ARC-06` — 고치는 중인 기록의 사진은 앨범이 아니라 그 기록의 디렉터리에서 온다.
             RecordImageView(url: store.imageURL(recordID: draft.id, image: stored),
-                            pixels: ImageStore.gridPixels,
+                            pixels: Layout.gridPixels,
                             fit: .free(fills: true))
         } else {
-            ImportedImage(data: draft.importedData(of: photo.id), pixels: ImageStore.gridPixels)
+            ImportedImage(data: draft.importedData(of: photo.id), pixels: Layout.gridPixels)
         }
     }
 

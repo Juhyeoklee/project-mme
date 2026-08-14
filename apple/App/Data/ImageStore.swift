@@ -14,13 +14,6 @@ import PhotoSource
 @MainActor
 @Observable
 final class ImageStore {
-    /// `04-C3` 118pt 썸네일의 3배.
-    static let thumbnailPixels = 354
-    /// `05-G1`. iPad 4열의 셀 폭(194pt)이 상한이라 그 3배.
-    static let gridPixels = 600
-    /// `06-G1`. 표본 원본이 1680×1167이라(2026-08-03) 그 위로는 늘려봐야 소용이 없다.
-    static let fullPixels = 2400
-
     /// 한 장을 끌어오는 일. **주입 가능한 이음매다** — 프리뷰가 합성 이미지를 여기로 먹인다.
     typealias Loader = @MainActor (SourceAsset, Int, Bool) async -> CGImage?
 

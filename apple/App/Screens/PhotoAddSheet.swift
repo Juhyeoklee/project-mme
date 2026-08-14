@@ -103,7 +103,7 @@ struct PhotoAddSheet: View {
             ForEach(group.photos) { photo in
                 let assetID = photo.asset?.id ?? ""
                 RecordPhotoTile(isIncluded: included.contains(assetID)) {
-                    AssetImage(asset: photo.asset, pixels: ImageStore.thumbnailPixels,
+                    AssetImage(asset: photo.asset, pixels: Layout.thumbnailPixels,
                                fills: true, retryToken: library.generation)
                 }
                 .aspectRatio(1, contentMode: .fit)
@@ -125,7 +125,7 @@ struct PhotoAddSheet: View {
                       spacing: Spacing.cellGap) {
                 ForEach($imported) { $item in
                     RecordPhotoTile(isIncluded: item.isIncluded) {
-                        ImportedImage(data: item.photo.data, pixels: ImageStore.thumbnailPixels)
+                        ImportedImage(data: item.photo.data, pixels: Layout.thumbnailPixels)
                     }
                     .aspectRatio(1, contentMode: .fit)
                     .contentShape(.rect)

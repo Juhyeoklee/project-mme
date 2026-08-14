@@ -54,7 +54,7 @@ struct MomentCard: View {
                             // ⚠️ 사진이 아니라 **장면 대표 컷**을 넣는다 —
                             // 사진을 앞에서부터 넣으면 스트립이 연사로만 채워질 수 있다.
                             AssetImage(asset: assetAt(moment.scenes[sceneIndex].representative),
-                                       pixels: ImageStore.thumbnailPixels,
+                                       pixels: Layout.thumbnailPixels,
                                        fills: true,
                                        cornerRadius: Radius.thumbnail,
                                        retryToken: retryToken)

@@ -181,7 +181,7 @@ struct MomentDetailScreen: View {
     /// **열 폭을 꽉 채우고 높이는 사진 비율대로다** — 채워 그려도 잘릴 것이 없다.
     private func cellView(_ cell: Cell, in cells: [Cell], width: CGFloat) -> some View {
         AssetImage(asset: library.asset(at: cell.photoIndex),
-                   pixels: ImageStore.gridPixels,
+                   pixels: Layout.gridPixels,
                    fills: true,
                    cornerRadius: Radius.thumbnail,
                    emptyColor: Palette.placeholder,

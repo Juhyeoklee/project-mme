@@ -21,7 +21,7 @@ struct PhotoViewerScreen: View {
                     topLine: { Wording.time(timeOfPhoto(at: $0)) },
                     bottomLine: { Wording.position($0, of: photos.count) }) { position in
             AssetImage(asset: library.asset(at: photos[position]),
-                       pixels: ImageStore.fullPixels,
+                       pixels: Layout.fullPixels,
                        fills: false,
                        emptyColor: Palette.viewerBackground,
                        // ⚠️ 여백도 검정이어야 한다 — 라이트에서 흰 여백이 깔리면
