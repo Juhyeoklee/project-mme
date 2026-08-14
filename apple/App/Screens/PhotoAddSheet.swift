@@ -125,7 +125,7 @@ struct PhotoAddSheet: View {
                       spacing: Spacing.cellGap) {
                 ForEach($imported) { $item in
                     RecordPhotoTile(isIncluded: item.isIncluded) {
-                        ImportedImage(data: item.photo.data)
+                        ImportedImage(data: item.photo.data, pixels: ImageStore.thumbnailPixels)
                     }
                     .aspectRatio(1, contentMode: .fit)
                     .contentShape(.rect)

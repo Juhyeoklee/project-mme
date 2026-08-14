@@ -28,11 +28,7 @@ struct MoanogiApp: App {
             rootScreen
                 .environment(shownStore)
                 .environment(\.recordStore, shownRecords.store)
-                // ⚠️ 저장은 네트워크를 연다 — 사용자가 명시적으로 누른 자리라 훑는 동안
-                // 안 여는 규칙(`R8`)이 여기엔 안 걸린다. 기다리는 화면은 저장 버튼 하나다.
-                .environment(\.originalBytes, { [source] asset in
-                    try await source.originalBytes(of: asset, allowingNetwork: true)
-                })
+                .environment(\.originalBytes, shownBytes)
                 .tint(Palette.accent)
                 .task { if !usesFixture { library.start() } }
         }
@@ -115,6 +111,17 @@ struct MoanogiApp: App {
         #else
         records
         #endif
+    }
+
+    /// ⚠️ 저장은 네트워크를 연다 — 사용자가 명시적으로 누른 자리라 훑는 동안 안 여는
+    /// 규칙(`R8`)이 여기엔 안 걸린다. 기다리는 화면은 저장 버튼 하나다.
+    private var shownBytes: OriginalBytesLoader {
+        #if DEBUG
+        if usesFixture { return Fixture.originalBytes }
+        #endif
+        return { [source] asset in
+            try await source.originalBytes(of: asset, allowingNetwork: true)
+        }
     }
 }
 

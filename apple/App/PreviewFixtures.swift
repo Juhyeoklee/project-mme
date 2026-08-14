@@ -28,6 +28,18 @@ enum Fixture {
                            pixelHeight: signals?.pixelHeight ?? 0)
     }
     static let store = makeStore()
+
+    /// 저장이 요구하는 원본 바이트. **화소 크기는 자산이 말한 그대로다** — 저장된 파일이 곧
+    /// 「원본」이라 줄이면 거짓이 된다.
+    static let originalBytes: OriginalBytesLoader = { asset in
+        // ⚠️ 진짜 어댑터를 태우면 안 된다 — 합성 자산의 `id`가 PhotoKit에 없어 던지고,
+        // `-fixture`로는 저장 경로를 한 번도 못 밟게 된다(2026-08-14에 겪었다).
+        guard let data = await syntheticPNG(pixels: max(asset.pixelWidth, asset.pixelHeight),
+                                            aspect: aspect(of: asset),
+                                            hue: hue(of: asset.id))
+        else { throw NoFixtureBytes() }
+        return data
+    }
     static let library = MomentLibrary.preview(classification, assets: assets)
     /// 첫 분류 진행 중 — `04-A1` 진행바가 뜨고 부제 숫자가 올라가는 상태.
     static let working = MomentLibrary.preview(classification, assets: assets,
@@ -143,23 +155,21 @@ enum Fixture {
         }
     }
 
+    private static func makeStore() -> ImageStore {
+        ImageStore(loader: { asset, pixels, _ in
+            synthetic(pixels: pixels, aspect: aspect(of: asset), hue: hue(of: asset.id))
+        })
+    }
+
     /// ⚠️ **종횡비는 자산이 말하는 화소 크기 그대로다** — 어림수를 쓰면 셀 높이를 정한 값과
     /// 그 안을 채우는 그림이 어긋나 배치가 틀린 채로 맞아 보인다.
-    private static func makeStore() -> ImageStore {
-        var index = 0
-        var hueOf: [String: Double] = [:]
-        var aspectOf: [String: Double] = [:]
-        for asset in assets {
-            hueOf[asset.id] = Double(index % 12) / 12
-            aspectOf[asset.id] = asset.pixelHeight > 0
-                ? Double(asset.pixelWidth) / Double(asset.pixelHeight) : 1
-            index += 1
-        }
-        return ImageStore(loader: { asset, pixels, _ in
-            synthetic(pixels: pixels,
-                      aspect: aspectOf[asset.id] ?? 1,
-                      hue: hueOf[asset.id] ?? 0)
-        })
+    private static func aspect(of asset: SourceAsset) -> Double {
+        asset.pixelHeight > 0 ? Double(asset.pixelWidth) / Double(asset.pixelHeight) : 1
+    }
+
+    /// 색상환 위 자리. **`id`의 순번이 정한다** — 그래야 같은 사진이 화면마다 같은 색이다.
+    private static func hue(of assetID: String) -> Double {
+        Double((Int(assetID.split(separator: "-").last ?? "") ?? 0) % 12) / 12
     }
 
     /// 사진 자리에 들어갈 합성 그림. 사진이 아니라 **사진 크기의 무늬**다 —
@@ -206,6 +216,9 @@ enum Fixture {
         return data as Data
     }
 }
+
+/// 합성 바이트를 못 구웠다. 프리뷰와 `-fixture`에서만 나온다.
+private struct NoFixtureBytes: Error {}
 
 /// 합성 PNG. 커널 테스트의 `PNGFixture`와 같은 일을 하지만 **복사가 아니라 축약이다** —
 /// 여기서 필요한 것은 커널이 신호를 읽어내는 것뿐이라 실패 경로용 손잡이가 없다.

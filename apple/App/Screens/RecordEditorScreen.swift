@@ -233,7 +233,7 @@ struct RecordEditorScreen: View {
                             pixels: ImageStore.gridPixels,
                             fit: .free(fills: true))
         } else {
-            ImportedImage(data: draft.importedData(of: photo.id))
+            ImportedImage(data: draft.importedData(of: photo.id), pixels: ImageStore.gridPixels)
         }
     }
 
