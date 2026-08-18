@@ -13,6 +13,8 @@ struct RecordDetailScreen: View {
     var editing: Binding<RecordDraft?>
     /// 확인 시트를 최상위가 대신 띄운다. **iPhone은 `nil`** — 밀고 들어간 화면이라 자기가 띄운다.
     var onRequestDelete: ((Record) -> Void)?
+    /// `11`을 여는 문. **iPhone은 `nil`이고, 그때 캔버스 기록의 `수정`은 `09`로 간다.**
+    var onOpenCanvas: ((Record) -> Void)?
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.dismiss) private var dismiss
@@ -172,12 +174,12 @@ struct RecordDetailScreen: View {
     private var toolbar: some View {
         FloatingBar {
             if shown.status == .draft {
-                Button(Wording.edit) { editing.wrappedValue = draft() }
+                Button(Wording.edit) { edit() }
                     .buttonStyle(PlainActionStyle())
                 Spacer(minLength: 0)
-                // ⚠️ 동작은 캔버스 화면이 생길 때 붙는다.
-                Button(Wording.makeCanvas) {}
+                Button(Wording.makeCanvas) { onOpenCanvas?(shown) }
                     .buttonStyle(PlainActionStyle())
+                    .disabled(onOpenCanvas == nil)
                 Spacer(minLength: 0)
                 // **`게시`는 편집기를 열지 않는다** — 초안 여부는 저장된 상태지 설명의
                 // 파생값이 아니라, 여기서 상태만 올려도 기록이 된다.
@@ -187,7 +189,7 @@ struct RecordDetailScreen: View {
                 Button(Wording.flipThrough) { flipping = FlipStart(value: 0) }
                     .buttonStyle(PlainActionStyle())
                 Spacer(minLength: 0)
-                Button(Wording.edit) { editing.wrappedValue = draft() }
+                Button(Wording.edit) { edit() }
                     .buttonStyle(PlainActionStyle())
                 Spacer(minLength: 0)
                 // ⚠️ 동작은 공유 세션이 붙을 때 온다.
@@ -204,6 +206,15 @@ struct RecordDetailScreen: View {
     // MARK: - 조각
 
     /// `ARC-06` — **이 기록을 그대로 태운다** (새 기록이 아니다).
+    /// `08-T 수정` — **캔버스 기록은 `11`로 직행한다.** `09`로 보내면 꾸민 것이 어디 갔나가 된다.
+    private func edit() {
+        if shown.isCanvas, let onOpenCanvas {
+            onOpenCanvas(shown)
+        } else {
+            editing.wrappedValue = draft()
+        }
+    }
+
     private func draft() -> RecordDraft {
         RecordDraft.editing(shown)
     }

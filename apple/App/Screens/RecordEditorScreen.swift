@@ -16,6 +16,8 @@ struct RecordEditorScreen: View {
     let onClose: () -> Void
     /// 확인 시트를 최상위가 대신 띄운다. **iPhone은 `nil`** — 덮개가 창을 다 덮어 여기서 띄워야 한다.
     let onRequestDiscard: (() -> Void)?
+    /// `09-T` 승격. **iPhone은 `nil`** — 그 기기에는 캔버스가 없다.
+    let onPromoteToCanvas: (() -> Void)?
 
     @State private var isAddingPhotos: Bool
 
@@ -29,10 +31,12 @@ struct RecordEditorScreen: View {
 
     /// 합성 데이터로 `10`을 바로 띄울 때만 켠다 — `RootView.initialEditing`과 같은 문이다.
     init(library: MomentLibrary, draft: RecordDraft, initialAddingPhotos: Bool = false,
-         onRequestDiscard: (() -> Void)? = nil, onClose: @escaping () -> Void) {
+         onRequestDiscard: (() -> Void)? = nil, onPromoteToCanvas: (() -> Void)? = nil,
+         onClose: @escaping () -> Void) {
         self.library = library
         self.draft = draft
         self.onRequestDiscard = onRequestDiscard
+        self.onPromoteToCanvas = onPromoteToCanvas
         self.onClose = onClose
         _isAddingPhotos = State(initialValue: initialAddingPhotos)
     }
@@ -207,17 +211,8 @@ struct RecordEditorScreen: View {
 
     @ViewBuilder
     private func image(of photo: DraftPhoto) -> some View {
-        if let asset = photo.asset {
-            AssetImage(asset: asset, pixels: Layout.gridPixels, fills: true,
-                       retryToken: library.generation)
-        } else if let stored = photo.storedImage {
-            // `ARC-06` — 고치는 중인 기록의 사진은 앨범이 아니라 그 기록의 디렉터리에서 온다.
-            RecordImageView(url: store.imageURL(recordID: draft.id, image: stored),
-                            pixels: Layout.gridPixels,
-                            fit: .free(fills: true))
-        } else {
-            ImportedImage(data: draft.importedData(of: photo.id), pixels: Layout.gridPixels)
-        }
+        DraftPhotoImage(photo: photo, draft: draft, pixels: Layout.gridPixels,
+                        retryToken: library.generation)
     }
 
     // MARK: - `09-G3` 설명
@@ -249,9 +244,9 @@ struct RecordEditorScreen: View {
         Group {
             if sizeClass == .regular {
                 FloatingBar {
-                    // ⚠️ 동작은 캔버스 화면이 생길 때 붙는다.
-                    Button(Wording.makeCanvas) {}
+                    Button(Wording.makeCanvas) { onPromoteToCanvas?() }
                         .buttonStyle(PlainActionStyle())
+                        .disabled(onPromoteToCanvas == nil || !draft.canSave)
                     Spacer(minLength: 0)
                     saveButton(PrimaryActionStyle())
                 }

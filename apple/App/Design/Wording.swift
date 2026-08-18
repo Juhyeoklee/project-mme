@@ -105,6 +105,27 @@ enum Wording {
     /// **컨텍스트 메뉴와 더보기 밖에는 안 선다.**
     static let delete = "삭제"
 
+    // MARK: - `11` 캔버스
+
+    /// `11-P1` 낭독 이름 — `2쪽`.
+    static func canvasPage(_ number: Int) -> String { "\(number)쪽" }
+    /// `11-P2`.
+    static let addPage = "페이지 더하기"
+    /// `11-N2` · `11-N3`.
+    static let undo = "되돌리기"
+    static let redo = "다시하기"
+    /// `11-O3` — 서랍이 무엇이고 어떻게 쓰는지를 한 줄이 진다.
+    static let photoDrawer = "이 기록의 사진 · 끌어다 놓거나 탭한다"
+    /// `11-I6`과 컨텍스트 메뉴.
+    static let bringToFront = "맨 앞으로"
+    static let sendToBack = "맨 뒤로"
+
+    /// `11-N1` — 승격해 들어왔을 때. 만들던 것이 아직 어디에도 없다.
+    static let discardCanvasTitle = "만들던 캔버스를 어떻게 할까요?"
+    /// `11-N1` — 저장된 캔버스를 고치던 중.
+    static let discardCanvasEditTitle = "변경한 내용을 버릴까요?"
+    static let keepEditing = "계속 편집"
+
     // MARK: - 확인과 실패 — ⚠️ 이 절은 구현이 정했다
 
     static let discardTitle = "만들던 기록을 어떻게 할까요?"

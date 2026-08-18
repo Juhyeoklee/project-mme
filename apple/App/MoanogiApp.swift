@@ -50,7 +50,11 @@ struct MoanogiApp: App {
     private var rootScreen: some View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        if usesFixture, arguments.contains("09-mixed") {
+        if usesFixture, arguments.contains("11"), let day = Fixture.library.days.first {
+            let draft = RecordDraft.from(moment: Fixture.momentWithBurst, day: day.date,
+                                         library: Fixture.library)
+            root(canvas: .opening(draft))
+        } else if usesFixture, arguments.contains("09-mixed") {
             root(editing: Fixture.mixedDraft)
         } else if usesFixture, arguments.contains("10-empty") {
             root(editing: Fixture.mixedDraft, opensPhotoAdd: true)
@@ -83,10 +87,12 @@ struct MoanogiApp: App {
         #endif
     }
 
-    private func root(editing: RecordDraft? = nil, opensPhotoAdd: Bool = false,
-                      tab: RootTab = .moments, opensRecord: Bool = false) -> some View {
+    private func root(editing: RecordDraft? = nil, canvas: CanvasSession? = nil,
+                      opensPhotoAdd: Bool = false, tab: RootTab = .moments,
+                      opensRecord: Bool = false) -> some View {
         RootView(library: shownLibrary, records: shownRecords, initialEditing: editing,
-                 opensPhotoAdd: opensPhotoAdd, initialTab: tab, opensFirstRecord: opensRecord)
+                 initialCanvas: canvas, opensPhotoAdd: opensPhotoAdd, initialTab: tab,
+                 opensFirstRecord: opensRecord)
     }
 
     private var shownLibrary: MomentLibrary {

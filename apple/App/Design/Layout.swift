@@ -54,8 +54,8 @@ enum Layout {
     static func pickerColumns(inWidth width: CGFloat) -> Int {
         max(3, Int(width / 130))
     }
-    /// 떠 있는 툴바·도구 팔레트·탭 바의 높이. **셋이 한 값을 쓴다** — 같은 화면에 나란히
-    /// 서는 자리가 있어 몇 pt만 어긋나도 그대로 보인다(2026-08-13 실기기).
+    /// 떠 있는 툴바와 탭 바의 높이. **둘이 한 값을 쓴다** — 같은 화면에 나란히 서는 자리가
+    /// 있어 몇 pt만 어긋나도 그대로 보인다(2026-08-13 실기기).
     static let floatingBarHeight: CGFloat = 50
     /// 그 툴바의 폭 상한. ⚠️ **본문 폭을 그대로 쓰면 안 된다** — 넓은 지면에서 세 버튼이
     /// 양 끝으로 벌어져 한 묶음으로 안 읽힌다. iPhone 본문(357)보다 커서 거기서는 안 걸린다.
@@ -77,6 +77,29 @@ enum Layout {
     static let badgeDiameter: CGFloat = 22
     /// `05-T` 우하단에 뜨는 원형 액션.
     static let floatingActionDiameter: CGFloat = 56
+
+    // MARK: - `11` 캔버스
+
+    /// 캔버스 지면. **4:3이고 이 값이 좌표계다** — 요소의 자리도 저장된 값도 여기 기준이라
+    /// 창 크기가 달라져도 문서가 안 흔들린다.
+    static let canvasSize = CGSize(width: 920, height: 690)
+    /// `11-N` 상단바. 떠 있는 바(50)와 값이 다르다 — 이쪽은 화면에 붙은 바다.
+    static let canvasTopBar: CGFloat = 52
+    /// `11-T` 도구 팔레트의 높이. ⚠️ **떠 있는 바(50)와 다른 값이다** — `11`에는 나란히 설
+    /// 탭 바가 없고, 여기는 44 탭 대상 위아래로 8씩을 준 값이다.
+    static let canvasPaletteHeight: CGFloat = 56
+    /// `11-P` 페이지 레일의 폭과 그 안 썸네일 한 변.
+    static let canvasRailWidth: CGFloat = 88
+    static let canvasThumbnailWidth: CGFloat = 72
+
+    /// 승격 직후 놓이는 첫 사진. 캔버스 폭의 57%이고, 아래로 230을 비워 글 자리를 남긴다.
+    static let canvasEntryPhotoSize = CGSize(width: 520, height: 361)
+    static var canvasEntryPhotoCenter: CGPoint {
+        CGPoint(x: canvasSize.width / 2, y: 96 + canvasEntryPhotoSize.height / 2)
+    }
+
+    /// 두 손가락 핀치의 범위. 100%가 캔버스를 화면에 맞춘 배율이다.
+    static let canvasZoomRange: ClosedRange<CGFloat> = 0.5...4
 
     // MARK: - 화소 상한
 

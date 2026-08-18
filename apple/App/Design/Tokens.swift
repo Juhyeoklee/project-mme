@@ -222,6 +222,9 @@ enum Radius {
     static let card: CGFloat = 12
     /// iPad 2단의 지면.
     static let pane: CGFloat = 22
+    /// `11` 캔버스와 그 위에 놓인 것. **카드 반경을 쓰지 않는다** — 캔버스 안은 크롬 문법이
+    /// 꺼진 자리라 모서리도 거의 안 깎는다.
+    static let canvas: CGFloat = 2
 }
 
 /// 번들 아이콘 이름. **관례가 강한 개념만 아이콘으로 말한다** — 약한 것은 글자가 진다.
@@ -239,6 +242,19 @@ enum Glyph {
     static let createRecord = "pen-line"
     /// `09-T` iPhone.
     static let save = "check"
+
+    // MARK: - `11` 캔버스
+
+    static let pointer = "mouse-pointer-2"
+    static let marker = "highlighter"
+    static let eraser = "eraser"
+    static let text = "type"
+    static let image = "image"
+    static let notebook = "notebook"
+    static let undo = "undo-2"
+    static let redo = "redo-2"
+    static let bringToFront = "bring-to-front"
+    static let sendToBack = "send-to-back"
 }
 
 // MARK: - 조각
@@ -250,8 +266,8 @@ private func mode(light: Color, dark: Color) -> Color {
     })
 }
 
-private extension Color {
-    /// `0xRRGGBB`.
+extension Color {
+    /// `0xRRGGBB`. **`Design/` 밖에서도 쓴다** — 캔버스 종이·잉크는 램프 밖 값이다.
     init(hex: UInt32) {
         self.init(.sRGB,
                   red: Double((hex >> 16) & 0xFF) / 255,

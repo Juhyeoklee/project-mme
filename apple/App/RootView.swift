@@ -26,6 +26,8 @@ struct RootView: View {
     let records: RecordLibrary
     /// 합성 데이터로 편집기를 바로 띄울 때만 채운다.
     var initialEditing: RecordDraft?
+    /// 합성 데이터로 `11`을 바로 띄운다.
+    var initialCanvas: CanvasSession?
     /// 그 편집기 위에 `10` 시트까지 띄운다.
     var opensPhotoAdd = false
     var initialTab: RootTab = .moments
@@ -43,15 +45,19 @@ struct RootView: View {
     @State private var selectedMoment: Moment?
     @State private var selectedRecord: Record?
     @State private var editing: RecordDraft?
+    /// `11`이 고치고 있는 캔버스. **화면이 아니라 뼈대가 든다** — `09`에서 시작해 `08`에서
+    /// 끝나는 작업이라 어느 한 화면보다 오래 산다.
+    @State private var canvas: CanvasSession?
     @State private var tab: RootTab
     @State private var recordPath: [Record] = []
 
     init(library: MomentLibrary, records: RecordLibrary, initialEditing: RecordDraft? = nil,
-         opensPhotoAdd: Bool = false, initialTab: RootTab = .moments,
-         opensFirstRecord: Bool = false) {
+         initialCanvas: CanvasSession? = nil, opensPhotoAdd: Bool = false,
+         initialTab: RootTab = .moments, opensFirstRecord: Bool = false) {
         self.library = library
         self.records = records
         self.initialEditing = initialEditing
+        self.initialCanvas = initialCanvas
         self.opensPhotoAdd = opensPhotoAdd
         self.initialTab = initialTab
         self.opensFirstRecord = opensFirstRecord
@@ -68,6 +74,10 @@ struct RootView: View {
         .onChange(of: tab) { if tab == .records { records.reload() } }
         .modifier(EditorCover(editing: $editing, library: library, records: records,
                               opensPhotoAdd: opensPhotoAdd, isCompact: sizeClass == .compact))
+        .fullScreenCover(item: $canvas) { session in
+            CanvasScreen(session: session, retryToken: library.generation,
+                         onClose: { canvas = nil }, onSaved: arrive)
+        }
         .confirmationDialog(Wording.discardTitle, isPresented: isConfirmingExit,
                             titleVisibility: .visible) {
             if editing?.canSave == true {
@@ -79,7 +89,10 @@ struct RootView: View {
                             titleVisibility: .visible) {
             Button(Wording.delete, role: .destructive) { confirmDelete() }
         }
-        .task { if editing == nil { editing = initialEditing } }
+        .task {
+            if editing == nil { editing = initialEditing }
+            if canvas == nil { canvas = initialCanvas }
+        }
     }
 
     /// iPad에서 확인 시트는 전부 여기서 뜬다 — **같은 결정이 부른 자리마다 다른 데 서지 않게.**
@@ -130,6 +143,28 @@ struct RootView: View {
             records.reload()
             go()
         }
+    }
+
+    // MARK: - `11` 캔버스
+
+    /// `09-T 캔버스로 만들기` — 초안을 그대로 들고 캔버스로 넘어간다.
+    private func promote(_ draft: RecordDraft) {
+        canvas = .opening(draft)
+    }
+
+    /// `08` — 캔버스 기록이면 그 문서를 열고, 초안이면 새 캔버스로 승격한다.
+    private func openCanvas(_ record: Record) {
+        canvas = CanvasSession.editing(record) ?? .opening(.editing(record))
+    }
+
+    /// `11-N4 저장` 뒤의 도착지는 `08`이다.
+    private func arrive(at record: Record) {
+        canvas = nil
+        editing = nil
+        records.reload()
+        tab = .records
+        selectedRecord = record
+        if sizeClass == .compact { recordPath = [record] }
     }
 
     /// 안 보이는 탭은 자리에 남되 눈과 손과 낭독에서 빠진다.
@@ -206,7 +241,8 @@ struct RootView: View {
             editor(draft)
         } else if let record = effectiveRecord.wrappedValue {
             RecordDetailScreen(library: library, records: records, record: record,
-                               editing: $editing, onRequestDelete: { pendingDelete = $0 })
+                               editing: $editing, onRequestDelete: { pendingDelete = $0 },
+                               onOpenCanvas: openCanvas)
         } else {
             Color.clear
         }
@@ -242,7 +278,8 @@ struct RootView: View {
     private func editor(_ draft: RecordDraft) -> some View {
         RecordEditorScreen(library: library, draft: draft,
                            initialAddingPhotos: opensPhotoAdd,
-                           onRequestDiscard: { pendingExit = {} }) {
+                           onRequestDiscard: { pendingExit = {} },
+                           onPromoteToCanvas: { promote(draft) }) {
             editing = nil
             records.reload()
         }
