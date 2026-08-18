@@ -43,7 +43,7 @@
 ## 고르는 곳과 싣는 곳이 다르다
 
 **pen에서 고르고, upstream에서 싣는다.** 후보를 나란히 놓고 판정하는 데는 pen이 좋고
-(`docs/design-system.pen`에 라이브러리 넷을 깐 탐색 프레임이 있다), **번들에 들어가는 파일은
+(`docs/design-system.pen`(워크스페이스)에 라이브러리 넷을 깐 탐색 프레임이 있다), **번들에 들어가는 파일은
 lucide 원본이어야 한다.**
 
 ⚠️ **pen 내보내기를 소스로 쓰면 안 되는 이유 둘** (2026-08-12 실측) —
@@ -58,7 +58,7 @@ lucide 원본이어야 한다.**
 
 ## 아이콘을 더할 때
 
-1. `docs/design-system.pen`에서 후보를 나란히 깔아 고른다 — `icon` 노드 · `library: "lucide"`
+1. `docs/design-system.pen`(워크스페이스)에서 후보를 나란히 깔아 고른다 — `icon` 노드 · `library: "lucide"`
 2. 고른 이름의 원본을 받는다 —
    `https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/<이름>.svg`
 3. `stroke-width`를 **2 → 2.25**로 바꿔 `Icons.xcassets/<이름>.imageset/`에 넣는다.
@@ -67,5 +67,5 @@ lucide 원본이어야 한다.**
 4. `Glyph`에 이름을 더한다
 
 ★ **획 굵기 2.25는 이 앱의 값이다.** lucide 기본값 2가 SF Symbols보다 얇아, 어두운 유리 위에서
-존재감을 잃는 것을 한 눈금 갚은 것이다. **여덟 개가 같은 값을 써야 한다** — 하나만 다르면
+존재감을 잃는 것을 한 눈금 갚은 것이다. **전부 같은 값을 써야 한다** — 하나만 다르면
 같은 캡슐 안에서 무게가 갈린다.
