@@ -33,8 +33,7 @@ struct PhotoViewerScreen: View {
         }
     }
 
-    /// **지금 보고 있는 그 사진의 시각이다** — 옆의 `06-N3`이 사진 단위라 짝이 맞고,
-    /// 순간의 시각은 바로 앞 화면이 이미 말했다.
+    /// **지금 보고 있는 그 사진의 시각이다** — 옆의 `06-N3`이 사진 단위라 짝이 맞는다.
     private func timeOfPhoto(at position: Int) -> WallClock {
         guard photos.indices.contains(position),
               let at = library.capturedAt(at: photos[position]) else { return moment.start }

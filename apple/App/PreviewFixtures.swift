@@ -1,8 +1,7 @@
 // 프리뷰 데이터. **DEBUG에만 있다 — 출시 바이너리에 들어가지 않는다.**
 //
-// 개인 스크린샷을 저장소에 넣지 않으므로(`CLAUDE.md` 경계 규칙) 사진도 분류도 합성한다.
-// 다만 **분류는 진짜 커널이 한다** — 여기서 만드는 것은 (파일명, 바이트)뿐이다. 목업 구조를
-// 손으로 만들면 프리뷰가 커널과 어긋난 채로 예뻐 보인다.
+// 사진도 분류도 합성한다. 다만 **분류는 진짜 커널이 한다** — 여기서 만드는 것은
+// (파일명, 바이트)뿐이다. 목업 구조를 손으로 만들면 커널과 어긋난 채로 예뻐 보인다.
 
 #if DEBUG
 import CoreGraphics
@@ -14,9 +13,8 @@ import UniformTypeIdentifiers
 
 @MainActor
 enum Fixture {
-    // **전부 `static let`이다 — 프리뷰에서 이건 정확성 문제다.** 매번 새로 만들면 `store`의
-    // 객체 신원이 갱신마다 바뀌어 캐시가 늘 비고, `.task` → 상태 변경 → 갱신의 무한 루프가
-    // 된다 (2026-08-04에 겪었다. 렌더가 10분을 넘겨도 스냅샷이 안 나왔다).
+    // ⚠️ **전부 `static let`이다** — 매번 새로 만들면 `store`의 객체 신원이 갱신마다 바뀌어
+    // `.task` → 상태 변경 → 갱신의 무한 루프가 된다(2026-08-04 실측).
     static let inputs = makeInputs()
     static let classification = Classifier.classify(inputs)
     /// 화소 크기는 **커널이 `IHDR`에서 읽은 값을 되쓴다** — 실물에서는 라이브러리가 주는
@@ -120,7 +118,7 @@ enum Fixture {
             photos.append((stamp, zone, (x, 40, -20), portrait))
         }
 
-        // 7월 26일 18:05 — 12장 · 8장면 (설계서의 그 문구가 나오도록)
+        // 7월 26일 18:05 — 12장 · 8장면
         add("20260726180500", "던바튼", 0)
         add("20260726180503", "던바튼", 0.2)          // 연사 (같은 장면)
         add("20260726180506", "던바튼", 0.3)          // 연사
@@ -220,9 +218,8 @@ enum Fixture {
 /// 합성 바이트를 못 구웠다. 프리뷰와 `-fixture`에서만 나온다.
 private struct NoFixtureBytes: Error {}
 
-/// 합성 PNG. 커널 테스트의 `PNGFixture`와 같은 일을 하지만 **복사가 아니라 축약이다** —
-/// 여기서 필요한 것은 커널이 신호를 읽어내는 것뿐이라 실패 경로용 손잡이가 없다.
-/// (실물이 규격에 없는 종료 NUL을 쓴다는 것까지는 따라간다 — 커널이 그것을 떼도록 만들어졌다.)
+/// 합성 PNG. 커널 테스트 `PNGFixture`의 축약이다 — 실패 경로용 손잡이가 없다.
+/// 실물이 규격에 없는 종료 NUL을 쓴다는 것까지는 따라간다.
 private enum PNG {
     static func capture(width: Int, height: Int, zone: String,
                         position: (Double, Double, Double)) -> [UInt8] {

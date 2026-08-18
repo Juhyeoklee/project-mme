@@ -1,18 +1,14 @@
-// 확정된 치수. **디자인 토큰이 아니다** — 출처가 화면설계서·pen·실측이고, 낡는 조건도
-// 다르다(토큰은 토큰 문서가 개정될 때, 여기는 화면이 다시 확정되거나 재측정할 때).
-//
-// 갱신 방아쇠가 다른 값을 한 집에 두면 어느 쪽이 움직였는지가 안 보인다. `Tokens.swift`가
-// *"여기서 값을 발명하지 않는다"* 를 지킬 수 있는 것도 이 파일이 갈라져 있기 때문이다.
+// 확정된 치수. **`Tokens.swift`와 갈라 둔다** — 갱신 방아쇠가 다르다(토큰은 값이 개정될 때,
+// 여기는 화면이 다시 확정되거나 재측정할 때).
 
 import SwiftUI
 
 /// 레이아웃 상수와 그 파생값.
 enum Layout {
-    /// 탭 대상 한 변의 하한. 플랫폼 규칙이라 화면이 정하지 않는다.
+    /// 탭 대상 한 변의 하한. 플랫폼 규칙이다.
     static let hitTarget: CGFloat = 44
 
-    /// 제본 쪽 여백. **좌우가 비대칭인 것은 제본이 왼쪽에만 있기 때문이다** — 일기장에서도
-    /// 안쪽 여백이 바깥보다 넓다. iPad 2단에는 그 자리가 없어 대칭이다.
+    /// 제본 쪽 여백. **iPad 2단에는 제본이 없어 대칭이다.**
     static func leadingMargin(_ sizeClass: UserInterfaceSizeClass?) -> CGFloat {
         sizeClass == .compact ? Spacing.bindingMargin : Spacing.screenMargin
     }

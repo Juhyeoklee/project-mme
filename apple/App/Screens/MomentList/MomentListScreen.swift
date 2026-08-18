@@ -1,10 +1,8 @@
 // `04` 순간 목록 (홈). 날짜와 순간을 훑으며 회상한다.
+// ⚠️ **`List`를 쓰지 않는다** — 자기 인셋과 구분선을 먼저 깔아 간격이 두 층이 된다.
 //
-// `List`가 아니라 `ScrollView` + `LazyVStack(pinnedViews:)`를 쓴다 — 간격이 여섯 개 확정인데
-// `List`는 자기 인셋과 구분선을 먼저 깔아, 값을 볼 때마다 두 층을 같이 봐야 한다.
-//
-// ⚠️ **시스템 네비 바를 쓰지 않는다.** iOS 26의 유리 바는 배경색을 주면 large title을 통째로
-// 안 그린다 — 색의 종류와 무관하다(2026-08-11 탐침으로 확정). 머리는 직접 그린다.
+// ⚠️ **시스템 네비 바를 쓰지 않는다** — iOS 26의 유리 바는 배경색을 주면 large title을
+// 통째로 안 그린다(2026-08-11 탐침). 머리는 직접 그린다.
 
 import MomentKernel
 import PhotoSource
@@ -52,8 +50,7 @@ struct MomentListScreen: View {
                         .lineLimit(1)
                         .opacity(1 - min(collapse * 2, 1))
                     Spacer(minLength: 0)
-                    // **아이콘들이 유리 하나를 나눠 쓴다** — 낱개로 띄우면 알약이 흩어져 보이고,
-                    // 이 셋은 「이 화면의 도구」라는 한 묶음이다.
+                    // **아이콘들이 유리 하나를 나눠 쓴다** — 낱개로 띄우면 알약이 흩어진다.
                     HStack(spacing: 0) {
                         iconButton(Glyph.createRecord, label: Wording.createRecord) { startRecord() }
                         settingsSlot
@@ -145,8 +142,7 @@ struct MomentListScreen: View {
                 if library.days.isEmpty { emptyOrSkeleton }
             }
         }
-        // 머리가 겹쳐 떠 있으므로 첫 화면의 시작 자리를 여기서 준다. 펼친 높이 기준이라
-        // 접힌 뒤에는 콘텐츠가 머리 아래로 더 지나간다 — 그게 유리가 하는 일이다.
+        // 머리가 겹쳐 떠 있으므로 첫 화면의 시작 자리를 여기서 준다 — 펼친 높이 기준이다.
         .contentMargins(.top, Layout.listHeaderHeight, for: .scrollContent)
         .tracksHeaderCollapse($collapse)
         .onGeometryChange(for: CGFloat.self) { proxy in
@@ -181,8 +177,7 @@ struct MomentListScreen: View {
 
     // MARK: - `04-B` 날짜 헤더
 
-    /// ⚠️ **날짜 경계를 표시하는 일만 남았다** — 배경도 구분선도 없이 목록과 함께 흘러간다.
-    /// 상단에 붙어 있는 동안 하던 일(지금 어느 날인가)은 네비가 가져갔다.
+    /// ⚠️ **날짜 경계를 표시하는 일만 한다** — 배경도 구분선도 없이 목록과 함께 흘러간다.
     private func dayHeader(_ day: Day) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(Wording.dateHeader(day.date))

@@ -1,9 +1,7 @@
-// `07` 기록 목록. 남긴 기록을 훑어 그 날을 찾는다.
+// `07` 기록 목록. 남긴 기록을 훑어 그 날을 찾는다. 골격은 `04`와 같다.
 //
 // ⚠️ **만드는 입구가 없다** (원칙 `P3`). 최상위 탭이면서 `+` 버튼을 갖지 않는 것이 그 원칙의
-// 강제 조건이고, 우측 슬롯도 비어 있다 — 설정은 `04`에만 있다.
-//
-// 골격은 `04`와 같다: 직접 그린 유리 머리 + 흐르는 구분 헤더 + 1열 카드.
+// 강제 조건이고, 우측 슬롯도 비어 있다.
 
 import SwiftUI
 
@@ -160,7 +158,7 @@ struct RecordListScreen: View {
 
     // MARK: - 빈 상태
 
-    /// `07-E1` — **아무것도 없는 화면에서 앱이 말을 거는 유일한 자리**라 액센트 서체가 톤을 진다.
+    /// `07-E1`. 읽기 실패도 이 자리를 쓴다.
     @ViewBuilder
     private var emptyOrFailure: some View {
         Text(records.loadFailed ? Wording.recordsFailed : Wording.recordsEmpty)

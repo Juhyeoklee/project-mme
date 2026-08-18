@@ -303,8 +303,7 @@ extension View {
 
 /// 최상위 탭 바 — **손글씨 두 낱말**과 형광펜 하나.
 ///
-/// 고른 것을 색이 아니라 **형광펜**이 말한다. 앱이 자기가 준 도구(`CAN-05`)로 자기 상태를
-/// 말하므로 새 어휘가 0이고, iPad 목록의 포커스 표시와 같은 획이다.
+/// 고른 것을 색이 아니라 **형광펜**이 말한다 — iPad 목록의 포커스 표시와 같은 획이다.
 private struct RootTabBar: View {
     @Binding var selection: RootTab
 

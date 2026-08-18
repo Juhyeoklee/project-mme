@@ -55,8 +55,7 @@ struct DraftPhoto: Identifiable, Hashable, Sendable {
 
 /// `09`가 편집 중인 기록.
 ///
-/// **진입 직후 전부 선택돼 있고 사용자가 하는 일은 빼기뿐이다** — 빈 상태에서 고르게 하면
-/// 이 제품이 없애기로 한 「고르기」 단계가 돌아온다.
+/// **진입 직후 전부 선택돼 있고 사용자가 하는 일은 빼기뿐이다.**
 ///
 /// ⚠️ **순간을 들고 있지 않다** (원칙 `P2`). 날짜와 시작 시각만 아는데, 그것도 `10`이
 /// 후보를 세우고 「이 순간」 꼬리를 다는 데만 쓴다.
@@ -65,9 +64,8 @@ struct DraftPhoto: Identifiable, Hashable, Sendable {
 final class RecordDraft: Identifiable {
     /// 저장이 어디까지 갔는가. **실패는 화면 상태다** — 저장소는 `throws`로 말하고 여기서 받는다.
     ///
-    /// ⚠️ **실패가 이유를 나르지 않는다** — 사용자가 고칠 수 없어 화면이 왜인지 말하지 않기로
-    /// 했고(`Wording.saveFailed`), 아무도 안 읽는 값을 실으면 갈래가 있는 척만 하게 된다.
-    /// 갈래를 구별해야 할 이유가 생기면 그때 `RecordStoreError`를 그대로 싣는다.
+    /// ⚠️ **실패가 이유를 나르지 않는다.** 갈래를 구별해야 할 이유가 생기면 그때
+    /// `RecordStoreError`를 그대로 싣는다.
     enum SaveState: Equatable {
         case editing
         case saving

@@ -1,33 +1,28 @@
-// 문구 — 화면들의 문구가 전부 여기 있다.
+// 문구 — 화면들의 문구가 전부 여기 있다. **같은 문자열이 두 화면에 서는 자리가 규칙이다.**
 //
-// 한 곳에 모은 이유 둘 — ① 같은 문자열이 두 화면에 나타나는 자리가 규칙이다(둘이 같아야
-// *"누른 그 순간이 맞다"* 가 확인된다) ② **화면설계서 밖에서 만든 문구가 어디 있는지가
-// 보여야 한다** — 그 구역은 아래에 따로 모여 있다. 흩어놓으면 슬며시 는다.
-//
-// `Date`·`Calendar`를 쓰지 않는다. `WallClock`은 시간대가 없는 벽시계고, 표시하려고 시간대를
-// 발명해 넣으면 자정 근처에서 날짜가 밀린다 — 커널이 피한 함정을 화면에서 도로 팔 이유가 없다.
+// ⚠️ `Date`·`Calendar`를 쓰지 않는다. `WallClock`은 시간대가 없는 벽시계고, 표시하려고
+// 시간대를 발명해 넣으면 자정 근처에서 날짜가 밀린다.
 
 import MomentKernel
 
 enum Wording {
-    /// `04-N1`이자 탭 이름. 앱 이름을 쓰지 않는다 — 홈에서 앱 이름은 정보가 0이다.
+    /// `04-N1`이자 탭 이름.
     static let listTitle = "순간"
-    /// `07-N1`이자 탭 이름. **두 글자·숫자 없음으로 위와 짝이다.**
+    /// `07-N1`이자 탭 이름.
     static let recordsTitle = "기록"
 
-    /// `04-E1`. 빈 상태 "화면"이 아니라 목록 자리를 채우는 한 줄이다.
+    /// `04-E1`.
     static let empty = "아직 사진이 없어요"
 
     /// `05-G4`.
     static let collapse = "접기"
 
-    /// `순간 128개 · 1,204장`. 두 위계가 같은 말투로 갈린다 — 새 어휘를 만들지 않는다.
+    /// `순간 128개 · 1,204장`.
     static func summary(moments: Int, photos: Int) -> String {
         "순간 \(moments.formatted())개 · \(photos.formatted())장"
     }
 
-    /// `12장 · 8장면`. **연사 묶음이 없으면 `2장`만 쓴다** — `BRW-03`은 조건 없이 셋을 요구하지만
-    /// 장면 수 = 장수면 `2장 · 2장면`은 같은 값을 두 번 말하는 것이 된다.
+    /// `12장 · 8장면`.
     static func counts(photos: Int, scenes: Int) -> String {
         photos == scenes ? "\(photos)장" : "\(photos)장 · \(scenes)장면"
     }
@@ -35,7 +30,7 @@ enum Wording {
     /// `04-C4` — 스트립에 다 못 담은 장면 수.
     static func more(_ count: Int) -> String { "+\(count)" }
 
-    /// `04-B1` — `7월 26일 (일)`. 화면에서 가장 큰 활자.
+    /// `04-B1` — `7월 26일 (일)`.
     static func dateHeader(_ day: CalendarDay) -> String {
         "\(day.month)월 \(day.day)일 (\(weekdaySymbol(day)))"
     }
@@ -62,7 +57,6 @@ enum Wording {
 
     // MARK: - 기록 만들기
 
-    /// **흐름 서술이 아니라 기능 이름이다** — `IA`·`PRD`가 부르는 이름을 그대로 쓴다.
     static let createRecord = "기록 만들기"
     static let cancel = "취소"
     static let save = "저장"
@@ -77,9 +71,9 @@ enum Wording {
     static let importDirectly = "직접 가져오기"
     static let captionPlaceholder = "무슨 일이 있었는지 적어보세요"
 
-    /// `09-N3` — 뺀 것이 없을 때. **부제가 어포던스를 진다**(탭이 무엇을 하는지 말한다).
+    /// `09-N3` — 뺀 것이 없을 때.
     static func keptAll(_ count: Int) -> String { "\(count)장 · 탭해서 빼기" }
-    /// `09-N3` — 하나라도 뺀 뒤. 「선택됨」이라는 단어가 없는 것이 값이다.
+    /// `09-N3` — 하나라도 뺀 뒤.
     static func kept(_ count: Int, removed: Int) -> String { "\(count)장 · \(removed)장 뺌" }
 
     /// `10-B` 시각 구분 헤더. 꼬리가 붙는 것은 들어온 그 순간 하나뿐이다.
@@ -92,11 +86,10 @@ enum Wording {
     /// `07-E1`.
     static let recordsEmpty = "아직 남긴 기록이 없어요"
 
-    /// `07-N2`. 기록에는 「장수」가 전체 요약으로 의미가 없어 개수만 쓴다.
+    /// `07-N2`.
     static func recordSummary(_ count: Int) -> String { "기록 \(count.formatted())개" }
 
-    /// `07-B1` — `2026년 8월`. **날짜 헤더와 달리 년을 쓴다** — 기록은 여러 해에 걸쳐 쌓이고
-    /// 월 단위라 년이 없으면 8월이 어느 8월인지 구별되지 않는다.
+    /// `07-B1` — `2026년 8월`.
     static func monthHeader(year: Int, month: Int) -> String { "\(year)년 \(month)월" }
 
     /// 갤러리는 사진 수, 캔버스는 페이지 수. **둘 다 「이미지 몇 장」이다.**
@@ -112,22 +105,19 @@ enum Wording {
     /// **컨텍스트 메뉴와 더보기 밖에는 안 선다.**
     static let delete = "삭제"
 
-    // MARK: - 확인과 실패 — ⚠️ 화면설계서 밖이다
+    // MARK: - 확인과 실패 — ⚠️ 이 절은 구현이 정했다
 
-    /// ⚠️ **이 절의 문구는 화면설계가 정한 것이 아니다.** 오류·확인 문구는 *"어떤 실패가
-    /// 실제로 나는지는 코드가 알려준다"* 는 이유로 구현에 넘겨진 자리다.
     static let discardTitle = "만들던 기록을 어떻게 할까요?"
     static let keepAsDraft = "초안으로 남기기"
     static let discard = "버리기"
-    /// 원본을 못 읽었거나 디스크에 못 썼다. **왜인지는 사용자가 고칠 수 없어 말하지 않는다.**
+    /// 원본을 못 읽었거나 디스크에 못 썼다.
     static let saveFailed = "저장하지 못했어요"
     static let acknowledge = "확인"
-    /// 저장소를 못 읽었다. 삭제 실패에는 안 쓴다 — 그때는 지워지지 않은 카드가 그대로 남는 것이
-    /// 이미 결과를 말한다.
+    /// 저장소를 못 읽었다. **삭제 실패에는 안 쓴다** — 지워지지 않은 카드가 이미 결과를 말한다.
     static let recordsFailed = "기록을 불러오지 못했어요"
-    /// `ARC-07` 확인 한 단계. 파괴에는 색 말고 신호가 하나 더 있어야 한다.
+    /// `ARC-07` 확인 한 단계.
     static let deleteRecordTitle = "이 기록을 지울까요?"
-    /// `REC-05` 후보가 0장이다. **길이 끊긴 것이 아니라 후보가 없는 것**이라 시킬 일을 안 말한다.
+    /// `REC-05` 후보가 0장이다.
     static let noPhotosToAdd = "더할 사진이 없어요"
 
     // MARK: - 조각

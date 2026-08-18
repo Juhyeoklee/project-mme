@@ -171,7 +171,6 @@ struct RecordEditorScreen: View {
 
     // MARK: - `09-G` 격자
 
-    /// 열 수는 폭이 정한다 — 근거는 `Layout.editorColumns(inWidth:)`에 있다.
     private func grid(width: CGFloat) -> some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.cellGap),
                                  count: Layout.editorColumns(inWidth: width)),
@@ -273,8 +272,8 @@ struct RecordEditorScreen: View {
             .disabled(!draft.canSave)
     }
 
-    /// `09-T` iPhone — **글리프 원판이다.** 활자를 유리에 얹으면 잉크 대비가 뒤에 오는 사진에
-    /// 끌려다니고(실측 4.82 ↔ 3.28), 무게를 대신 질 지름도 없다. `05-T`와 같은 문법이다.
+    /// `09-T` iPhone — **글리프 원판이다.** 활자를 유리에 얹으면 잉크 대비가 뒤에 오는
+    /// 사진에 끌려다닌다(실측 4.82 ↔ 3.28).
     private var saveAction: some View {
         Button { Task { await save(status: .published) } } label: {
             GlyphIcon(Glyph.save, size: 26)
@@ -308,7 +307,7 @@ struct RecordEditorScreen: View {
     }
 }
 
-/// `09-N4` — `REC-07`은 자주 쓰는 기능이 아니라 화면에 행을 두지 않고 더보기 안에 산다.
+/// `09-N4` — `REC-07`. 화면에 행을 두지 않고 더보기 안에 산다.
 private struct OccurredAtSheet: View {
     let initial: WallClock
     let onPick: (WallClock) -> Void

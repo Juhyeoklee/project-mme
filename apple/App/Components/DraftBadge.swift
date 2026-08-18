@@ -4,8 +4,7 @@ import SwiftUI
 
 /// 설명이 아직 없는 기록의 표시 (`ARC-08`).
 ///
-/// ⚠️ **색이 없다** (원칙 `P4`). 초안은 덜 된 것이지 나쁜 것이 아니라, 배지에 색을 주는
-/// 순간 목록이 「아직 안 한 일」의 알림판이 된다.
+/// ⚠️ **색이 없다** (원칙 `P4`) — 색을 주면 목록이 「아직 안 한 일」의 알림판이 된다.
 struct DraftBadge: View {
     var body: some View {
         Text(Wording.draft)

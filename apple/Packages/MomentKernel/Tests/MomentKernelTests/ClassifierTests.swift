@@ -75,7 +75,7 @@ struct ClassifierTests {
     }
 
     @Test func 돌아오면_새_순간이다() {
-        // `MOM-03` · `IA` §2 `B1` — A→B→A는 순간 3개다. 표본에 실제로 있었다(실험 §5.5).
+        // `MOM-03` — A→B→A는 순간 3개다. 표본에 실제로 있었다(실험 §5.5).
         let result = Classifier.classify([
             photo("2026080213000000", position: (0, 0, 0)),
             photo("2026080213010000", position: (0, 0, 0)),

@@ -4,8 +4,8 @@ import SwiftUI
 
 /// **또렷함 = 이 기록에 들어 있다.**
 ///
-/// ⚠️ **두 화면이 같은 축을 써야 한다** — `10`은 `09` 위에 뜨는 시트라 둘이 물리적으로 겹쳐
-/// 보인다. 같은 픽셀이 반대 뜻이면 배울 것이 둘이 된다.
+/// ⚠️ **두 화면이 같은 축을 써야 한다** — `10`은 `09` 위에 뜨는 시트라 둘이 겹쳐 보인다.
+/// 같은 픽셀이 반대 뜻이면 배울 것이 둘이 된다.
 struct RecordPhotoTile<Photo: View>: View {
     let isIncluded: Bool
     @ViewBuilder var photo: Photo

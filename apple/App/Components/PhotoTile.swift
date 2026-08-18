@@ -1,7 +1,6 @@
 // 사진 한 칸. 세 화면이 전부 이걸 쓴다.
 //
-// **그리기와 끌어오기를 나눈 이유는 프리뷰다** — 개인 스크린샷을 저장소에 넣지 않으므로
-// (`CLAUDE.md` 경계 규칙) 프리뷰는 합성 이미지를 `PhotoTile`에 직접 먹인다.
+// **그리기와 끌어오기가 갈려 있다** — 프리뷰가 합성 이미지를 `PhotoTile`에 직접 먹인다.
 
 import CoreGraphics
 import PhotoSource
@@ -15,8 +14,8 @@ struct PhotoTile: View {
     var cornerRadius: CGFloat = 0
     /// 사진이 **아직 없을 때**의 바탕.
     var emptyColor: Color = Palette.placeholder
-    /// 사진이 **있을 때** fit하고 남는 여백의 바탕. **두 색을 나눈 이유가 실물에서 나왔다**
-    /// (2026-08-04) — 하나로 묶었더니 `06`의 여백이 라이트에서 흰색이 되어 흰 크롬이 사라졌다.
+    /// 사진이 **있을 때** fit하고 남는 여백의 바탕. ⚠️ **`emptyColor`와 묶으면 안 된다** —
+    /// `06` 여백이 라이트에서 흰색이 되어 흰 크롬이 사라진다(2026-08-04 실물).
     var matteColor: Color = Palette.surface
 
     var body: some View {

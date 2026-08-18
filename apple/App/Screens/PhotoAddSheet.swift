@@ -56,7 +56,7 @@ struct PhotoAddSheet: View {
             }
         }
         .presentationCornerRadius(Radius.card)
-        // 시트라는 것을 그래버가 말한다 — 아래로 끌기가 `취소`와 같은 일을 한다는 유일한 표지다.
+        // 그래버가 아래로 끌기 = `취소`의 유일한 표지다.
         .presentationDragIndicator(.visible)
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.size.width
@@ -68,8 +68,7 @@ struct PhotoAddSheet: View {
         }
     }
 
-    /// **`직접 가져오기`는 툴바에 그대로 살아 있다** — 후보가 없는 것이지 길이 끊긴 것이 아니라
-    /// 문구가 그 사실만 말하고 무엇을 하라고는 말하지 않는다 (`P4`).
+    /// 후보가 0장일 때. **`직접 가져오기`는 툴바에 그대로 살아 있다** (`P4`).
     @ViewBuilder
     private var emptyLine: some View {
         if groups.isEmpty, imported.isEmpty {
@@ -83,8 +82,7 @@ struct PhotoAddSheet: View {
 
     // MARK: - `10-B` 시각 구분
 
-    /// **꼬리를 다는 것은 「이 순간」 하나뿐이다.** 나머지는 시각만 쓴다 — 「앞 순간」·「뒤 순간」은
-    /// 순간이 셋일 때만 성립하는 말이라 하루 전체에서는 안 선다.
+    /// **꼬리를 다는 것은 「이 순간」 하나뿐이다.** 나머지는 시각만 쓴다.
     private func header(_ group: MomentGroup) -> some View {
         Text(Wording.momentBreak(group.start, isOrigin: group.isOrigin))
             .font(Typography.sectionLabel)
@@ -95,7 +93,6 @@ struct PhotoAddSheet: View {
 
     // MARK: - `10-G` 격자
 
-    /// 열 수는 폭이 정한다 — 근거는 `Layout.pickerColumns(inWidth:)`에 있다.
     private func grid(_ group: MomentGroup) -> some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.cellGap),
                                  count: Layout.pickerColumns(inWidth: contentWidth)),
@@ -114,9 +111,6 @@ struct PhotoAddSheet: View {
     }
 
     /// `REC-10`으로 가져온 것. **목록 끝에 붙고 시각 구분 헤더가 없다.**
-    ///
-    /// ★ **헤더가 없다는 것 자체가 「시간축 밖」을 말한다** — 촬영 정보를 안 읽으므로 시간순으로
-    /// 꽂을 수 없고, 새 문구를 만들지 않고도 두 풀이 안 섞인다.
     @ViewBuilder
     private var importedGrid: some View {
         if !imported.isEmpty {

@@ -111,8 +111,7 @@ struct RecordDetailScreen: View {
         }
     }
 
-    /// `08-N4` — **삭제가 사는 유일한 자리다.** 인라인 파괴 버튼을 만들지 않는다는 규칙이
-    /// 강조색 `공유`와 파괴색이 같은 시야에 서는 유일한 충돌을 여기서 없앤다.
+    /// `08-N4` — **삭제가 사는 유일한 자리다.** 인라인 파괴 버튼을 만들지 않는다.
     private var moreMenu: some View {
         Menu {
             if shown.status == .draft {
@@ -141,8 +140,7 @@ struct RecordDetailScreen: View {
 
     // MARK: - 본문
 
-    /// ⚠️ **설명이 사진보다 위에 온다** — 뒤에 두면 첫 화면에 글이 한 글자도 없다. 기록에는
-    /// 제목이 없어서 설명 첫 줄이 그 자리를 대신하고, 그러려면 위에 있어야 한다.
+    /// ⚠️ **설명이 사진보다 위에 온다** — 뒤에 두면 첫 화면에 글이 한 글자도 없다.
     private func content(of record: Record) -> some View {
         VStack(alignment: .leading, spacing: Spacing.momentGap) {
             if !record.caption.isEmpty {
@@ -205,8 +203,7 @@ struct RecordDetailScreen: View {
 
     // MARK: - 조각
 
-    /// `ARC-06` — **이 기록을 그대로 태운다.** 순간에서 다시 누르면 새 기록이 되는 것과
-    /// 갈리는 자리가 여기다: 진입점이 무엇을 싣는지가 그 차이 전부다.
+    /// `ARC-06` — **이 기록을 그대로 태운다** (새 기록이 아니다).
     private func draft() -> RecordDraft {
         RecordDraft.editing(shown)
     }
