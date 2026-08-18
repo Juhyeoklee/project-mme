@@ -46,6 +46,13 @@ struct DraftPhoto: Identifiable, Hashable, Sendable {
         }
     }
 
+    /// 원본의 화소 크기. ⚠️ **앨범 자산만 안다** — 가져온 바이트와 저장된 파일은 읽어야
+    /// 나오고, 여기서 읽으면 목록을 그리는 자리가 디코딩을 기다린다.
+    var pixelSize: CGSize? {
+        guard let asset, asset.pixelWidth > 0, asset.pixelHeight > 0 else { return nil }
+        return CGSize(width: asset.pixelWidth, height: asset.pixelHeight)
+    }
+
     /// 저장된 이미지면 그 자리를 아는 데 필요한 값.
     var storedImage: RecordImage? {
         if case .stored(let image) = origin { return image }
@@ -86,6 +93,9 @@ final class RecordDraft: Identifiable {
 
     private(set) var photos: [DraftPhoto]
     var caption = ""
+    /// 캔버스 문서. ⚠️ **`09`로 고치러 들어와도 들고 다닌다** — 안 실으면 캔버스 초안을
+    /// `09`에서 한 번 저장하는 것만으로 꾸민 것이 조용히 사라진다.
+    private(set) var canvas: CanvasDocument?
     private(set) var occurredAt: WallClock
     private(set) var saveState: SaveState = .editing
 
@@ -95,7 +105,9 @@ final class RecordDraft: Identifiable {
     private var occurredAtIsManual = false
 
     init(id: UUID = UUID(), day: CalendarDay, start: WallClock, startsFromMoment: Bool,
-         photos: [DraftPhoto], caption: String = "", occurredAt: WallClock? = nil) {
+         photos: [DraftPhoto], caption: String = "", occurredAt: WallClock? = nil,
+         canvas: CanvasDocument? = nil) {
+        self.canvas = canvas
         self.id = id
         self.day = day
         self.start = start
@@ -162,6 +174,11 @@ final class RecordDraft: Identifiable {
         saveState = .editing
     }
 
+    /// `11`이 캔버스를 고쳤다. 저장은 여전히 이 초안이 진다.
+    func setCanvas(_ document: CanvasDocument) {
+        canvas = document
+    }
+
     /// `REC-07` — 사용자가 고친다. 이후로는 자동 계산이 이 값을 덮지 않는다.
     func setOccurredAt(_ clock: WallClock) {
         occurredAt = clock
@@ -205,7 +222,7 @@ final class RecordDraft: Identifiable {
         }
 
         let record = Record(id: id, occurredAt: occurredAt, images: images,
-                            caption: caption, status: status, updatedAt: Date())
+                            caption: caption, status: status, updatedAt: Date(), canvas: canvas)
         do {
             try store.save(record, imageData: data)
         } catch {
@@ -261,7 +278,8 @@ extension RecordDraft {
                         DraftPhoto(id: $0.id, origin: .stored($0), isIncluded: true)
                     },
                     caption: record.caption,
-                    occurredAt: record.occurredAt)
+                    occurredAt: record.occurredAt,
+                    canvas: record.canvas)
     }
 
     /// 커널 인덱스를 화면이 다루는 사진으로 옮긴다. 시각을 못 얻은 사진은 애초에 순간에 없다.

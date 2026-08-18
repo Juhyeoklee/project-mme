@@ -201,6 +201,41 @@ struct RecordStoreTests {
                                                    reason: "값이 범위 밖")) { try store.all() }
     }
 
+    // MARK: - 캔버스 (판 2)
+
+    @Test func 캔버스를_붙여_저장하면_페이지와_획이_그대로_돌아온다() throws {
+        let store = makeStore()
+        let image = sourceImage(assetID: "asset-1", at: try clock(8, 3, 18, 5))
+        let page = CanvasPage(paper: .lines,
+                              elements: [CanvasElement(content: .photo(imageID: image.id),
+                                                       frame: CGRect(x: 10, y: 20,
+                                                                     width: 300, height: 200),
+                                                       rotation: -2.5)])
+        var one = record(at: try clock(8, 3, 18, 5), images: [image])
+        one.canvas = CanvasDocument(pages: [page], strokes: [page.id: bytes("획")])
+
+        try store.save(one, imageData: [image.id: bytes("a")])
+
+        let loaded = try #require(try store.all().first)
+        #expect(loaded.canvas == one.canvas)
+        #expect(loaded.isCanvas)
+    }
+
+    @Test func 판_1로_쓰인_기록은_캔버스_없이_읽힌다() throws {
+        let store = makeStore()
+        let id = UUID()
+        let manifest = """
+        {"schemaVersion": 1, "id": "\(id.uuidString)",
+         "occurredAt": "2026080318050000", "caption": "", "status": "published",
+         "updatedAt": 0, "images": []}
+        """
+        try write(manifest, forRecord: id, in: store)
+
+        let loaded = try #require(try store.all().first)
+        #expect(loaded.canvas == nil)
+        #expect(!loaded.isCanvas)
+    }
+
     // MARK: - 계약
 
     @Test func 가져온_사진은_촬영시각을_갖지_않는다() {

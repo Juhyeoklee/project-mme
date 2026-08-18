@@ -22,6 +22,11 @@ struct Record: Identifiable, Hashable, Sendable {
     /// 마지막으로 고친 **절대 시각.** 벽시계가 아닌 이유는 이 값의 쓸 곳이 기기 간 비교라서다 —
     /// 시간대 없이는 어느 기기의 수정이 나중인지 못 가른다.
     var updatedAt: Date
+    /// 캔버스 문서. **값이 있으면 캔버스 기록이다** — `08`의 `수정`이 `11`로 직행하는지도,
+    /// `07-C4`가 자를지 말지도 이것 하나로 갈린다.
+    var canvas: CanvasDocument?
+
+    var isCanvas: Bool { canvas != nil }
 
     /// `ARC-08` 초안 여부.
     ///

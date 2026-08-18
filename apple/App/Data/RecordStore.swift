@@ -22,7 +22,8 @@ struct RecordStore: Sendable {
     let root: URL
 
     /// 이 판이 쓰는 저장 형식. 읽을 때 더 큰 번호를 만나면 던진다.
-    static let schemaVersion = 1
+    /// **판 2가 캔버스 문서를 더했다** — 판 1은 그 자리가 비어 있는 것으로 읽힌다.
+    static let schemaVersion = 2
 
     private static let manifestName = "record.json"
     private static let imagesDirectoryName = "images"
@@ -217,6 +218,8 @@ private struct StoredRecord: Codable {
     var status: String
     var updatedAt: Date
     var images: [StoredImage]
+    /// 판 2에서 생겼다. 판 1 파일에는 없고, 없으면 갤러리 기록이다.
+    var canvas: StoredCanvas?
 
     init(_ record: Record) {
         schemaVersion = RecordStore.schemaVersion
@@ -226,6 +229,7 @@ private struct StoredRecord: Codable {
         status = record.status.rawValue
         updatedAt = record.updatedAt
         images = record.images.map(StoredImage.init)
+        canvas = record.canvas.map(StoredCanvas.init)
     }
 
     /// 값이 범위 밖이면 `nil`.
@@ -235,8 +239,92 @@ private struct StoredRecord: Codable {
         else { return nil }
         let images = self.images.compactMap(\.image)
         guard images.count == self.images.count else { return nil }
+        var canvas: CanvasDocument?
+        if let stored = self.canvas {
+            guard let document = stored.document else { return nil }
+            canvas = document
+        }
         return Record(id: id, occurredAt: occurredAt, images: images,
-                      caption: caption, status: status, updatedAt: updatedAt)
+                      caption: caption, status: status, updatedAt: updatedAt, canvas: canvas)
+    }
+}
+
+/// 캔버스 문서의 디스크 형태. **획은 매니페스트 안에 base64로 든다** — 이미지처럼 파일로
+/// 빼면 매니페스트 하나만 원자 교체하는 성질이 깨지고, 아무도 안 읽는 고아 종류가 하나 는다.
+private struct StoredCanvas: Codable {
+    var pages: [StoredPage]
+    var strokes: [String: Data]
+
+    init(_ canvas: CanvasDocument) {
+        pages = canvas.pages.map(StoredPage.init)
+        strokes = Dictionary(uniqueKeysWithValues:
+            canvas.strokes.map { ($0.key.uuidString, $0.value) })
+    }
+
+    /// 값이 범위 밖이면 `nil`.
+    var document: CanvasDocument? {
+        let pages = self.pages.compactMap(\.page)
+        guard pages.count == self.pages.count else { return nil }
+        var strokes: [UUID: Data] = [:]
+        for (key, value) in self.strokes {
+            guard let id = UUID(uuidString: key) else { return nil }
+            strokes[id] = value
+        }
+        return CanvasDocument(pages: pages, strokes: strokes)
+    }
+}
+
+private struct StoredPage: Codable {
+    var id: UUID
+    var paper: String
+    var elements: [StoredElement]
+
+    init(_ page: CanvasPage) {
+        id = page.id
+        paper = page.paper.rawValue
+        elements = page.elements.map(StoredElement.init)
+    }
+
+    var page: CanvasPage? {
+        guard let paper = PaperKind(rawValue: paper) else { return nil }
+        let elements = self.elements.compactMap(\.element)
+        guard elements.count == self.elements.count else { return nil }
+        return CanvasPage(id: id, paper: paper, elements: elements)
+    }
+}
+
+private struct StoredElement: Codable {
+    var id: UUID
+    /// 요소 종류. `M2`는 사진뿐이고 텍스트·그림이 뒤에 붙는다.
+    var kind: String
+    var imageID: UUID?
+    var x: Double
+    var y: Double
+    var width: Double
+    var height: Double
+    var rotation: Double
+
+    static let photoKind = "photo"
+
+    init(_ element: CanvasElement) {
+        id = element.id
+        rotation = element.rotation
+        x = element.frame.origin.x
+        y = element.frame.origin.y
+        width = element.frame.width
+        height = element.frame.height
+        switch element.content {
+        case .photo(let imageID):
+            kind = Self.photoKind
+            self.imageID = imageID
+        }
+    }
+
+    var element: CanvasElement? {
+        guard kind == Self.photoKind, let imageID else { return nil }
+        return CanvasElement(id: id, content: .photo(imageID: imageID),
+                             frame: CGRect(x: x, y: y, width: width, height: height),
+                             rotation: rotation)
     }
 }
 
