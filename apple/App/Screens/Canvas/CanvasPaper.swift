@@ -52,19 +52,16 @@ extension PaperKind {
     }
 }
 
-/// 캔버스 잉크 8색. **글자색과 펜색이 같은 목록을 쓴다** — 일기장에서 잉크는 하나다.
-///
-/// ⚠️ **강조색(테라코타)이 목록에 없다.** 캔버스 표면은 사용자 색의 영역이고 앱 색은 도구
-/// 활성 표시에만 남는다 — 넣으면 그 경계가 사라진다.
-enum InkColor: String, CaseIterable, Hashable, Sendable {
-    case sumi
-    case pencil
-    case red
-    case orange
-    case yellow
-    case green
-    case navy
-    case white
+/// 잉크 8색의 값과 이름. **목록 자체는 문서가 든다** — 저장되는 값이다.
+extension InkColor {
+    /// 마커 진하기의 기본값과 범위. **색을 두 벌 만들지 않는다** — 같은 8색을 이 값으로 깐다.
+    /// 0.4는 형광펜처럼 겹쳐 그었을 때 아래 글자가 읽히는 값이다 (세션 판단 2026-08-18).
+    static let markerOpacity: Double = 0.4
+    /// `11-O1`이 다루는 백분율. **0은 안 준다** — 안 보이는 잉크는 고장으로 읽힌다.
+    static let markerOpacityRange: ClosedRange<CGFloat> = 10...100
+
+    /// 마커로 그을 때의 색.
+    func markerColor(_ opacity: Double = markerOpacity) -> Color { color.opacity(opacity) }
 
     var color: Color {
         switch self {

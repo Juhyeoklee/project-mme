@@ -28,7 +28,8 @@ struct CanvasPageRail: View {
 
     private func thumbnail(_ page: CanvasPage, index: Int) -> some View {
         Button { session.pageIndex = index } label: {
-            CanvasPageContent(session: session, page: page, pixels: Layout.thumbnailPixels)
+            DraftPageContent(session: session, page: page,
+                             pixels: Layout.thumbnailPixels) { EmptyView() }
                 .scaleEffect(Layout.canvasThumbnailWidth / Layout.canvasSize.width)
                 .frame(width: Layout.canvasThumbnailWidth, height: thumbnailHeight)
                 .clipShape(.rect(cornerRadius: Radius.thumbnail))

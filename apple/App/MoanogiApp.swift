@@ -50,10 +50,12 @@ struct MoanogiApp: App {
     private var rootScreen: some View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        if usesFixture, arguments.contains("11"), let day = Fixture.library.days.first {
+        if usesFixture, arguments.contains("11-text"), let day = Fixture.library.days.first {
+            root(canvas: Fixture.canvasWithText(day: day.date))
+        } else if usesFixture, arguments.contains("11"), let day = Fixture.library.days.first {
             let draft = RecordDraft.from(moment: Fixture.momentWithBurst, day: day.date,
                                          library: Fixture.library)
-            root(canvas: .opening(draft))
+            root(canvas: .opening(draft, in: shownRecords.store))
         } else if usesFixture, arguments.contains("09-mixed") {
             root(editing: Fixture.mixedDraft)
         } else if usesFixture, arguments.contains("10-empty") {

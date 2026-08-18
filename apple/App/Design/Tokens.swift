@@ -164,6 +164,24 @@ enum Typography {
         bar.compactScrollEdgeAppearance = appearance
     }
 
+    /// `11` 캔버스 활자의 서체 이름. **여기만 UI 서체를 안 쓴다** — 사용자가 고른 글꼴이다.
+    /// ⚠️ 손글씨는 굵기가 1단이라 `bold`가 아무 일도 안 한다.
+    static func canvasFace(_ face: CanvasText.Face, bold: Bool) -> String {
+        switch face {
+        case .handwriting: "PoorStory-Regular"
+        case .serif: bold ? "GowunBatang-Bold" : "GowunBatang-Regular"
+        }
+    }
+
+    /// `11-I1` 글꼴 칸의 활자. **라벨이 곧 미리보기라 자기 서체로 선다.**
+    /// ⚠️ 손글씨만 18이다 — 그 아래로는 세로획이 급격히 흐려진다(실기기 판정 2026-08-07).
+    static func canvasSegment(_ face: CanvasText.Face) -> Font {
+        switch face {
+        case .handwriting: .custom(canvasFace(.handwriting, bold: false), size: 18)
+        case .serif: .custom(canvasFace(.serif, bold: false), size: 15)
+        }
+    }
+
     /// 번들에 실린 여섯 벌. 캔버스용 둘(`GowunBatang`)은 `11`이 쓴다.
     static let faceNames = [
         "IBMPlexSansKR-Regular", "IBMPlexSansKR-SemiBold", "IBMPlexSansKR-Bold",
@@ -236,6 +254,7 @@ enum Glyph {
     static let more = "ellipsis"
     static let settings = "settings"
     static let add = "plus"
+    static let subtract = "minus"
     static let close = "x"
     /// `05-G2` 연사 배지.
     static let burst = "copy"
@@ -255,6 +274,8 @@ enum Glyph {
     static let redo = "redo-2"
     static let bringToFront = "bring-to-front"
     static let sendToBack = "send-to-back"
+    /// `11-I` 요소 삭제. ⚠️ **되돌리기가 받는 자리라 바 위에 선다** — `08` 기록 삭제와 층이 다르다.
+    static let delete = "trash-2"
 }
 
 // MARK: - 조각

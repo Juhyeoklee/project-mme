@@ -22,8 +22,8 @@ struct RecordStore: Sendable {
     let root: URL
 
     /// 이 판이 쓰는 저장 형식. 읽을 때 더 큰 번호를 만나면 던진다.
-    /// **판 2가 캔버스 문서를 더했다** — 판 1은 그 자리가 비어 있는 것으로 읽힌다.
-    static let schemaVersion = 2
+    /// **판 2가 캔버스 문서를, 판 3이 그 재료 사진을 더했다.**
+    static let schemaVersion = 3
 
     private static let manifestName = "record.json"
     private static let imagesDirectoryName = "images"
@@ -70,7 +70,7 @@ struct RecordStore: Sendable {
         let images = directory.appending(path: Self.imagesDirectoryName)
         try Self.createDirectory(images)
 
-        for image in record.images {
+        for image in Self.files(of: record) {
             let url = imageURL(recordID: record.id, image: image)
             guard !FileManager.default.fileExists(atPath: url.path) else { continue }
             guard let bytes = imageData[image.id] else {
@@ -82,7 +82,7 @@ struct RecordStore: Sendable {
         try Self.write(try Self.encode(record), to: directory.appending(path: Self.manifestName))
         // ⚠️ **청소는 저장의 성패가 아니다** — 매니페스트를 바꾼 시점에 기록은 이미 온전하다.
         // 여기서 던지면 성공한 저장이 실패로 보고된다.
-        try? Self.removeOrphans(in: images, keeping: record.images)
+        try? Self.removeOrphans(in: images, keeping: Self.files(of: record))
     }
 
     /// `ARC-07`. 없는 기록을 지우는 것은 실패가 아니다.
@@ -97,6 +97,12 @@ struct RecordStore: Sendable {
     }
 
     // MARK: - 자리
+
+    /// 이 기록이 자기 디렉터리에 갖는 파일 전부 — 보여주는 이미지와 캔버스 재료.
+    /// ⚠️ **재료를 빠뜨리면 저장이 그것을 고아로 보고 지운다.**
+    private static func files(of record: Record) -> [RecordImage] {
+        record.images + (record.canvas?.sources ?? [])
+    }
 
     private func directory(of id: UUID) -> URL {
         root.appending(path: id.uuidString)
@@ -241,7 +247,10 @@ private struct StoredRecord: Codable {
         guard images.count == self.images.count else { return nil }
         var canvas: CanvasDocument?
         if let stored = self.canvas {
-            guard let document = stored.document else { return nil }
+            guard var document = stored.document else { return nil }
+            // ⚠️ **판 2에는 재료 자리가 없다** — 그때는 기록의 이미지가 곧 재료였다. 안 옮기면
+            // 그 시절 캔버스 기록을 다시 열었을 때 놓인 사진이 전부 빈칸이 된다.
+            if schemaVersion < 3 { document.sources = images }
             canvas = document
         }
         return Record(id: id, occurredAt: occurredAt, images: images,
@@ -254,11 +263,14 @@ private struct StoredRecord: Codable {
 private struct StoredCanvas: Codable {
     var pages: [StoredPage]
     var strokes: [String: Data]
+    /// 판 3에서 생겼다. 판 2 파일에는 없고, 그때는 기록의 이미지가 곧 재료였다.
+    var sources: [StoredImage]?
 
     init(_ canvas: CanvasDocument) {
         pages = canvas.pages.map(StoredPage.init)
         strokes = Dictionary(uniqueKeysWithValues:
             canvas.strokes.map { ($0.key.uuidString, $0.value) })
+        sources = canvas.sources.map(StoredImage.init)
     }
 
     /// 값이 범위 밖이면 `nil`.
@@ -270,7 +282,10 @@ private struct StoredCanvas: Codable {
             guard let id = UUID(uuidString: key) else { return nil }
             strokes[id] = value
         }
-        return CanvasDocument(pages: pages, strokes: strokes)
+        let stored = sources ?? []
+        let sources = stored.compactMap(\.image)
+        guard sources.count == stored.count else { return nil }
+        return CanvasDocument(pages: pages, strokes: strokes, sources: sources)
     }
 }
 
@@ -295,16 +310,20 @@ private struct StoredPage: Codable {
 
 private struct StoredElement: Codable {
     var id: UUID
-    /// 요소 종류. `M2`는 사진뿐이고 텍스트·그림이 뒤에 붙는다.
+    /// 요소 종류. 사진과 글이고, 획은 요소가 아니라 페이지에 따로 붙는다.
     var kind: String
     var imageID: UUID?
+    var text: StoredText?
     var x: Double
     var y: Double
     var width: Double
     var height: Double
     var rotation: Double
+    /// 사용자가 못 박은 자리. **없으면 종류가 정한다.**
+    var pinned: String?
 
     static let photoKind = "photo"
+    static let textKind = "text"
 
     init(_ element: CanvasElement) {
         id = element.id
@@ -313,18 +332,60 @@ private struct StoredElement: Codable {
         y = element.frame.origin.y
         width = element.frame.width
         height = element.frame.height
+        pinned = element.pinned?.rawValue
         switch element.content {
         case .photo(let imageID):
             kind = Self.photoKind
             self.imageID = imageID
+        case .text(let text):
+            kind = Self.textKind
+            self.text = StoredText(text)
         }
     }
 
     var element: CanvasElement? {
-        guard kind == Self.photoKind, let imageID else { return nil }
-        return CanvasElement(id: id, content: .photo(imageID: imageID),
+        guard let content else { return nil }
+        return CanvasElement(id: id, content: content,
                              frame: CGRect(x: x, y: y, width: width, height: height),
-                             rotation: rotation)
+                             rotation: rotation, pinned: pinned.flatMap(CanvasElement.Pin.init))
+    }
+
+    private var content: CanvasElement.Content? {
+        switch kind {
+        case Self.photoKind:
+            imageID.map { .photo(imageID: $0) }
+        case Self.textKind:
+            text?.value.map { .text($0) }
+        default:
+            nil
+        }
+    }
+}
+
+private struct StoredText: Codable {
+    var string: String
+    var face: String
+    var isBold: Bool
+    var size: Double
+    var ink: String
+
+    init(_ text: CanvasText) {
+        string = text.string
+        face = text.face.rawValue
+        isBold = text.isBold
+        size = text.size
+        ink = text.ink.rawValue
+    }
+
+    /// 값이 범위 밖이면 `nil`.
+    var value: CanvasText? {
+        guard let face = CanvasText.Face(rawValue: face),
+              let ink = InkColor(rawValue: ink) else { return nil }
+        var text = CanvasText(face: face, ink: ink)
+        text.string = string
+        text.isBold = isBold
+        text.size = size
+        return text
     }
 }
 
@@ -338,6 +399,7 @@ private struct StoredImage: Codable {
 
     static let sourceOrigin = "source"
     static let importedOrigin = "imported"
+    static let bakedOrigin = "baked"
 
     init(_ image: RecordImage) {
         id = image.id
@@ -349,6 +411,8 @@ private struct StoredImage: Codable {
             self.capturedAt = capturedAt.stamp
         case .imported:
             origin = Self.importedOrigin
+        case .baked:
+            origin = Self.bakedOrigin
         }
     }
 
@@ -361,6 +425,8 @@ private struct StoredImage: Codable {
                                origin: .source(assetID: assetID, capturedAt: clock))
         case Self.importedOrigin:
             return RecordImage(id: id, fileExtension: fileExtension, origin: .imported)
+        case Self.bakedOrigin:
+            return RecordImage(id: id, fileExtension: fileExtension, origin: .baked)
         default:
             return nil
         }

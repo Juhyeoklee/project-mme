@@ -14,8 +14,16 @@ import SwiftUI
 struct CanvasSurface: View {
     let session: CanvasSession
     @Binding var selection: UUID?
-    let tool: CanvasTool
+    /// 글을 받고 있는 상자. **뼈대가 아니라 화면이 든다** — 저장이 이 값을 먼저 앉힌다.
+    @Binding var typing: CanvasTextEditing?
+    /// ⚠️ **날것이어야 한다** — 「도구를 바꾸면 앉힌다」 바인딩을 받으면 방금 연 빈 글 상자가
+    /// 그 자리에서 앉혀져 지워진다.
+    @Binding var tool: CanvasTool
     let ink: InkColor
+    /// 새 글이 태어날 때의 색. **획 색과 갈려 있다.**
+    let textInk: InkColor
+    let strokeWidth: CGFloat
+    let markerOpacity: Double
     /// 화면에 그려지는 배율. 선택 표시가 이 값에 반비례해 굵기를 유지한다.
     let scale: CGFloat
     let retryToken: Int
@@ -24,18 +32,27 @@ struct CanvasSurface: View {
 
     /// 손이 붙어 있는 동안의 자리. **놓을 때 한 번만 되돌리기에 등록한다.**
     @State private var live: LiveTransform?
+    @FocusState private var isTyping: Bool
+    /// 마지막으로 손이 닿은 자리와, 길게 눌러 편집 메뉴를 띄울 자리.
+    @State private var pressed: CGPoint = .zero
+    @State private var pasteMenuAt: CGPoint?
 
     var body: some View {
-        CanvasPageContent(session: session, page: session.page, pixels: Layout.gridPixels,
-                          retryToken: retryToken, override: live, castsShadow: true,
-                          clipsToPaper: false)
-            .overlay {
-                DrawingLayer(session: session, tool: tool, ink: ink)
-                    .frame(width: Layout.canvasSize.width, height: Layout.canvasSize.height)
-                    .allowsHitTesting(tool.draws)
+        DraftPageContent(session: session, page: session.page, pixels: Layout.gridPixels,
+                         retryToken: retryToken, override: live, hidden: typing?.id,
+                         castsShadow: true, clipsToPaper: false) {
+            // ⚠️ **요소들 사이에 낀다** — 오버레이로 올리면 획이 늘 맨 위가 되어
+            // `앞으로 보내기`가 획을 못 넘는다.
+            DrawingLayer(session: session, tool: tool, ink: ink, width: strokeWidth,
+                         opacity: markerOpacity)
+                .frame(width: Layout.canvasSize.width, height: Layout.canvasSize.height)
+                .allowsHitTesting(tool.draws)
+        }
+            .overlay(alignment: .topLeading) {
+                if let element = typed { field(element) }
             }
             .overlay {
-                if let element = selected {
+                if let element = selected, typing == nil {
                     CanvasSelectionBox(element: element, scale: scale,
                                        onResize: { resize(corner: $0, by: $1, of: element) },
                                        onRotate: { rotate(by: $0, of: element) },
@@ -45,6 +62,18 @@ struct CanvasSurface: View {
                 }
             }
             .contentShape(.rect)
+            .receivesImages(dropped: { data, fileExtension, point in
+                place(data, fileExtension, at: point)
+            }, pasted: { data, fileExtension in
+                // 길게 눌러 붙여넣었으면 그 자리, `⌘V`면 캔버스 가운데다.
+                place(data, fileExtension, at: pasteMenuAt ?? pressed)
+            }, menuAt: $pasteMenuAt)
+            // ⚠️ **`⌘V`는 외장 키보드를 전제한다** — 손가락만 있는 기기에서 붙여넣는 길이
+            // 이것 하나뿐이라, 빈 종이를 길게 누르면 시스템 편집 메뉴가 뜬다.
+            .onLongPressGesture(minimumDuration: 0.5) {
+                guard !tool.usesCanvas, topmost(at: pressed) == nil else { return }
+                pasteMenuAt = pressed
+            }
             // ⚠️ **그리는 동안은 SwiftUI 제스처를 통째로 끈다.** 인식되는 순간
             // `cancelsTouchesInView`가 PencilKit의 터치를 잘라 획이 시작조차 안 된다.
             .gesture(pointerGesture, including: pointing)
@@ -57,6 +86,38 @@ struct CanvasSurface: View {
     /// 두 손가락이 고른 것에 걸리는가. **아무것도 안 골랐으면 캔버스 줌으로 넘어간다.**
     private var transforming: GestureMask {
         tool.draws || selection == nil ? .none : .all
+    }
+
+    /// 글을 받고 있는 요소.
+    private var typed: CanvasElement? {
+        typing.flatMap { session.element($0.id) }
+    }
+
+    /// `11-C4` 입력 — 그린 글자와 **같은 활자·같은 자리**에 선다.
+    private func field(_ element: CanvasElement) -> some View {
+        let text = element.text ?? CanvasText()
+        return TextField("", text: typingString, axis: .vertical)
+            .textFieldStyle(.plain)
+            .font(.custom(Typography.canvasFace(text.face, bold: text.isBold), size: text.size))
+            .foregroundStyle(text.ink.color)
+            .tint(Palette.accent)
+            .focused($isTyping)
+            .frame(width: element.frame.width, alignment: .topLeading)
+            .rotationEffect(.degrees(element.rotation), anchor: .topLeading)
+            .offset(x: element.frame.minX, y: element.frame.minY)
+            .onAppear { isTyping = true }
+            // ⚠️ **키보드를 내리는 것도 입력을 끝내는 길이다** — 안 받으면 포커스만 빠지고
+            // 상자가 남아, 다음 탭이 방금 친 글을 못 앉힌 채로 다른 것을 고른다.
+            .onChange(of: isTyping) { _, focused in
+                guard !focused else { return }
+                typing?.commit(to: session)
+                typing = nil
+            }
+    }
+
+    private var typingString: Binding<String> {
+        Binding(get: { typing?.string ?? "" },
+                set: { if typing != nil { typing?.string = $0 } })
     }
 
     /// 선택된 요소를, 손이 붙어 있으면 그 자리로.
@@ -77,7 +138,8 @@ struct CanvasSurface: View {
         // 발화해서, 고른 것을 바꾸는 일이 한 박자 늦는다(2026-08-18 실물).
         DragGesture(minimumDistance: 0)
             .onChanged { value in
-                guard tool == .select, live?.grip ?? .move == .move else { return }
+                pressed = value.startLocation
+                guard !tool.usesCanvas, live?.grip ?? .move == .move else { return }
                 guard live != nil || Self.moved(value.translation) else { return }
                 let held = live.flatMap { session.element($0.id) }
                 guard let element = held ?? topmost(at: value.startLocation) else { return }
@@ -94,13 +156,33 @@ struct CanvasSurface: View {
             }
     }
 
+    /// `CAN-03` — 들어온 이미지를 놓고 바로 고를 수 있게 선택한다.
+    private func place(_ data: Data, _ fileExtension: String, at point: CGPoint) {
+        typing?.commit(to: session)
+        typing = nil
+        selection = session.addImage(data, fileExtension: fileExtension, at: point)
+    }
+
     /// 손가락이 제자리에서 떨어졌으면 탭이다.
     private static func moved(_ translation: CGSize) -> Bool {
         hypot(translation.width, translation.height) > 3
     }
 
     private func tapped(at point: CGPoint) {
-        if tool == .select, let element = topmost(at: point) {
+        let wasTyping = typing != nil
+        typing?.commit(to: session)
+        typing = nil
+        if tool == .text {
+            let id = session.placeText(at: point, ink: textInk)
+            selection = id
+            typing = CanvasTextEditing(id: id, string: "")
+            // ⚠️ **놓자마자 도구를 되돌린다** — 머물러 있으면 입력을 끝내려는 탭마다 빈
+            // 상자가 하나씩 더 생긴다.
+            tool = .select
+        } else if !tool.usesCanvas, let element = topmost(at: point) {
+            if !wasTyping, selection == element.id, let text = element.text {
+                typing = CanvasTextEditing(id: element.id, string: text.string)
+            }
             selection = element.id
         } else {
             onBackgroundTap()
@@ -140,7 +222,7 @@ struct CanvasSurface: View {
 
     private func commit() {
         guard let live else { return }
-        session.update(live.id, frame: live.frame, rotation: live.rotation)
+        session.update(live.id, frame: live.frame, rotation: live.rotation, text: live.text)
         self.live = nil
     }
 }
@@ -158,14 +240,19 @@ struct LiveTransform: Equatable {
     let grip: Grip
     let origin: CGRect
     let originRotation: Double
+    /// 손을 대기 직전의 글. **글이 아닌 요소에서는 `nil`이다.**
+    let originText: CanvasText?
     var frame: CGRect
     var rotation: Double
+    /// 손이 붙어 있는 동안의 글 — 두 손가락이 크기를 바꾼다.
+    var text: CanvasText?
 
     init(_ element: CanvasElement, grip: Grip = .move) {
         id = element.id
         self.grip = grip
         origin = element.frame
         originRotation = element.rotation
+        originText = element.text
         frame = element.frame
         rotation = element.rotation
     }
@@ -176,47 +263,62 @@ struct LiveTransform: Equatable {
         return moved
     }
 
-    /// 가운데를 붙잡고 키운다 — 두 손가락은 붙잡을 모서리가 없다.
+    /// 마주 보는 모서리를 붙잡고 키운다. **글은 폭만 바뀌고 높이는 글이 정한다.**
     func resized(corner: CanvasCorner, by translation: CGSize) -> LiveTransform {
         var changed = self
         let radians = -originRotation * .pi / 180
         let dx = translation.width * cos(radians) - translation.height * sin(radians)
-        let aspect = origin.height / max(origin.width, 1)
         let width = max(60, origin.width + dx * corner.signX)
-        changed.frame = corner.rect(from: origin, width: width, height: width * aspect)
+        if let originText {
+            changed.frame = corner.rect(from: origin, width: width,
+                                        height: originText.measure(width: width))
+        } else {
+            let aspect = origin.height / max(origin.width, 1)
+            changed.frame = corner.rect(from: origin, width: width, height: width * aspect)
+        }
         return changed
     }
 
+    /// 두 손가락 — 키우고 돌린다. **글에서 「키운다」는 글자 크기다.**
     func scaled(by magnification: CGFloat, turnedBy degrees: Double) -> LiveTransform {
         var changed = self
+        changed.rotation = originRotation + degrees
+        if var text = originText {
+            let size = (text.size * magnification).rounded()
+            text.size = min(max(size, CanvasText.sizeRange.lowerBound),
+                            CanvasText.sizeRange.upperBound)
+            changed.text = text
+            changed.frame = text.box(at: origin.origin, width: origin.width)
+            return changed
+        }
         let width = max(60, origin.width * magnification)
         let height = width * (origin.height / max(origin.width, 1))
         changed.frame = CGRect(x: origin.midX - width / 2, y: origin.midY - height / 2,
                                width: width, height: height)
-        changed.rotation = originRotation + degrees
         return changed
     }
-
 }
 
-/// 페이지 하나의 알맹이 — 종이와 놓인 것들. **캔버스와 레일 썸네일이 같은 것을 쓴다.**
+/// 페이지 하나의 알맹이 — 종이와 놓인 것들. **캔버스와 레일 썸네일과 굽기가 같은 것을 쓴다.**
 ///
 /// ⚠️ **선택 표시가 여기 없다.** 썸네일에도 딸려가면 레일에 핸들이 그려진다.
-struct CanvasPageContent: View {
-    let session: CanvasSession
+struct CanvasPageContent<ElementContent: View, StrokeContent: View>: View {
     let page: CanvasPage
-    /// 이미지 긴 변의 화소 상한. 썸네일은 훨씬 작은 값을 준다.
-    let pixels: Int
-    /// 앨범 2패스가 원본을 받아오면 바뀌는 값. 레일 썸네일은 안 쓴다.
-    var retryToken = 0
     /// 손이 붙어 있는 요소의 자리.
     var override: LiveTransform?
+    /// 지금 글을 받고 있는 요소. ⚠️ **그 글은 입력 상자가 그린다** — 여기서 또 그리면 친 글과
+    /// 이미 있던 글이 두 벌로 겹쳐 보인다.
+    var hidden: UUID?
     /// 종이가 지면 위에 뜬 것으로 보이는가. ⚠️ **면 전체에 걸면 안 된다** — 종이 밖으로
     /// 걸쳐 놓은 사진에까지 그림자가 붙어, 캔버스 안에서 껐던 크롬 문법이 되살아난다.
     var castsShadow = false
     /// 종이 밖으로 나간 것을 잘라내는가. **고치는 동안은 안 자르고, 결과를 보여주는
     /// 자리**(레일 썸네일 · 굽기)**만 자른다.**
     var clipsToPaper = true
+    /// 사진 한 장을 그리는 법. **글은 바깥이 안 준다** — 그것은 문서 안에 다 들어 있다.
+    @ViewBuilder let photo: (UUID) -> ElementContent
+    /// 획 층. **요소들 사이 제 자리에 낀다** — 손을 받는 층이 오기도 하고 비트맵이 오기도 한다.
+    @ViewBuilder let strokes: () -> StrokeContent
 
     var body: some View {
         if clipsToPaper {
@@ -233,8 +335,12 @@ struct CanvasPageContent: View {
                 .clipShape(.rect(cornerRadius: Radius.canvas))
                 .shadow(color: castsShadow ? Chrome.shadowColor : .clear,
                         radius: Chrome.shadowRadius, y: Chrome.shadowOffset)
-            ForEach(page.elements) { element in
-                placed(shown(element))
+            ForEach(page.underStrokes) { element in
+                if element.id != hidden { placed(shown(element)) }
+            }
+            strokes()
+            ForEach(page.overStrokes) { element in
+                if element.id != hidden { placed(shown(element)) }
             }
         }
         .frame(width: Layout.canvasSize.width, height: Layout.canvasSize.height)
@@ -245,14 +351,13 @@ struct CanvasPageContent: View {
         var moved = element
         moved.frame = override.frame
         moved.rotation = override.rotation
+        if let text = override.text { moved.content = .text(text) }
         return moved
     }
 
     @ViewBuilder
     private func placed(_ element: CanvasElement) -> some View {
-        content(element)
-            .frame(width: element.frame.width, height: element.frame.height)
-            .clipShape(.rect(cornerRadius: Radius.canvas))
+        sized(element)
             .rotationEffect(.degrees(element.rotation))
             .position(x: element.frame.midX, y: element.frame.midY)
             // ⚠️ **요소는 손을 안 받는다** — 무엇을 집었는지는 면이 좌표로 판정한다.
@@ -260,12 +365,51 @@ struct CanvasPageContent: View {
     }
 
     @ViewBuilder
-    private func content(_ element: CanvasElement) -> some View {
-        if let imageID = element.imageID, let photo = photo(imageID) {
-            DraftPhotoImage(photo: photo, draft: session.draft, pixels: pixels,
-                            retryToken: retryToken)
+    private func sized(_ element: CanvasElement) -> some View {
+        let view = content(element)
+            .frame(width: element.frame.width, height: element.frame.height, alignment: .topLeading)
+        // ⚠️ **글은 안 자른다** — 잰 높이가 한 픽셀만 모자라도 마지막 줄 아랫부분이 날아간다.
+        if element.text == nil {
+            view.clipShape(.rect(cornerRadius: Radius.canvas))
         } else {
-            Color.clear
+            view
+        }
+    }
+
+    @ViewBuilder
+    private func content(_ element: CanvasElement) -> some View {
+        switch element.content {
+        case .photo(let imageID): photo(imageID)
+        case .text(let text): CanvasTextView(text: text)
+        }
+    }
+}
+
+/// 초안 사진으로 그리는 페이지 — 고치는 화면과 레일 썸네일이 쓴다.
+struct DraftPageContent<StrokeContent: View>: View {
+    let session: CanvasSession
+    let page: CanvasPage
+    /// 이미지 긴 변의 화소 상한. 썸네일은 훨씬 작은 값을 준다.
+    let pixels: Int
+    /// 앨범 2패스가 원본을 받아오면 바뀌는 값. 레일 썸네일은 안 쓴다.
+    var retryToken = 0
+    var override: LiveTransform?
+    var hidden: UUID?
+    var castsShadow = false
+    var clipsToPaper = true
+    @ViewBuilder let strokes: () -> StrokeContent
+
+    var body: some View {
+        CanvasPageContent(page: page, override: override, hidden: hidden,
+                          castsShadow: castsShadow, clipsToPaper: clipsToPaper) { imageID in
+            if let photo = photo(imageID) {
+                DraftPhotoImage(photo: photo, draft: session.draft, pixels: pixels,
+                                paintsBackdrop: false, retryToken: retryToken)
+            } else {
+                Color.clear
+            }
+        } strokes: {
+            strokes()
         }
     }
 

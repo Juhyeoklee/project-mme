@@ -57,6 +57,41 @@ struct CanvasBarGlyph: View {
     }
 }
 
+/// 바 안의 글자 칸 — `11-I1` 글꼴과 `11-I2` 굵기가 쓴다.
+///
+/// ⚠️ **글꼴 칸은 자기 서체로 렌더된다** — 라벨이 곧 미리보기라, 여기에 UI 서체를 먹이면
+/// 무엇을 고르는지가 안 보인다.
+struct CanvasBarSegment: View {
+    let label: String
+    let font: Font
+    var isActive = false
+    var isEnabled = true
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(font)
+                .foregroundStyle(color)
+                .padding(.horizontal, 13)
+                .frame(height: 36)
+                .background {
+                    if isActive {
+                        RoundedRectangle(cornerRadius: Radius.button).fill(Palette.accent)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .accessibilityAddTraits(isActive ? [.isSelected] : [])
+    }
+
+    private var color: Color {
+        if !isEnabled { return Palette.disabled }
+        return isActive ? Palette.onAccent : Palette.label
+    }
+}
+
 /// 하단 바 안의 칸 구분.
 struct CanvasBarDivider: View {
     var body: some View {

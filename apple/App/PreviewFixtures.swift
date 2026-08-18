@@ -72,6 +72,29 @@ enum Fixture {
         return draft
     }()
 
+    /// `11`을 글이 놓인 채로 연다 — 글꼴 2종과 인스펙터를 눌러보지 않고 관측하는 문.
+    @MainActor
+    static func canvasWithText(day: CalendarDay) -> CanvasSession? {
+        let draft = RecordDraft.from(moment: momentWithBurst, day: day, library: library)
+        guard let first = draft.included.first else { return nil }
+        var handwriting = CanvasText(face: .handwriting, ink: .sumi)
+        handwriting.string = "그날의 노을"
+        var serif = CanvasText(face: .serif, ink: .navy)
+        serif.string = "해가 지는 걸 보려고 계속 달렸다. 도착한 곳은 아무것도 없는 모래 언덕이었다."
+        // 첫 요소가 진입 직후 선택된다 — 손글씨를 앞에 두어 `11-I`가 그 상태로 열린다.
+        let page = CanvasPage(paper: .dots, elements: [
+            CanvasElement(content: .text(handwriting),
+                          frame: handwriting.box(at: CGPoint(x: 600, y: 400), width: 300)),
+            CanvasElement(content: .photo(imageID: first.id),
+                          frame: CGRect(x: 74, y: 32, width: 483, height: 349), rotation: -2.4),
+            CanvasElement(content: .text(serif),
+                          frame: serif.box(at: CGPoint(x: 74, y: 430), width: 520)),
+        ])
+        return CanvasSession(draft: draft, entry: .promotion,
+                             document: CanvasDocument(pages: [page]),
+                             store: records.store)
+    }
+
     private static func makeRecords() -> RecordLibrary {
         let root = URL.cachesDirectory.appending(path: "FixtureRecords")
         try? FileManager.default.removeItem(at: root)

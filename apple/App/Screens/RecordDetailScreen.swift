@@ -159,6 +159,11 @@ struct RecordDetailScreen: View {
         }
     }
 
+    /// `SHR-01`이 넘기는 것 — 이 기록의 이미지 파일 전부. **복사본을 만들지 않는다.**
+    private func imageURLs(of record: Record) -> [URL] {
+        record.images.map { records.store.imageURL(recordID: record.id, image: $0) }
+    }
+
     /// `08-G1` — **자르지 않는다.** 대신 높이 상한에서 멈추고 좌우에 `면`이 남는다.
     private func photo(record: Record, image: RecordImage) -> some View {
         RecordImageView(url: records.store.imageURL(recordID: record.id, image: image),
@@ -192,9 +197,10 @@ struct RecordDetailScreen: View {
                 Button(Wording.edit) { edit() }
                     .buttonStyle(PlainActionStyle())
                 Spacer(minLength: 0)
-                // ⚠️ 동작은 공유 세션이 붙을 때 온다.
-                Button(Wording.share) {}
+                // `SHR-01`.
+                ShareLink(items: imageURLs(of: shown)) { Text(Wording.share) }
                     .buttonStyle(PrimaryActionStyle())
+                    .disabled(shown.images.isEmpty)
             }
         }
         .padding(.leading, leadingMargin)

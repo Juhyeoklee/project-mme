@@ -1,16 +1,12 @@
 // 기록에 든 이미지 한 장을 디스크에서 읽어 그린다. `07` `08` `09`와 넘겨보기가 나눠 쓴다.
 
 import CoreGraphics
-import ImageIO
 import SwiftUI
 
 /// 저장된 바이트를 읽어 칸에 그린다.
 ///
 /// **캐시를 두지 않는다** — 파일이 앱 컨테이너 안이라 `ImageStore`가 캐시를 지는 이유(`R8`)가
 /// 여기엔 안 걸린다.
-///
-/// ⚠️ **원본을 통째로 디코딩하지 않는다** — 기록에 든 것은 게임 스크린샷 원본이라 목록 칸에
-/// 4천 화소가 들어온다. 축소는 디코딩과 **같이** 일어나야 값이 있다.
 struct RecordImageView: View {
     let url: URL
     /// 긴 변의 화소 상한.
@@ -39,7 +35,7 @@ struct RecordImageView: View {
             .frame(width: size?.width, height: size?.height)
             .task(id: url) {
                 let url = url, pixels = pixels
-                image = await Task.detached { Self.decode(url, pixels: pixels) }.value
+                image = await Task.detached { ImageDecoding.thumbnail(url, pixels: pixels) }.value
             }
     }
 
@@ -67,16 +63,5 @@ struct RecordImageView: View {
     private var naturalAspect: CGFloat {
         guard let image, image.width > 0, image.height > 0 else { return Layout.detailCellAspect }
         return CGFloat(image.width) / CGFloat(image.height)
-    }
-
-    /// ⚠️ **본체에서 떨어져 돈다** — 화면 폭에 맞춰 줄이는 것도 원본을 읽어야 하는 일이라,
-    /// 주 액터에서 하면 큰 사진이 도착할 때마다 스크롤이 걸린다.
-    private nonisolated static func decode(_ url: URL, pixels: Int) -> CGImage? {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-        return CGImageSourceCreateThumbnailAtIndex(source, 0, [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: pixels,
-        ] as CFDictionary)
     }
 }

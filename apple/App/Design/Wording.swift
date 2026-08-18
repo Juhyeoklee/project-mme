@@ -116,6 +116,22 @@ enum Wording {
     static let redo = "다시하기"
     /// `11-O3` — 서랍이 무엇이고 어떻게 쓰는지를 한 줄이 진다.
     static let photoDrawer = "이 기록의 사진 · 끌어다 놓거나 탭한다"
+    /// `11-I3` · `11-O1` 스테퍼의 낭독 이름 — `크기 키우기`.
+    static func increase(_ name: String) -> String { "\(name) 키우기" }
+    static func decrease(_ name: String) -> String { "\(name) 줄이기" }
+    /// `11-I` · `11-O1` 컨트롤의 이름.
+    static let textSize = "크기"
+    static let strokeWidth = "굵기"
+    /// `11-O1` 마커 — **「투명도」가 아니라 「진하기」다.** 100이 어느 쪽인지 헷갈리지 않는다.
+    static let inkOpacity = "진하기"
+    static let inkColor = "색"
+    /// `11-I1` 글꼴 2종 — **역할 이름이지 서체 이름이 아니다.**
+    static let handwritingFace = "손글씨"
+    static let serifFace = "반듯한 것"
+    /// `11-I2` 굵기 2단.
+    static let regularWeight = "보통"
+    static let boldWeight = "굵게"
+
     /// `11-I6`과 컨텍스트 메뉴.
     static let bringToFront = "맨 앞으로"
     static let sendToBack = "맨 뒤로"

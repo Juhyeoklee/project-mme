@@ -157,12 +157,14 @@ final class RecordDraft: Identifiable {
         refreshOccurredAt()
     }
 
-    /// `REC-10` — 사용자가 시스템 피커로 지목한 한 장. 목록 끝에 붙는다.
-    func addImported(_ data: Data, fileExtension: String) {
+    /// `REC-10`으로 고른 한 장이자 `CAN-03`으로 들어온 이미지. 목록 끝에 붙는다.
+    @discardableResult
+    func addImported(_ data: Data, fileExtension: String) -> UUID {
         let photo = DraftPhoto(id: UUID(), origin: .imported(fileExtension: fileExtension),
                                isIncluded: true)
         photos.append(photo)
         importedData[photo.id] = data
+        return photo.id
     }
 
     /// 가져온 사진의 바이트. 화면이 그리는 데도 쓴다.
@@ -188,9 +190,17 @@ final class RecordDraft: Identifiable {
     // MARK: - 저장
 
     /// 기록을 만들어 저장한다. 성공하면 그 기록, 실패하면 `nil`이고 `saveState`가 실패를 든다.
-    /// ⚠️ **여기서 원본 바이트를 처음 요구하고 네트워크를 연다** — `R8`이 사는 자리다.
     func save(status: Record.Status, to store: RecordStore,
               bytes: @escaping OriginalBytesLoader) async -> Record? {
+        guard let resolved = await resolvePhotos(bytes: bytes) else { return nil }
+        return write(images: resolved.images, data: resolved.data, status: status, to: store)
+    }
+
+    /// 담긴 사진을 기록 이미지와 그 바이트로 푼다. 캔버스 기록에서는 이것이 **재료**가 된다.
+    ///
+    /// ⚠️ **여기서 원본 바이트를 처음 요구하고 네트워크를 연다** — `R8`이 사는 자리다.
+    func resolvePhotos(bytes: @escaping OriginalBytesLoader)
+    async -> (images: [RecordImage], data: [UUID: Data])? {
         guard canSave else { return nil }
         saveState = .saving
 
@@ -220,7 +230,12 @@ final class RecordDraft: Identifiable {
                 images.append(image)
             }
         }
+        return (images, data)
+    }
 
+    /// 푼 이미지로 기록을 적는다. `images`가 **기록이 보여주는 것**이다.
+    func write(images: [RecordImage], data: [UUID: Data],
+               status: Record.Status, to store: RecordStore) -> Record? {
         let record = Record(id: id, occurredAt: occurredAt, images: images,
                             caption: caption, status: status, updatedAt: Date(), canvas: canvas)
         do {
@@ -231,6 +246,11 @@ final class RecordDraft: Identifiable {
         }
         saveState = .editing
         return record
+    }
+
+    /// 저장 경로의 다른 조각이 실패했다 — 캔버스 굽기가 그 자리다.
+    func markSaveFailed() {
+        saveState = .failed
     }
 
     // MARK: - 조각
@@ -269,12 +289,14 @@ extension RecordDraft {
 
     /// `ARC-06` — 이미 저장된 기록을 고치러 들어간다. 신원과 사진과 설명을 그대로 싣는다.
     static func editing(_ record: Record) -> RecordDraft {
+        // ⚠️ **캔버스 기록의 사진은 `images`가 아니라 `canvas.sources`다** — 뒤바꾸면 구운
+        // 결과를 다시 캔버스에 놓게 된다.
         RecordDraft(id: record.id,
                     day: record.occurredAt.calendarDay,
                     start: record.occurredAt,
                     // 「이 순간」 꼬리를 달 자리가 없다 — 기록은 순간을 모른다 (원칙 `P2`).
                     startsFromMoment: false,
-                    photos: record.images.map {
+                    photos: (record.canvas?.sources ?? record.images).map {
                         DraftPhoto(id: $0.id, origin: .stored($0), isIncluded: true)
                     },
                     caption: record.caption,

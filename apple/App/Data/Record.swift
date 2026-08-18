@@ -14,7 +14,8 @@ struct Record: Identifiable, Hashable, Sendable {
     let id: UUID
     /// `REC-07` 발생일시. 소스 안 사진의 가장 이른 촬영시각으로 자동 설정되고 사용자가 고친다.
     var occurredAt: WallClock
-    /// 표시 순서. `REC-10`으로 가져온 사진은 시각을 안 쓰므로 더한 순서대로 끝에 붙는다.
+    /// 이 기록이 보여주는 이미지. **캔버스 기록이면 구운 페이지 N장**이고(`CAN-09`) 그 재료는
+    /// `canvas.sources`에 있다. 순서는 표시 순서다.
     var images: [RecordImage]
     /// `REC-06`.
     var caption: String
@@ -50,6 +51,8 @@ struct RecordImage: Identifiable, Hashable, Sendable {
 
     /// 이 이미지가 어디서 왔는가. **`REC-07` 자동값에 참여하는가를 이것이 가른다.**
     enum Origin: Hashable, Sendable {
+        /// `CAN-09`가 캔버스 페이지를 구운 것. 촬영이 아니라 앱이 만든 이미지다.
+        case baked
         /// 소스 안에서 왔다.
         ///
         /// ⚠️ `assetID`는 **참조가 아니라 출처 표지다.** 이미지를 다시 읽는 데 쓰지 않는다 —

@@ -149,12 +149,12 @@ struct RootView: View {
 
     /// `09-T 캔버스로 만들기` — 초안을 그대로 들고 캔버스로 넘어간다.
     private func promote(_ draft: RecordDraft) {
-        canvas = .opening(draft)
+        canvas = .opening(draft, in: store)
     }
 
     /// `08` — 캔버스 기록이면 그 문서를 열고, 초안이면 새 캔버스로 승격한다.
     private func openCanvas(_ record: Record) {
-        canvas = CanvasSession.editing(record) ?? .opening(.editing(record))
+        canvas = CanvasSession.editing(record, in: store) ?? .opening(.editing(record), in: store)
     }
 
     /// `11-N4 저장` 뒤의 도착지는 `08`이다.

@@ -18,18 +18,29 @@ struct CanvasScreen: View {
     /// 저장했다. 도착지는 `08`이라 뼈대가 정한다.
     let onSaved: (Record) -> Void
 
-    @Environment(\.recordStore) private var store
     @Environment(\.originalBytes) private var originalBytes
 
     @State private var tool: CanvasTool = .select
+    /// 획이 쓰는 색과 글이 쓰는 색. ⚠️ **갈라 둔다** — 잉크 목록은 하나지만 「지금 고른 색」은
+    /// 아니다. 안 가르면 마커로 노랑을 쓰고 온 손이 노란 글씨를 쓰게 된다.
     @State private var ink: InkColor = .sumi
+    @State private var textInk: InkColor = .sumi
+    /// 도구마다 따로 기억하는 획 굵기와, 마커 진하기 (`11-O1`).
+    @State private var widths: [CanvasTool: CGFloat] = [:]
+    @State private var markerOpacity: CGFloat = InkColor.markerOpacity * 100
     @State private var selection: UUID?
+    /// 글을 받고 있는 상자. ⚠️ **저장이 이것을 먼저 앉힌다** — 안 앉히면 방금 친 글이 사라진다.
+    @State private var typing: CanvasTextEditing?
     @State private var popover: CanvasPopover?
     @State private var isConfirmingCancel = false
     /// 화면 맞춤 배율 위에 곱해지는 사용자 줌.
     @State private var zoom: CGFloat = 1
     @State private var pan: CGSize = .zero
     @State private var zoomAnchor: CGFloat = 1
+    /// 소프트 키보드의 윗변(전역 좌표). **물리 키보드거나 없으면 화면 밖이라 아무 일도 안 한다.**
+    @State private var keyboardTop: CGFloat = .infinity
+    /// 키보드를 피하려고 올리기 전의 자리. 되돌릴 때 쓴다.
+    @State private var panBeforeTyping: CGSize?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -37,7 +48,25 @@ struct CanvasScreen: View {
             stage
         }
         .background(Palette.paneOutside)
+        // ⚠️ **키보드가 지면을 밀지 않는다** — 밀면 배율이 바뀌어 손이 기억한 자리가 통째로
+        // 어긋난다. 가려지는 문제는 캔버스만 올려서 푼다 (`revealTyping`).
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+            withAnimation(.easeOut(duration: 0.25)) {
+                keyboardTop = Self.top(of: note) ?? .infinity
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeOut(duration: 0.25)) { keyboardTop = .infinity }
+        }
         .task { enter() }
+        // ⚠️ **글을 받기 시작하면 옵션을 닫는다** — 안 닫으면 하단 바가 팔레트에 묶여
+        // `11-I`가 못 뜬다(팝오버가 열려 있으면 팔레트라는 규칙에 걸린다).
+        .onChange(of: typing?.id) { _, id in
+            if id != nil { popover = nil }
+        }
         .confirmationDialog(cancelTitle, isPresented: $isConfirmingCancel,
                             titleVisibility: .visible) {
             cancelActions
@@ -95,7 +124,10 @@ struct CanvasScreen: View {
             let stageWidth = geometry.size.width - Layout.canvasRailWidth - inset * 2
             let scale = fitScale(width: stageWidth, height: geometry.size.height - inset * 2)
             ZStack(alignment: .topLeading) {
-                CanvasSurface(session: session, selection: $selection, tool: tool, ink: ink,
+                CanvasSurface(session: session, selection: $selection, typing: $typing,
+                              tool: $tool, ink: ink, textInk: textInk,
+                              strokeWidth: width(of: tool),
+                              markerOpacity: markerOpacity / 100,
                               scale: scale * zoom, retryToken: retryToken,
                               onBackgroundTap: clearSelection)
                     .scaleEffect(scale * zoom)
@@ -114,7 +146,14 @@ struct CanvasScreen: View {
             // ⚠️ **무대에서 자른다** — 종이 밖으로 나간 사진이 상단바와 레일을 덮으면
             // 크롬이 캔버스 아래로 가라앉는다.
             .clipped()
-            .overlay(alignment: .bottom) { bottomBar.padding(.bottom, inset) }
+            .onChange(of: TypingReveal(id: typing?.id, keyboardTop: keyboardTop)) { _, _ in
+                revealTyping(in: geometry, scale: scale)
+            }
+            // ⚠️ **바는 키보드를 따라 올라간다** — 캔버스는 안 밀지만(배율이 바뀐다) 바까지
+            // 두면 글을 받는 동안 컨트롤이 통째로 키보드 뒤에 숨는다.
+            .overlay(alignment: .bottom) {
+                bottomBar.padding(.bottom, inset + covered(in: geometry))
+            }
         }
     }
 
@@ -140,6 +179,51 @@ struct CanvasScreen: View {
         pan = .zero
     }
 
+    /// 키보드가 무대 바닥을 덮은 높이. **물리 키보드면 0이다.**
+    private func covered(in geometry: GeometryProxy) -> CGFloat {
+        max(0, geometry.frame(in: .global).maxY - keyboardTop)
+    }
+
+    /// 키보드가 글 상자를 가리면 캔버스를 그만큼 올린다.
+    /// **물리 키보드에서는 가려지는 양이 0이라 아무 일도 안 일어난다.**
+    private func revealTyping(in geometry: GeometryProxy, scale: CGFloat) {
+        guard let id = typing?.id, let element = session.element(id) else {
+            if let before = panBeforeTyping {
+                panBeforeTyping = nil
+                withAnimation(.easeOut(duration: 0.25)) { pan = before }
+            }
+            return
+        }
+        let base = panBeforeTyping ?? pan
+        let drawn = Layout.canvasSize.height * scale * zoom
+        let top = geometry.frame(in: .global).minY + geometry.size.height / 2
+            + base.height - drawn / 2
+        // 상자가 키보드뿐 아니라 **그 위에 선 하단 바**보다도 위에 와야 한다.
+        let clearance = Layout.canvasPaletteHeight + Spacing.paneGap * 2
+        let covered = top + element.frame.maxY * scale * zoom + clearance - keyboardTop
+        guard covered > 0 else {
+            if let before = panBeforeTyping {
+                panBeforeTyping = nil
+                withAnimation(.easeOut(duration: 0.25)) { pan = before }
+            }
+            return
+        }
+        panBeforeTyping = base
+        withAnimation(.easeOut(duration: 0.25)) {
+            pan = CGSize(width: base.width, height: base.height - covered)
+        }
+    }
+
+    /// 키보드 윗변을 **창 좌표로** 옮긴다 — 알림이 주는 값은 화면 좌표라, 화면을 나눠 쓰면
+    /// 그대로 비교할 수 없다.
+    private static func top(of note: Notification) -> CGFloat? {
+        guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+              let window = UIApplication.shared.connectedScenes
+                  .compactMap({ ($0 as? UIWindowScene)?.keyWindow }).first
+        else { return nil }
+        return window.convert(frame, from: window.screen.coordinateSpace).minY
+    }
+
     /// 캔버스가 무대 안에 다 들어오는 배율. 두 손가락 줌은 이 값 위에 곱해진다.
     private func fitScale(width: CGFloat, height: CGFloat) -> CGFloat {
         guard width > 0, height > 0 else { return 1 }
@@ -162,11 +246,11 @@ struct CanvasScreen: View {
     @ViewBuilder
     private var barContent: some View {
         if let id = selection, popover == nil {
-            CanvasInspector(session: session, elementID: id, ink: ink,
+            CanvasInspector(session: session, elementID: id,
                             onInkTap: { popover = .ink },
                             onDelete: { session.remove(id); selection = nil })
         } else {
-            CanvasToolPalette(tool: $tool, ink: ink, onReselect: openOptions,
+            CanvasToolPalette(tool: selectedTool, ink: currentInk, onReselect: openOptions,
                               onInkTap: { toggle(.ink) })
         }
     }
@@ -174,26 +258,82 @@ struct CanvasScreen: View {
     @ViewBuilder
     private var openPopover: some View {
         switch popover {
-        case .ink: InkRow(ink: $ink)
+        case .ink:
+            InkOptions(stroke: nil, width: width(of: tool), opacity: markerOpacity,
+                       ink: inkBinding, onWidth: { _ in }, onOpacity: { _ in })
+        case .stroke:
+            InkOptions(stroke: tool, width: width(of: tool), opacity: markerOpacity,
+                       ink: inkBinding,
+                       onWidth: { widths[tool] = $0 },
+                       onOpacity: { markerOpacity = $0 })
         case .paper: PaperPicker(session: session)
         case .photos: PhotoDrawer(session: session, retryToken: retryToken, onPlace: place)
         case nil: EmptyView()
         }
     }
 
-    /// 활성 도구를 다시 누르면 옵션이 열린다 — iPadOS 관례 그대로다.
+    private func width(of tool: CanvasTool) -> CGFloat {
+        widths[tool] ?? tool.defaultWidth
+    }
+
+    /// 지금 쓰는 색 — **도구가 정한다.** 글자 도구면 글의 색이고 그 밖에는 획의 색이다.
+    private var currentInk: InkColor {
+        if let id = selection, let text = session.element(id)?.text { return text.ink }
+        return tool == .text ? textInk : ink
+    }
+
+    /// 색을 고르면 **고른 글에 걸리고, 다음 글의 시작 색도 그것이 된다.**
+    /// 글을 안 고른 채 고르면 획의 색이다.
+    private var inkBinding: Binding<InkColor> {
+        Binding(get: { currentInk }, set: { new in
+            if let id = selection, session.element(id)?.text != nil {
+                session.restyle(id) { $0.ink = new }
+                textInk = new
+            } else if tool == .text {
+                textInk = new
+            } else {
+                ink = new
+            }
+        })
+    }
+
+    /// 도구를 바꾸는 한 자리. `선택` 도구만 고른 것을 지킨다.
+    private var selectedTool: Binding<CanvasTool> {
+        // ⚠️ **셋을 함께 놓는다** — 하나라도 남으면 하단 바가 인스펙터나 옛 팝오버에 묶여
+        // 방금 고른 도구가 안 보인다.
+        Binding(get: { tool }, set: { new in
+            settleTyping()
+            if new != .select { selection = nil }
+            tool = new
+            popover = new.showsOptionsWhenPicked ? options(of: new) : nil
+        })
+    }
+
+    /// 활성 도구를 다시 누르면 옵션이 열린다 — iPadOS 관례 그대로다. **이미 열려 있으면 닫힌다.**
     private func openOptions(_ candidate: CanvasTool) {
-        switch candidate {
-        case .photo: toggle(.photos)
-        case .paper: toggle(.paper)
-        case .pen, .marker, .eraser: toggle(.ink)
-        case .select, .text: popover = nil
+        guard let options = options(of: candidate) else { return popover = nil }
+        toggle(options)
+    }
+
+    /// 그 도구의 옵션 팝오버.
+    private func options(of tool: CanvasTool) -> CanvasPopover? {
+        switch tool {
+        case .photo: .photos
+        case .paper: .paper
+        case .pen, .marker, .eraser: .stroke
+        case .select, .text: nil
         }
     }
 
     private func clearSelection() {
         selection = nil
         popover = nil
+    }
+
+    /// 받고 있던 글을 앉힌다. **도구를 바꾸거나 저장하기 전에 부른다.**
+    private func settleTyping() {
+        typing?.commit(to: session)
+        typing = nil
     }
 
     private func toggle(_ candidate: CanvasPopover) {
@@ -210,8 +350,11 @@ struct CanvasScreen: View {
 
     /// 승격 직후의 진입 상태 — 첫 사진이 선택돼 있고 서랍이 열려 있다.
     private func enter() {
+        // ⚠️ **도구도 `사진`이어야 한다** — 열린 팝오버의 주인 버튼이 활성이 아니면 그 관계가
+        // 진입 상태에서만 깨진다.
         guard session.entry == .promotion, selection == nil else { return }
         selection = session.page.elements.first?.id
+        tool = .photo
         popover = .photos
     }
 
@@ -233,7 +376,8 @@ struct CanvasScreen: View {
     }
 
     private func save(status: Record.Status = .published) async {
-        guard let saved = await session.save(status: status, to: store, bytes: originalBytes)
+        settleTyping()
+        guard let saved = await session.save(status: status, bytes: originalBytes)
         else { return }
         onSaved(saved)
     }
@@ -241,4 +385,11 @@ struct CanvasScreen: View {
     private var saveFailed: Binding<Bool> {
         Binding(get: { session.draft.saveState.isFailed }, set: { _ in })
     }
+}
+
+/// 캔버스를 올려야 하는지 다시 보게 만드는 두 값. **둘 중 하나만 바뀌어도 다시 잰다** —
+/// 키보드가 올라오는 것과 다른 상자로 옮겨 가는 것이 같은 일이다.
+private struct TypingReveal: Equatable {
+    let id: UUID?
+    let keyboardTop: CGFloat
 }

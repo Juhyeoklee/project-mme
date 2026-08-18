@@ -9,9 +9,9 @@ import Foundation
 /// **초안(`RecordDraft`)과 짝으로 산다** — 사진의 출처·발생일시·설명은 여전히 초안의 것이고
 /// 캔버스는 그 사진을 어디에 놓았는지만 안다. 저장도 초안이 지므로 여기서 바이트를 안 만진다.
 ///
-/// ⚠️ **되돌리기 스택은 캔버스 하나에 하나다** (`CAN-07`). 요소 변경은 `change(_:)`가 등록하고
-/// 획은 PencilKit이 같은 `UndoManager`에 등록한다 — 스택을 둘로 두면 `11-N2` 버튼 하나가
-/// 어느 쪽을 되돌리는지 사용자가 못 고른다.
+/// ⚠️ **되돌리기 스택은 캔버스 하나에 하나다** (`CAN-07`). 요소 변경도 획도 이 객체가 같은
+/// `UndoManager`에 등록한다 — 스택을 둘로 두면 `11-N2` 버튼 하나가 어느 쪽을 되돌리는지
+/// 사용자가 못 고른다.
 @MainActor
 @Observable
 final class CanvasSession: Identifiable {
@@ -26,20 +26,26 @@ final class CanvasSession: Identifiable {
     let id = UUID()
     let draft: RecordDraft
     let entry: Entry
+    /// 저장할 자리이자 **이미 저장된 사진을 읽을 자리**다 — 크기를 모르는 사진의 비율이
+    /// 여기서 풀린다.
+    let store: RecordStore
 
     private(set) var document: CanvasDocument
     /// 지금 보고 있는 페이지. **항상 정확히 하나**라 옵셔널이 아니다.
     var pageIndex: Int
     private(set) var canUndo = false
     private(set) var canRedo = false
+    /// 획이 밖에서 바뀔 때마다 오른다. **그리기 층이 이 값으로 다시 읽을 때를 안다.**
+    private(set) var strokesRevision = 0
 
     /// **획도 이 매니저에 등록된다** — 그리기 층이 이것을 받아 쓴다.
     @ObservationIgnored let undoManager = UndoManager()
 
-    init(draft: RecordDraft, entry: Entry, document: CanvasDocument) {
+    init(draft: RecordDraft, entry: Entry, document: CanvasDocument, store: RecordStore) {
         self.draft = draft
         self.entry = entry
         self.document = document
+        self.store = store
         self.pageIndex = 0
     }
 
@@ -58,25 +64,45 @@ final class CanvasSession: Identifiable {
 
     // MARK: - 고치기
 
-    /// 되돌릴 수 있게 페이지를 바꾼다. **획은 여기 안 든다** — 그쪽은 PencilKit이 되돌린다.
+    /// 되돌릴 수 있게 페이지를 바꾼다. **되돌리면 그 일이 일어난 페이지로 돌아간다** —
+    /// 안 그러면 지금 안 보이는 페이지가 조용히 바뀐다.
     func change(_ body: (inout [CanvasPage]) -> Void) {
         // ⚠️ **사본을 고쳐서 되쓴다** — `&document.pages`를 그대로 넘기면 문서가 잠긴 채로
         // 클로저가 돌고, 그 안에서 문서를 읽는 순간 프로세스가 죽는다(2026-08-18 실물).
         let before = document.pages
+        let shown = pageIndex
         var pages = before
         body(&pages)
         guard before != pages else { return }
         document.pages = pages
         undoManager.registerUndo(withTarget: self) { session in
             session.change { $0 = before }
+            session.pageIndex = min(shown, session.document.pages.count - 1)
         }
         refreshUndoState()
     }
 
-    /// PencilKit이 획을 바꿨다. ⚠️ **되돌리기를 등록하지 않는다** — PencilKit이 같은 매니저에
-    /// 이미 등록했고, 여기서 또 등록하면 한 획이 두 번 되돌아간다.
+    /// PencilKit이 획을 바꿨다. **겹침 순서는 안 건드린다** — 그건 사용자가 정한다.
     func setStrokes(_ data: Data, page id: UUID) {
+        apply(strokes: data, page: id)
+    }
+
+    /// 획을 갈아 끼우고 되돌리기에 등록한다. **되돌리면 그 페이지로 데려간다.**
+    private func apply(strokes data: Data?, page id: UUID) {
+        // ⚠️ **PencilKit 스택에 안 맡긴다** — 그쪽 되돌리기는 그림이 아니라 뷰에 걸려 있어,
+        // 페이지를 넘긴 뒤 되돌리면 이전 그림이 지금 페이지에 써 넣어진다(2026-08-18 실기기).
+        let before = document.strokes[id]
+        guard before != data else { return }
         document.strokes[id] = data
+        undoManager.registerUndo(withTarget: self) { session in
+            if let index = session.document.pages.firstIndex(where: { $0.id == id }) {
+                session.pageIndex = index
+            }
+            session.apply(strokes: before, page: id)
+        }
+        // ⚠️ **판을 올려야 화면이 다시 읽는다** — 손이 만든 변화가 아니라서 그리기 층은
+        // 이 값으로만 안다.
+        strokesRevision += 1
         refreshUndoState()
     }
 
@@ -123,11 +149,68 @@ final class CanvasSession: Identifiable {
         change { $0[pageIndex].elements.append(element) }
     }
 
-    func update(_ id: UUID, frame: CGRect, rotation: Double) {
+    /// `CAN-03` — 밖에서 들어온 이미지를 그 자리에 놓는다. 바이트는 초안이 든다.
+    @discardableResult
+    func addImage(_ data: Data, fileExtension: String, at point: CGPoint) -> UUID {
+        let imageID = draft.addImported(data, fileExtension: fileExtension)
+        place(imageID: imageID, at: point, fitting: Layout.canvasDropSize)
+        return imageID
+    }
+
+    /// `11-T5` — 탭한 자리에 빈 글 상자를 놓는다. 내용은 그 자리에서 바로 받는다.
+    func placeText(at point: CGPoint, ink: InkColor) -> UUID {
+        let text = CanvasText(ink: ink)
+        let element = CanvasElement(content: .text(text),
+                                    frame: text.box(at: point,
+                                                    width: CanvasText.initialWidth(from: point.x)))
+        change { $0[pageIndex].elements.append(element) }
+        return element.id
+    }
+
+    /// 글을 고쳐 담는다. **빈 글은 남기지 않는다** — 쓰다 만 상자가 종이에 안 보이게 남는다.
+    func setText(_ id: UUID, string: String) {
+        guard var text = element(id)?.text else { return }
+        guard !string.isEmpty else { return remove(id) }
+        text.string = string
+        apply(text, to: id)
+    }
+
+    /// `11-I1` 글꼴을 바꾼다. **크기를 안 만졌으면 새 글꼴의 기본값으로 따라간다** — 손글씨와
+    /// 반듯한 것은 같은 pt에서 크기가 다르게 읽힌다.
+    func setFace(_ face: CanvasText.Face, of id: UUID) {
+        restyle(id) { text in
+            guard text.face != face else { return }
+            if text.size == text.face.defaultSize { text.size = face.defaultSize }
+            text.face = face
+        }
+    }
+
+    /// 글꼴·굵기·크기·색을 바꾼다. 상자는 새 활자에 맞춰 다시 잰다.
+    func restyle(_ id: UUID, _ body: (inout CanvasText) -> Void) {
+        guard var text = element(id)?.text else { return }
+        body(&text)
+        apply(text, to: id)
+    }
+
+    /// 바뀐 글로 상자를 다시 재 앉힌다. **왼쪽 위를 붙잡는다** — 가운데를 잡으면 글이 길어질
+    /// 때마다 이미 놓은 자리가 위로 밀려 올라간다.
+    private func apply(_ text: CanvasText, to id: UUID) {
+        change {
+            guard let index = $0[pageIndex].elements.firstIndex(where: { $0.id == id })
+            else { return }
+            let frame = $0[pageIndex].elements[index].frame
+            $0[pageIndex].elements[index].content = .text(text)
+            $0[pageIndex].elements[index].frame = text.box(at: frame.origin, width: frame.width)
+        }
+    }
+
+    /// 손을 뗐다 — 자리와, 두 손가락이 바꾼 글까지 **한 칸으로** 앉힌다.
+    func update(_ id: UUID, frame: CGRect, rotation: Double, text: CanvasText? = nil) {
         change {
             guard let index = $0[pageIndex].elements.firstIndex(where: { $0.id == id }) else { return }
             $0[pageIndex].elements[index].frame = frame
             $0[pageIndex].elements[index].rotation = rotation
+            if let text { $0[pageIndex].elements[index].content = .text(text) }
         }
     }
 
@@ -135,22 +218,37 @@ final class CanvasSession: Identifiable {
         change { $0[pageIndex].elements.removeAll { $0.id == id } }
     }
 
-    /// `CAN-06` — 배열 순서가 겹침 순서라 자리를 옮기는 것이 곧 층을 옮기는 것이다.
+    /// `CAN-06` — **맨 앞은 획보다도 위, 맨 뒤는 전부보다 아래다.** 종류가 정하던 자리를
+    /// 사용자가 못 박는 것이고, 그 뒤로는 앱이 안 건드린다.
     func move(_ id: UUID, toFront: Bool) {
-        change {
-            guard let index = $0[pageIndex].elements.firstIndex(where: { $0.id == id }) else { return }
-            let element = $0[pageIndex].elements.remove(at: index)
-            $0[pageIndex].elements.insert(element, at: toFront ? $0[pageIndex].elements.count : 0)
+        change { pages in
+            guard let index = pages[pageIndex].elements.firstIndex(where: { $0.id == id })
+            else { return }
+            var element = pages[pageIndex].elements.remove(at: index)
+            element.pinned = toFront ? .front : .back
+            // 같은 층에 이미 못 박힌 것이 있으면 그것보다도 앞·뒤여야 한다.
+            pages[pageIndex].elements.insert(element, at: toFront
+                ? pages[pageIndex].elements.count : 0)
         }
     }
 
     /// 원본 비율을 지키며 상자 안에 넣는다. 상자는 채우는 크기가 아니라 상한이다.
     private func fitted(_ imageID: UUID, in box: CGSize) -> CGSize {
-        // ⚠️ 크기를 모르는 사진은 상자를 그대로 쓴다 — 그때만 채워 넣느라 잘린다.
         guard let photo = draft.photos.first(where: { $0.id == imageID }),
-              let pixels = photo.pixelSize else { return box }
+              let pixels = pixelSize(of: photo) else { return box }
         let ratio = min(box.width / pixels.width, box.height / pixels.height)
         return CGSize(width: pixels.width * ratio, height: pixels.height * ratio)
+    }
+
+    /// 그 사진의 원본 화소 크기. 앨범 자산이 아니면 헤더를 읽는다.
+    func pixelSize(of photo: DraftPhoto) -> CGSize? {
+        // ⚠️ **안 읽으면 상자를 그대로 쓴다** — 놓이는 순간 잘리고 구운 결과에도 그대로 남는다.
+        if let size = photo.pixelSize { return size }
+        if let stored = photo.storedImage {
+            return ImageDecoding.pixelSize(store.imageURL(recordID: draft.id, image: stored))
+        }
+        if let data = draft.importedData(of: photo.id) { return ImageDecoding.pixelSize(data) }
+        return nil
     }
 
     /// 어느 사진이 몇 번 놓였나 — `11-O3` 서랍의 수량 배지.
@@ -163,10 +261,22 @@ final class CanvasSession: Identifiable {
     // MARK: - 저장
 
     /// 캔버스를 기록으로 저장한다. 성공하면 그 기록, 실패하면 `nil`이고 초안이 실패를 든다.
-    func save(status: Record.Status, to store: RecordStore,
-              bytes: @escaping OriginalBytesLoader) async -> Record? {
-        draft.setCanvas(pruned())
-        let saved = await draft.save(status: status, to: store, bytes: bytes)
+    func save(status: Record.Status, bytes: @escaping OriginalBytesLoader) async -> Record? {
+        // ⚠️ **기록이 보여주는 것은 구운 페이지고 사진은 재료다**(`CAN-09`) — 뒤바꿔 저장하면
+        // `07`·`08`이 꾸미기 전 사진을 보여주고 다시 고칠 재료가 사라진다.
+        guard let resolved = await draft.resolvePhotos(bytes: bytes) else { return nil }
+        var document = pruned()
+        document.sources = resolved.images
+        draft.setCanvas(document)
+
+        guard let baked = await CanvasBaker.bake(document, bytes: resolved.data,
+                                                 in: store, recordID: draft.id) else {
+            draft.markSaveFailed()
+            return nil
+        }
+        let saved = draft.write(images: baked.images,
+                                data: resolved.data.merging(baked.data) { _, new in new },
+                                status: status, to: store)
         if saved != nil { clearHistory() }
         return saved
     }
@@ -175,7 +285,8 @@ final class CanvasSession: Identifiable {
     private func pruned() -> CanvasDocument {
         let alive = Set(document.pages.map(\.id))
         return CanvasDocument(pages: document.pages,
-                              strokes: document.strokes.filter { alive.contains($0.key) })
+                              strokes: document.strokes.filter { alive.contains($0.key) },
+                              sources: document.sources)
     }
 
     // MARK: - 조각
@@ -200,15 +311,15 @@ final class CanvasSession: Identifiable {
 
 extension CanvasSession {
     /// 초안 하나로 캔버스를 연다. **이미 캔버스가 있으면 이어받고 진입도 「고치러 온 것」이 된다.**
-    static func opening(_ draft: RecordDraft) -> CanvasSession? {
+    static func opening(_ draft: RecordDraft, in store: RecordStore) -> CanvasSession? {
         // ⚠️ **새 문서로 시작하면 안 된다** — 승격했다 초안으로 남긴 기록이 `09`를 한 번
         // 들르는 것만으로 배치와 획을 잃는다. `.promotion`으로 줘도 진입 상태가 잘못 발화한다.
         if let canvas = draft.canvas {
-            return CanvasSession(draft: draft, entry: .editingRecord, document: canvas)
+            return CanvasSession(draft: draft, entry: .editingRecord, document: canvas, store: store)
         }
         guard let first = draft.included.first else { return nil }
         let session = CanvasSession(draft: draft, entry: .promotion,
-                                    document: CanvasDocument(pages: [CanvasPage()]))
+                                    document: CanvasDocument(pages: [CanvasPage()]), store: store)
         session.place(imageID: first.id, at: Layout.canvasEntryPhotoCenter,
                       fitting: Layout.canvasEntryPhotoSize)
         session.clearHistory()
@@ -216,8 +327,9 @@ extension CanvasSession {
     }
 
     /// `08`의 `수정` — 저장돼 있던 페이지 전부를 그대로 연다. 갤러리 기록이면 `nil`이다.
-    static func editing(_ record: Record) -> CanvasSession? {
+    static func editing(_ record: Record, in store: RecordStore) -> CanvasSession? {
         guard let canvas = record.canvas else { return nil }
-        return CanvasSession(draft: .editing(record), entry: .editingRecord, document: canvas)
+        return CanvasSession(draft: .editing(record), entry: .editingRecord,
+                             document: canvas, store: store)
     }
 }

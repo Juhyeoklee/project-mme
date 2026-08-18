@@ -98,6 +98,10 @@ enum Layout {
         CGPoint(x: canvasSize.width / 2, y: 96 + canvasEntryPhotoSize.height / 2)
     }
 
+    /// `CAN-03` 드롭·붙여넣기로 들어온 이미지가 처음 차지하는 상자. **승격 사진보다 작다** —
+    /// 스티커로 얹는 자리라 지면을 덮으면 안 된다.
+    static let canvasDropSize = CGSize(width: 300, height: 300)
+
     /// 두 손가락 핀치의 범위. 100%가 캔버스를 화면에 맞춘 배율이다.
     static let canvasZoomRange: ClosedRange<CGFloat> = 0.5...4
 

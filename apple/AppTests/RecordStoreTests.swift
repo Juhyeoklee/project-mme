@@ -201,7 +201,7 @@ struct RecordStoreTests {
                                                    reason: "값이 범위 밖")) { try store.all() }
     }
 
-    // MARK: - 캔버스 (판 2)
+    // MARK: - 캔버스 (판 2 · 판 3)
 
     @Test func 캔버스를_붙여_저장하면_페이지와_획이_그대로_돌아온다() throws {
         let store = makeStore()
@@ -219,6 +219,41 @@ struct RecordStoreTests {
         let loaded = try #require(try store.all().first)
         #expect(loaded.canvas == one.canvas)
         #expect(loaded.isCanvas)
+    }
+
+    @Test func 캔버스_재료_사진이_따로_실려_돌아온다() throws {
+        let store = makeStore()
+        let image = sourceImage(assetID: "asset-1", at: try clock(8, 3, 18, 5))
+        let baked = RecordImage(id: UUID(), fileExtension: "jpg", origin: .baked)
+        var one = record(at: try clock(8, 3, 18, 5), images: [baked])
+        one.canvas = CanvasDocument(pages: [CanvasPage()], sources: [image])
+
+        try store.save(one, imageData: [baked.id: bytes("구운 것"), image.id: bytes("a")])
+
+        let loaded = try #require(try store.all().first)
+        #expect(loaded.images == [baked])
+        #expect(loaded.canvas?.sources == [image])
+    }
+
+    /// ⚠️ **재료가 살아 있어야 다시 고칠 수 있다** — 판 2에는 그 자리가 없어 기록의 이미지가
+    /// 곧 재료였다.
+    @Test func 판_2로_쓰인_캔버스_기록은_이미지가_재료가_된다() throws {
+        let store = makeStore()
+        let id = UUID()
+        let imageID = UUID()
+        let manifest = """
+        {"schemaVersion": 2, "id": "\(id.uuidString)",
+         "occurredAt": "2026080318050000", "caption": "", "status": "published",
+         "updatedAt": 0,
+         "images": [{"id": "\(imageID.uuidString)", "fileExtension": "png",
+                     "origin": "imported"}],
+         "canvas": {"pages": [{"id": "\(UUID().uuidString)", "paper": "dots",
+                               "elements": []}], "strokes": {}}}
+        """
+        try write(manifest, forRecord: id, in: store)
+
+        let loaded = try #require(try store.all().first)
+        #expect(loaded.canvas?.sources.map(\.id) == [imageID])
     }
 
     @Test func 판_1로_쓰인_기록은_캔버스_없이_읽힌다() throws {

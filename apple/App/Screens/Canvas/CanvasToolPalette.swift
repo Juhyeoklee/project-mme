@@ -18,6 +18,29 @@ enum CanvasTool: String, CaseIterable, Hashable {
     /// 그리는 도구인가. 획을 받는 층이 켜지는지를 이것이 정한다.
     var draws: Bool { self == .pen || self == .marker || self == .eraser }
 
+    /// 캔버스 위에서 손을 쓰는 도구인가 — 획을 긋거나 글 상자를 놓는다.
+    /// **아닌 도구에서는 요소를 집고 옮긴다**(`11-T1`).
+    var usesCanvas: Bool { draws || self == .text }
+
+    /// 고르는 순간 옵션이 함께 열리는가. **캔버스에서 하는 일이 없는 도구가 그렇다** —
+    /// 「다시 눌러 옵션」은 모드를 가진 도구의 관례다.
+    var showsOptionsWhenPicked: Bool { self == .photo || self == .paper }
+
+    /// 잉크 색을 쓰는 도구인가. **지우개는 비우는 도구라 색이 아무 일도 안 한다.**
+    var usesInk: Bool { self != .eraser }
+
+    /// 굵기의 범위와 기본값. **도구마다 다르다** — 펜은 가늘고 마커는 두껍다.
+    var widthRange: ClosedRange<CGFloat> {
+        switch self {
+        case .pen: 1...20
+        case .marker: 8...60
+        case .eraser: 8...80
+        default: 1...20
+        }
+    }
+
+    var defaultWidth: CGFloat { self == .pen ? 3 : 24 }
+
     var glyph: String {
         switch self {
         case .select: Glyph.pointer
