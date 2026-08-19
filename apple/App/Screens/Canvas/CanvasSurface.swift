@@ -29,6 +29,8 @@ struct CanvasSurface: View {
     let retryToken: Int
     /// 빈 곳을 탭했다 — 선택 해제와 팝오버 닫기가 한 동작이라 부르는 쪽이 함께 진다.
     let onBackgroundTap: () -> Void
+    /// 빈 곳을 두 번 탭했다 — 화면 맞춤.
+    let onFitToScreen: () -> Void
 
     /// 손이 붙어 있는 동안의 자리. **놓을 때 한 번만 되돌리기에 등록한다.**
     @State private var live: LiveTransform?
@@ -36,6 +38,8 @@ struct CanvasSurface: View {
     /// 마지막으로 손이 닿은 자리와, 길게 눌러 편집 메뉴를 띄울 자리.
     @State private var pressed: CGPoint = .zero
     @State private var pasteMenuAt: CGPoint?
+    /// 직전 빈 곳 탭. 두 번째 탭을 여기서 알아본다.
+    @State private var lastTap: (at: Date, point: CGPoint, page: UUID)?
 
     var body: some View {
         DraftPageContent(session: session, page: session.page, pixels: Layout.gridPixels,
@@ -152,6 +156,7 @@ struct CanvasSurface: View {
                     commit()
                 } else if !Self.moved(value.translation) {
                     tapped(at: value.location)
+                    noteTap(at: value.location)
                 }
             }
     }
@@ -162,6 +167,31 @@ struct CanvasSurface: View {
         typing = nil
         selection = session.addImage(data, fileExtension: fileExtension, at: point)
     }
+
+    /// 빈 곳의 두 번째 탭이면 화면 맞춤이다.
+    /// ⚠️ **첫 탭의 일은 이미 했다** — 기다렸다 판정하면 고르는 일이 늦어진다.
+    private func noteTap(at point: CGPoint) {
+        // ⚠️ 페이지를 함께 본다 — 이 뷰는 페이지가 바뀌어도 안 헐려서, 안 보면 다른 페이지의
+        // 같은 자리가 두 번째 탭으로 잡힌다.
+        guard !tool.usesCanvas, topmost(at: point) == nil else {
+            lastTap = nil
+            return
+        }
+        let now = Date()
+        if let last = lastTap, last.page == session.page.id,
+           now.timeIntervalSince(last.at) < Self.doubleTapWindow,
+           hypot(point.x - last.point.x, point.y - last.point.y) < Self.doubleTapReach {
+            lastTap = nil
+            onFitToScreen()
+        } else {
+            lastTap = (now, point, session.page.id)
+        }
+    }
+
+    // ⚠️ `Layout.hitTarget`과 값이 같아도 묶지 않는다 — 「버튼 크기」와 「탭 사이 허용 거리」는
+    // 하는 일이 다르다.
+    private static let doubleTapWindow: TimeInterval = 0.35
+    private static let doubleTapReach: CGFloat = 44
 
     /// 손가락이 제자리에서 떨어졌으면 탭이다.
     private static func moved(_ translation: CGSize) -> Bool {

@@ -33,10 +33,9 @@ struct CanvasScreen: View {
     @State private var typing: CanvasTextEditing?
     @State private var popover: CanvasPopover?
     @State private var isConfirmingCancel = false
-    /// 화면 맞춤 배율 위에 곱해지는 사용자 줌.
-    @State private var zoom: CGFloat = 1
-    @State private var pan: CGSize = .zero
-    @State private var zoomAnchor: CGFloat = 1
+    /// 화면 맞춤 배율 위에 얹히는 배율·이동·각도. **문서는 안 돌아간다** — 굽는 결과도
+    /// 저장 형식도 그대로다 (사용자 판정 2026-08-19).
+    @State private var viewport = CanvasViewport()
     /// 소프트 키보드의 윗변(전역 좌표). **물리 키보드거나 없으면 화면 밖이라 아무 일도 안 한다.**
     @State private var keyboardTop: CGFloat = .infinity
     /// 키보드를 피하려고 올리기 전의 자리. 되돌릴 때 쓴다.
@@ -128,18 +127,18 @@ struct CanvasScreen: View {
                               tool: $tool, ink: ink, textInk: textInk,
                               strokeWidth: width(of: tool),
                               markerOpacity: markerOpacity / 100,
-                              scale: scale * zoom, retryToken: retryToken,
-                              onBackgroundTap: clearSelection)
-                    .scaleEffect(scale * zoom)
-                    .offset(pan)
+                              scale: scale * viewport.zoom, retryToken: retryToken,
+                              onBackgroundTap: clearSelection, onFitToScreen: fitToScreen)
+                    .scaleEffect(scale * viewport.zoom)
+                    .rotationEffect(.radians(viewport.angle))
+                    .offset(viewport.pan)
                     .frame(width: Layout.canvasSize.width * scale,
                            height: Layout.canvasSize.height * scale)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .padding(.leading, Layout.canvasRailWidth + inset)
-                    .simultaneousGesture(zoomGesture, including: zooming)
-                    // ⚠️ **선택이 있으면 끈다** — 더블탭 인식기가 살아 있으면 그 아래 단일
-                    // 탭이 실패를 기다렸다 발화해 고른 것을 바꾸는 일이 한 박자 늦는다.
-                    .gesture(TapGesture(count: 2).onEnded { fitToScreen() }, including: zooming)
+                    .gesture(panGesture)
+                    .gesture(pinchGesture(leadingInset: Layout.canvasRailWidth + inset))
+                    .gesture(rotateGesture(leadingInset: Layout.canvasRailWidth + inset))
                 CanvasPageRail(session: session)
                     .padding(inset)
             }
@@ -157,27 +156,32 @@ struct CanvasScreen: View {
         }
     }
 
-    /// 두 손가락이 캔버스에 걸리는가. **고른 것이 있으면 그쪽이 먼저 가져간다** — 같은 손짓
-    /// 하나가 「지금 다루는 것」에 걸린다 (사용자 판정 2026-08-18).
-    private var zooming: GestureMask { selection == nil ? .all : .none }
-
     /// 두 손가락 핀치 — 캔버스 자체의 배율.
-    private var zoomGesture: some Gesture {
-        MagnifyGesture()
-            .onChanged { zoom = clamped($0.magnification * zoomAnchor) }
-            .onEnded { _ in zoomAnchor = zoom }
+    private func pinchGesture(leadingInset: CGFloat) -> CanvasPinch {
+        CanvasPinch(isEnabled: selection == nil, leadingInset: leadingInset) { factor, touch in
+            viewport.magnify(by: factor, around: touch, within: Layout.canvasZoomRange)
+        }
     }
 
-    private func clamped(_ value: CGFloat) -> CGFloat {
-        min(max(value, Layout.canvasZoomRange.lowerBound), Layout.canvasZoomRange.upperBound)
+    /// 두 손가락 회전 — 보는 각도.
+    private func rotateGesture(leadingInset: CGFloat) -> CanvasRotate {
+        CanvasRotate(isEnabled: selection == nil, leadingInset: leadingInset) { turned, touch in
+            viewport.turn(by: turned, around: touch)
+        }
     }
 
-    /// 더블탭 — 화면 맞춤으로 되돌린다.
-    private func fitToScreen() {
-        zoom = 1
-        zoomAnchor = 1
-        pan = .zero
+    /// 두 손가락 끌기 — 캔버스를 옮긴다.
+    private var panGesture: CanvasPan {
+        CanvasPan(
+            isEnabled: selection == nil,
+            onChanged: { moved in
+                viewport.pan = CGSize(width: viewport.pan.width + moved.width,
+                                      height: viewport.pan.height + moved.height)
+            })
     }
+
+    /// 더블탭 — 화면 맞춤으로 되돌린다. 배율·이동·각도를 함께 되돌린다.
+    private func fitToScreen() { viewport.fitToScreen() }
 
     /// 키보드가 무대 바닥을 덮은 높이. **물리 키보드면 0이다.**
     private func covered(in geometry: GeometryProxy) -> CGFloat {
@@ -190,27 +194,28 @@ struct CanvasScreen: View {
         guard let id = typing?.id, let element = session.element(id) else {
             if let before = panBeforeTyping {
                 panBeforeTyping = nil
-                withAnimation(.easeOut(duration: 0.25)) { pan = before }
+                withAnimation(.easeOut(duration: 0.25)) { viewport.pan = before }
             }
             return
         }
-        let base = panBeforeTyping ?? pan
-        let drawn = Layout.canvasSize.height * scale * zoom
-        let top = geometry.frame(in: .global).minY + geometry.size.height / 2
-            + base.height - drawn / 2
+        let base = panBeforeTyping ?? viewport.pan
+        // ⚠️ **자리를 배율로만 재면 돌려놓은 캔버스에서 어긋난다** — 각도까지 보는 `place`가 진다.
+        let bottom = CGPoint(x: element.frame.midX, y: element.frame.maxY)
+        let center = geometry.frame(in: .global).minY + geometry.size.height / 2
         // 상자가 키보드뿐 아니라 **그 위에 선 하단 바**보다도 위에 와야 한다.
         let clearance = Layout.canvasPaletteHeight + Spacing.paneGap * 2
-        let covered = top + element.frame.maxY * scale * zoom + clearance - keyboardTop
+        let covered = center + base.height + viewport.place(bottom, scale: scale).y
+            + clearance - keyboardTop
         guard covered > 0 else {
             if let before = panBeforeTyping {
                 panBeforeTyping = nil
-                withAnimation(.easeOut(duration: 0.25)) { pan = before }
+                withAnimation(.easeOut(duration: 0.25)) { viewport.pan = before }
             }
             return
         }
         panBeforeTyping = base
         withAnimation(.easeOut(duration: 0.25)) {
-            pan = CGSize(width: base.width, height: base.height - covered)
+            viewport.pan = CGSize(width: base.width, height: base.height - covered)
         }
     }
 

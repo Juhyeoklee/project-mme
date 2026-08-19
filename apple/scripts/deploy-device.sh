@@ -46,11 +46,14 @@ if [ "$FILTER" != "--build-only" ]; then
   echo "▸ 기기: $(printf '%s\n' "$MATCHES" | head -1 | sed 's/  */ /g')"
 fi
 
-# ── 2. 빌드 (generic — 한 번 빌드한 산출물을 어느 기기에든 설치한다)
+# ── 2. 빌드 (기기를 지목한다 — generic으로 빌드하면 그 기기가 프로파일에 안 들어가
+#           새 기기에서 설치가 거부된다. 구현 5가 겪고 구현 7이 원인을 확인했다)
+DEST="generic/platform=iOS"
+if [ -n "$UDID" ]; then DEST="id=$UDID"; fi
 echo "▸ 빌드"
 xcodebuild build \
   -project "$APPLE_DIR/Moanogi.xcodeproj" -scheme Moanogi \
-  -destination 'generic/platform=iOS' \
+  -destination "$DEST" \
   -allowProvisioningUpdates \
   -derivedDataPath "$DERIVED" \
   -quiet
