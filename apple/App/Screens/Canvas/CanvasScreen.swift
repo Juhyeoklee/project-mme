@@ -139,7 +139,8 @@ struct CanvasScreen: View {
                     .gesture(panGesture)
                     .gesture(pinchGesture(leadingInset: Layout.canvasRailWidth + inset))
                     .gesture(rotateGesture(leadingInset: Layout.canvasRailWidth + inset))
-                CanvasPageRail(session: session)
+                CanvasPageRail(session: session,
+                               maxHeight: geometry.size.height - inset * 2)
                     .padding(inset)
             }
             // ⚠️ **무대에서 자른다** — 종이 밖으로 나간 사진이 상단바와 레일을 덮으면

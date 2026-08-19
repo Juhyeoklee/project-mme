@@ -18,7 +18,6 @@ set -euo pipefail
 
 APPLE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DERIVED="$APPLE_DIR/DerivedData/device"
-BUNDLE_ID="dev.placeholder.moanogi"
 UUID_RE='[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}'
 
 FILTER="${1:-}"
@@ -60,7 +59,10 @@ xcodebuild build \
 
 APP="$DERIVED/Build/Products/Debug-iphoneos/Moanogi.app"
 [ -d "$APP" ] || { echo "빌드 산출물이 없다: $APP" >&2; exit 1; }
-echo "▸ 산출물: $APP"
+# 번들 ID는 **지어진 앱에서 읽는다** — 박아 두면 팀·번들을 바꿔 빌드했을 때 설치는 되고
+# 실행만 조용히 엉뚱한 앱을 찾는다 (2026-08-19: 개인 팀 기기 상한에 걸려 계정을 바꿨다).
+BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")"
+echo "▸ 산출물: $APP ($BUNDLE_ID)"
 
 [ "$FILTER" = "--build-only" ] && exit 0
 
@@ -70,9 +72,22 @@ xcrun devicectl device install app --device "$UDID" "$APP"
 echo "▸ 실행"
 # 여기서만 기기 잠금이 걸린다. 설치는 이미 끝났으므로 **앱은 기기에 들어가 있고**,
 # 손으로 열어도 같은 결과다 — 실패를 통째로 실패로 읽지 않게 그 사실을 말해준다.
-if ! xcrun devicectl device process launch --device "$UDID" --terminate-existing "$BUNDLE_ID"; then
+# 실패 원인이 둘인데 메시지가 하나였다 — 잠금과 **미신뢰 프로파일**은 손이 할 일이 다르다
+# (2026-08-19: 계정을 바꾸자 새 팀에 대한 신뢰가 없어 막혔는데 「잠금을 풀어라」가 나갔다).
+if ! LAUNCH="$(xcrun devicectl device process launch \
+     --device "$UDID" --terminate-existing "$BUNDLE_ID" 2>&1)"; then
+  printf '%s\n' "$LAUNCH" >&2
   echo "" >&2
   echo "실행만 실패했다 — 설치는 끝났으니 앱은 기기에 있다." >&2
-  echo "기기가 잠겨 있으면 여기서 막힌다. 잠금을 풀고 다시 돌리거나 앱을 직접 열어라." >&2
+  case "$LAUNCH" in
+    *"not been explicitly trusted"*|*"invalid code signature"*)
+      echo "기기가 이 개발자를 아직 안 믿는다 — 팀을 바꿨으면 다시 줘야 한다." >&2
+      echo "  설정 → 일반 → VPN 및 기기 관리 → 개발자 앱 → 그 계정 → 신뢰" >&2 ;;
+    *Locked*)
+      echo "기기가 잠겨 있다. 잠금을 풀고 다시 돌리거나 앱을 직접 열어라." >&2 ;;
+    *)
+      echo "위 메시지를 읽어라. 앱을 직접 열어도 같은 결과다." >&2 ;;
+  esac
   exit 3
 fi
+printf '%s\n' "$LAUNCH"

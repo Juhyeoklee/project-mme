@@ -58,6 +58,8 @@ final class MomentLibrary {
     private var inputs: [PhotoInput] = []
     /// 바이트를 아직 못 정한 사진. 진행률의 분자는 `assets.count - pending.count`다.
     private var pending: Set<Int> = []
+    /// 끝내 원본을 못 받은 사진 (`R8`). **`05`가 이 값으로 표시를 세운다.**
+    private(set) var missingOriginals: Set<Int> = []
 
     private let source: AlbumPhotoSource
     private let settings: Settings
@@ -75,6 +77,40 @@ final class MomentLibrary {
 
     /// 커널이 사진마다 읽어낸 것. **`assets`와 같은 길이·같은 순서다.**
     private var readings: [PhotoReading] = []
+
+    private let slowSource = SlowSource.current
+
+    /// `R8`을 실물에서 보는 유일한 문 — 원본이 로컬이면 그 경로를 한 번도 못 밟는다.
+    /// `-slowsource`는 기다리게 하고, `-slowsource fail`은 전부 못 받게 한다.
+    private enum SlowSource {
+        case off
+        /// 한 장에 `delay`씩 기다렸다 받아온다 — 기다리는 동안의 화면을 본다.
+        case slow
+        /// 전부 실패한다 — 원격 전량 실패의 **끝**을 본다.
+        case failing
+
+        /// 한 장에 거는 지연. **모드마다 다르다** — `slow`는 실측 중앙 1.7초에 맞추고(212장이면
+        /// 6분이라 기다림 자체가 관측 대상이다), `failing`은 **끝**을 보는 것이 목적이라 짧다.
+        var delay: Duration {
+            switch self {
+            case .off: .zero
+            case .slow: .seconds(2)
+            case .failing: .milliseconds(50)
+            }
+        }
+
+        static var current: SlowSource {
+            #if DEBUG
+            let arguments = ProcessInfo.processInfo.arguments
+            guard arguments.contains("-slowsource") else { return .off }
+            return arguments.contains("fail") ? .failing : .slow
+            #else
+            .off
+            #endif
+        }
+
+        var isOn: Bool { self != .off }
+    }
 
     /// **커널에는 식별자 개념이 없어서** 원본과 잇는 일이 배열을 쥔 이쪽 몫이다.
     func asset(at index: Int) -> SourceAsset? {
@@ -157,6 +193,7 @@ final class MomentLibrary {
         }
         inputs = assets.map { PhotoInput(filename: $0.filename) }
         pending = Set(inputs.indices)
+        missingOriginals = []
         reclassify()
         guard !assets.isEmpty else {
             phase = .ready
@@ -171,10 +208,15 @@ final class MomentLibrary {
         // ── 2패스 A — 로컬만. "없음" 판정이 6~16ms라 전량을 훑어도 싸다 ──
         phase = .readingLocal
         var remote: [Int] = []
-        for index in assets.indices {
-            if isStale(epoch) { return }
-            if await load(index, epoch: epoch, allowingNetwork: false) == false {
-                remote.append(index)
+        // 문이 열려 있으면 로컬 판정을 건너뛴다 — 원본이 다 로컬인 기기에서는 그래야 원격을 밟는다.
+        if slowSource.isOn {
+            remote = Array(assets.indices)
+        } else {
+            for index in assets.indices {
+                if isStale(epoch) { return }
+                if await load(index, epoch: epoch, allowingNetwork: false) == false {
+                    remote.append(index)
+                }
             }
         }
         if isStale(epoch) { return }
@@ -218,8 +260,15 @@ final class MomentLibrary {
     private func load(_ index: Int, epoch: Int,
                       allowingNetwork: Bool, within limit: Duration? = nil) async -> Bool {
         do {
-            let data = try await withOptionalTimeout(limit) { [source, assets] in
-                try await source.originalBytes(of: assets[index], allowingNetwork: allowingNetwork)
+            let data = try await withOptionalTimeout(limit) { [source, assets, slowSource] in
+                if slowSource.isOn, allowingNetwork {
+                    try await Task.sleep(for: slowSource.delay)
+                    if case .failing = slowSource {
+                        throw PhotoSourceError.originalNotOnDevice(assetID: assets[index].id)
+                    }
+                }
+                return try await source.originalBytes(of: assets[index],
+                                                      allowingNetwork: allowingNetwork)
             }
             if isStale(epoch) { return true }
             inputs[index] = PhotoInput(filename: assets[index].filename, bytes: [UInt8](data))
@@ -230,15 +279,28 @@ final class MomentLibrary {
         } catch PhotoSourceError.originalNotOnDevice {
             if isStale(epoch) { return true }
             // 네트워크를 이미 열고도 이 실패면 더 해볼 것이 없다.
-            if allowingNetwork { resolve(index) }
+            if allowingNetwork { miss(index) }
             return allowingNetwork
         } catch {
             if isStale(epoch) { return true }
             // 읽기 실패는 바이트 없음과 같은 취급이다 — 커널에 예외 경로가 없다.
-            resolve(index)
+            miss(index)
             return true
         }
     }
+
+    /// 결말은 났는데 바이트는 못 받은 자리.
+    private func miss(_ index: Int) {
+        missingOriginals.insert(index)
+        resolve(index)
+    }
+
+    private func missing(in moment: Moment) -> Int {
+        missingOriginals.isEmpty ? 0 : moment.photoIndices.count { missingOriginals.contains($0) }
+    }
+
+    /// `05`가 묻는다 — 이 순간에 원본을 못 받은 사진이 몇 장인가.
+    func missingOriginalCount(in moment: Moment) -> Int { missing(in: moment) }
 
     private func resolve(_ index: Int) {
         pending.remove(index)

@@ -289,8 +289,21 @@ struct LiveTransform: Equatable {
 
     func moved(by translation: CGSize) -> LiveTransform {
         var moved = self
-        moved.frame = origin.offsetBy(dx: translation.width, dy: translation.height)
+        moved.frame = Self.kept(origin.offsetBy(dx: translation.width, dy: translation.height))
         return moved
+    }
+
+    /// 종이에 남겨 두는 최소 폭.
+    static let grip: CGFloat = 44
+
+    /// 종이 밖으로 **완전히** 나가지 못하게 붙든다. **자리를 내는 셋이 전부 여기를 지난다.**
+    static func kept(_ frame: CGRect) -> CGRect {
+        // ⚠️ 빼면 잃는다 — 완전히 밀어낸 요소는 못 짚고 굽기에도 안 담긴다 (2026-08-19 실기기).
+        var kept = frame
+        let x = min(grip, frame.width), y = min(grip, frame.height)
+        kept.origin.x = min(max(frame.minX, x - frame.width), Layout.canvasSize.width - x)
+        kept.origin.y = min(max(frame.minY, y - frame.height), Layout.canvasSize.height - y)
+        return kept
     }
 
     /// 마주 보는 모서리를 붙잡고 키운다. **글은 폭만 바뀌고 높이는 글이 정한다.**
@@ -300,11 +313,12 @@ struct LiveTransform: Equatable {
         let dx = translation.width * cos(radians) - translation.height * sin(radians)
         let width = max(60, origin.width + dx * corner.signX)
         if let originText {
-            changed.frame = corner.rect(from: origin, width: width,
-                                        height: originText.measure(width: width))
+            changed.frame = Self.kept(corner.rect(from: origin, width: width,
+                                                  height: originText.measure(width: width)))
         } else {
             let aspect = origin.height / max(origin.width, 1)
-            changed.frame = corner.rect(from: origin, width: width, height: width * aspect)
+            changed.frame = Self.kept(corner.rect(from: origin, width: width,
+                                                  height: width * aspect))
         }
         return changed
     }
@@ -318,13 +332,13 @@ struct LiveTransform: Equatable {
             text.size = min(max(size, CanvasText.sizeRange.lowerBound),
                             CanvasText.sizeRange.upperBound)
             changed.text = text
-            changed.frame = text.box(at: origin.origin, width: origin.width)
+            changed.frame = Self.kept(text.box(at: origin.origin, width: origin.width))
             return changed
         }
         let width = max(60, origin.width * magnification)
         let height = width * (origin.height / max(origin.width, 1))
-        changed.frame = CGRect(x: origin.midX - width / 2, y: origin.midY - height / 2,
-                               width: width, height: height)
+        changed.frame = Self.kept(CGRect(x: origin.midX - width / 2, y: origin.midY - height / 2,
+                                         width: width, height: height))
         return changed
     }
 }

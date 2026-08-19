@@ -205,7 +205,9 @@ final class CanvasSession: Identifiable {
     }
 
     /// 손을 뗐다 — 자리와, 두 손가락이 바꾼 글까지 **한 칸으로** 앉힌다.
+    /// **`frame`은 이미 `LiveTransform.kept`를 지난 값이어야 한다.**
     func update(_ id: UUID, frame: CGRect, rotation: Double, text: CanvasText? = nil) {
+        // ⚠️ 여기서 다시 붙들면 되돌리기 복원이 예전 문서의 자리를 조용히 고쳐 쓴다.
         change {
             guard let index = $0[pageIndex].elements.firstIndex(where: { $0.id == id }) else { return }
             $0[pageIndex].elements[index].frame = frame

@@ -21,6 +21,7 @@ struct MomentDetailScreen: View {
     /// 머리가 얼마나 줄었나. 0이면 펼침, 1이면 접힘.
     @State private var collapse: Double = 0
     @State private var viewing: PhotoRun?
+    @State private var explainsMissing = false
 
     var body: some View {
         // ⚠️ **머리를 겹쳐 띄운다** — 나란히 쌓으면 콘텐츠가 머리 아래로 지나가지 못해
@@ -74,10 +75,13 @@ struct MomentDetailScreen: View {
                 .lineLimit(1)
                 .collapsingLargeTitle(collapse)
 
-            Text(Wording.counts(photos: moment.photoCount, scenes: moment.sceneCount))
-                .font(Typography.subtitle)
-                .foregroundStyle(Palette.secondaryLabel)
-                .collapsingSummary(collapse)
+            HStack(spacing: 6) {
+                Text(Wording.counts(photos: moment.photoCount, scenes: moment.sceneCount))
+                    .font(Typography.subtitle)
+                    .foregroundStyle(Palette.secondaryLabel)
+                missingMark
+            }
+            .collapsingSummary(collapse)
         }
         .padding(.top, 12)
         .padding(.bottom, 10)
@@ -85,6 +89,38 @@ struct MomentDetailScreen: View {
         .padding(.trailing, Spacing.screenMargin)
         .readableWidth()
         .headerScrim()
+    }
+
+    /// `05-N4` — 원본을 끝내 못 받은 사진이 있을 때만 선다 (`R8`).
+    @ViewBuilder
+    private var missingMark: some View {
+        // ⚠️ 활자로 세운다 — lucide에 맞는 글리프가 없다. 생기면 갈아 끼운다.
+        let count = library.missingOriginalCount(in: moment)
+        if count > 0 {
+            Button { explainsMissing = true } label: {
+                Text(verbatim: "!")
+                    .font(Typography.sectionLabel)
+                    .foregroundStyle(Palette.accent)
+                    .frame(width: 18, height: 18)
+                    .overlay(Circle().strokeBorder(Palette.accent, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Wording.missingOriginalsLabel)
+            .popover(isPresented: $explainsMissing) {
+                // ⚠️ **폭을 주고 세로로 자라게 해야 한다** — 안 주면 팝오버가 제 크기를 못 잡아
+                // 두 줄째부터 잘린다 (2026-08-19 실기기).
+                Text(Wording.missingOriginals(count))
+                    .font(Typography.subtitle)
+                    .foregroundStyle(Palette.onCallout)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(width: 240, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .presentationBackground(Palette.calloutSurface)
+                    .presentationCompactAdaptation(.popover)
+            }
+        }
     }
 
     /// `05-N1` — **iPhone만.** iPad 2단은 지면을 갈아끼우므로 되돌아갈 자리가 없다.
@@ -168,6 +204,7 @@ struct MomentDetailScreen: View {
             .contentShape(.rect)
             .onTapGesture { viewing = Self.run(for: cell, in: cells) }
             .overlay(alignment: .topLeading) { badge(cell) }
+            .overlay(alignment: .topTrailing) { missingBadge(cell) }
     }
 
     /// `05-G2` — **어포던스가 아니라 정보다.** 탭 대상이 셀 전체라 배지를 누를 일이 없고,
@@ -176,6 +213,16 @@ struct MomentDetailScreen: View {
     private func badge(_ cell: Cell) -> some View {
         if cell.scene.count > 1 {
             BurstBadge(count: cell.scene.count).padding(8)
+        }
+    }
+
+    /// `05-G5` — 이 셀에 원본을 못 받은 사진이 있다 (`R8`).
+    /// **설명은 안 진다** — 왜인지는 머리의 `05-N4`가 한 번만 말한다.
+    @ViewBuilder
+    private func missingBadge(_ cell: Cell) -> some View {
+        let count = cell.scene.count(where: library.missingOriginals.contains)
+        if count > 0 {
+            MissingBadge(count: count).padding(8)
         }
     }
 
@@ -255,6 +302,26 @@ private struct BurstBadge: View {
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
         .background(Palette.photoBadge, in: .rect(cornerRadius: Radius.badge))
+    }
+}
+
+/// `05-G5` 원본 없음 표시 — 연사 배지와 같은 문법이다.
+///
+/// ⚠️ **머리의 표시와 색이 다르다.** 여기는 사진 위라 흰 글자가 유일하게 안전하고, 머리는
+/// 지면 위라 강조색이 「누를 수 있다」를 말한다. 바탕이 다르면 처방도 다르다.
+private struct MissingBadge: View {
+    /// ⚠️ **개수를 진다** — 연사 셀 하나가 여러 장을 대표하므로, 안 지면 머리가 말한 장수와
+    /// 화면의 배지 수가 안 맞는다.
+    let count: Int
+
+    var body: some View {
+        Text(verbatim: count > 1 ? "!\(count)" : "!")
+            .font(Typography.note)
+            .foregroundStyle(Paper.step1)
+            .frame(minWidth: 18)
+            .frame(height: 18)
+            .padding(.horizontal, count > 1 ? 5 : 0)
+            .background(Palette.photoBadge, in: .capsule)
     }
 }
 

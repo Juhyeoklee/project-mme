@@ -74,6 +74,11 @@ enum Palette {
     /// 강조색 면 위의 글자.
     static let onAccent = mode(light: Paper.step1, dark: Paper.step12)
 
+    /// 안내 말풍선 (`05-N4`). ⚠️ **모드를 뒤집는다** — 지면 위에 잠깐 뜨는 것이라 지면과
+    /// 같은 밝기면 떠 있는 것으로 안 읽힌다.
+    static let calloutSurface = mode(light: Paper.step11, dark: Paper.step2)
+    static let onCallout = mode(light: Paper.step2, dark: Paper.step11)
+
     /// `06` — 모드를 따르지 않는 고정 상수다.
     static let viewerBackground = Paper.black
 }

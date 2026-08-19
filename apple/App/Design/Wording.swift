@@ -14,6 +14,13 @@ enum Wording {
     /// `04-E1`.
     static let empty = "아직 사진이 없어요"
 
+    /// `05` 원본을 끝내 못 받은 사진 (`R8`).
+    /// ⚠️ **문구는 잠정이다** — 오류 카피는 `M3`가 정한다.
+    static func missingOriginals(_ count: Int) -> String {
+        "표시된 사진 \(count)장은 원본을 아직 못 받아왔어요.\n나머지는 다 받았고, 원본이 도착하면 순간이 더 정확해져요."
+    }
+    static let missingOriginalsLabel = "원본을 못 받은 사진 있음"
+
     /// `05-G4`.
     static let collapse = "접기"
 
