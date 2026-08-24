@@ -2,6 +2,7 @@
 //
 // ⚠️ 이 객체의 수명은 화면이 아니라 **작업**이다 — `09`에서 승격해 `08`에 도착할 때까지 산다.
 
+#if os(iOS)
 import Foundation
 
 /// `11`이 고치고 있는 캔버스 하나.
@@ -335,3 +336,4 @@ extension CanvasSession {
                              document: canvas, store: store)
     }
 }
+#endif

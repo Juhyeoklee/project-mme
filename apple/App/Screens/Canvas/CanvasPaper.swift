@@ -3,6 +3,7 @@
 // ⚠️ **앱 팔레트가 아니다.** 여기 색은 사용자가 고르는 재료라 모드를 따르지 않는다 —
 // 종이는 다크에서도 종이여야 한다.
 
+#if os(iOS)
 import SwiftUI
 
 /// 종이 4종의 색과 무늬.
@@ -133,3 +134,4 @@ struct CanvasPaperView: View {
         return path
     }
 }
+#endif

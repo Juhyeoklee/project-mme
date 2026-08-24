@@ -47,7 +47,9 @@ struct PhotoAddSheet: View {
             .background(Palette.background)
             .safeAreaInset(edge: .bottom) { toolbar }
             .navigationTitle(Wording.addPhotos)
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(Wording.cancel) { dismiss() }
@@ -57,7 +59,9 @@ struct PhotoAddSheet: View {
         }
         .presentationCornerRadius(Radius.card)
         // 그래버가 아래로 끌기 = `취소`의 유일한 표지다.
+        #if os(iOS)
         .presentationDragIndicator(.visible)
+        #endif
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.size.width
         } action: { contentWidth = max(1, $0 - Spacing.screenMargin * 2) }

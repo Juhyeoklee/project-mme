@@ -1,5 +1,6 @@
 // `11`의 하단 바 — 도구 팔레트와 선택 인스펙터가 같은 껍데기를 쓴다.
 
+#if os(iOS)
 import SwiftUI
 
 /// 하단 바의 껍데기.
@@ -117,3 +118,4 @@ struct InkChip: View {
         .accessibilityLabel(ink.name)
     }
 }
+#endif

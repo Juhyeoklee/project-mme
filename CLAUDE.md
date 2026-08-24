@@ -5,7 +5,7 @@
 ## 읽는 순서
 
 1. `docs/WHY.md` — 왜 이 프로젝트를 이렇게 하는가
-2. `docs/adr/` — 결정 기록. `0001` 모듈 경계 · `0002` 커널 입력 계약 · `0003` 에이전트 워크플로우 · `0004` 분류 신호 · **`0005`~`0010` 탈락 기록**(막다른 길의 표지다 — 같은 길을 다시 검토하기 전에 읽는다) · `0011` 장소 경계 재계산(`0004` 결정 2 (c)를 대체) · `0012` 시스템 사진 피커는 어댑터 패키지 안의 별도 타깃
+2. `docs/adr/` — 결정 기록. `0001` 모듈 경계 · `0002` 커널 입력 계약 · `0003` 에이전트 워크플로우 · `0004` 분류 신호 · **`0005`~`0010` 탈락 기록**(막다른 길의 표지다 — 같은 길을 다시 검토하기 전에 읽는다) · `0011` 장소 경계 재계산(`0004` 결정 2 (c)를 대체) · `0012` 시스템 사진 피커는 어댑터 패키지 안의 별도 타깃 · **`0013` macOS는 같은 앱 타깃에 목적지를 더한다**(플랫폼 분기가 사는 주소를 여기서 정한다)
 3. **구조의 진실은 `apple/Packages/*/Package.swift`다.** 문서의 모듈 목록은 결정 시점의 스냅샷이다
 
 ## 경계 — 한 줄씩 (원문: ADR `0001`)
@@ -23,6 +23,10 @@ swift test --package-path apple/Packages/MomentKernel
 swift test --package-path apple/Packages/PhotoSource
 xcodebuild build -project apple/Moanogi.xcodeproj -scheme Moanogi \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+
+# macOS는 시뮬레이터가 없어 빌드만 돈다 (ADR `0013`)
+xcodebuild build -project apple/Moanogi.xcodeproj -scheme Moanogi \
+  -destination 'platform=macOS,arch=arm64' CODE_SIGNING_ALLOWED=NO
 
 # 앱 테스트는 시뮬레이터를 실제로 띄운다 — generic 목적지로는 안 돈다
 SIM=$(xcrun simctl list devices available | awk '/^-- iOS 2[6-9]/{ok=1;next} /^--/{ok=0} ok && /iPhone/{gsub(/ \(.*/,"");gsub(/^ +/,"");n=$0} END{print n}')

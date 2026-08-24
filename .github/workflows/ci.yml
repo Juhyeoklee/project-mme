@@ -34,6 +34,15 @@ jobs:
           -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO
 
+      # macOS는 시뮬레이터가 없어 빌드만 돈다 (ADR 0013 결정 5).
+      - name: Build app (macOS)
+        run: >
+          xcodebuild build
+          -project apple/Moanogi.xcodeproj
+          -scheme Moanogi
+          -destination 'platform=macOS,arch=arm64'
+          CODE_SIGNING_ALLOWED=NO
+
       # 앱 테스트는 시뮬레이터를 실제로 띄운다 — generic 목적지로는 안 돈다.
       # 기기 이름은 러너 이미지마다 다르므로 iOS 26+ 중 마지막 iPhone을 골라 쓴다.
       - name: App tests (iOS Simulator)

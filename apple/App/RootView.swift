@@ -26,8 +26,10 @@ struct RootView: View {
     let records: RecordLibrary
     /// 합성 데이터로 편집기를 바로 띄울 때만 채운다.
     var initialEditing: RecordDraft?
+    #if os(iOS)
     /// 합성 데이터로 `11`을 바로 띄운다.
     var initialCanvas: CanvasSession?
+    #endif
     /// 그 편집기 위에 `10` 시트까지 띄운다.
     var opensPhotoAdd = false
     var initialTab: RootTab = .moments
@@ -45,24 +47,36 @@ struct RootView: View {
     @State private var selectedMoment: Moment?
     @State private var selectedRecord: Record?
     @State private var editing: RecordDraft?
+    #if os(iOS)
     /// `11`이 고치고 있는 캔버스. **화면이 아니라 뼈대가 든다** — `09`에서 시작해 `08`에서
     /// 끝나는 작업이라 어느 한 화면보다 오래 산다.
     @State private var canvas: CanvasSession?
+    #endif
     @State private var tab: RootTab
     @State private var recordPath: [Record] = []
 
     init(library: MomentLibrary, records: RecordLibrary, initialEditing: RecordDraft? = nil,
-         initialCanvas: CanvasSession? = nil, opensPhotoAdd: Bool = false,
+         opensPhotoAdd: Bool = false,
          initialTab: RootTab = .moments, opensFirstRecord: Bool = false) {
         self.library = library
         self.records = records
         self.initialEditing = initialEditing
-        self.initialCanvas = initialCanvas
         self.opensPhotoAdd = opensPhotoAdd
         self.initialTab = initialTab
         self.opensFirstRecord = opensFirstRecord
         _tab = State(initialValue: initialTab)
     }
+
+    #if os(iOS)
+    init(library: MomentLibrary, records: RecordLibrary, initialEditing: RecordDraft? = nil,
+         initialCanvas: CanvasSession?, opensPhotoAdd: Bool = false,
+         initialTab: RootTab = .moments, opensFirstRecord: Bool = false) {
+        self.init(library: library, records: records, initialEditing: initialEditing,
+                  opensPhotoAdd: opensPhotoAdd, initialTab: initialTab,
+                  opensFirstRecord: opensFirstRecord)
+        self.initialCanvas = initialCanvas
+    }
+    #endif
 
     var body: some View {
         // ⚠️ **탭을 갈아끼우지 않고 둘 다 살려 둔다** — 갈아끼우면 화면 트리가 통째로 다시
@@ -74,10 +88,12 @@ struct RootView: View {
         .onChange(of: tab) { if tab == .records { records.reload() } }
         .modifier(EditorCover(editing: $editing, library: library, records: records,
                               opensPhotoAdd: opensPhotoAdd, isCompact: sizeClass == .compact))
+        #if os(iOS)
         .fullScreenCover(item: $canvas) { session in
             CanvasScreen(session: session, retryToken: library.generation,
                          onClose: { canvas = nil }, onSaved: arrive)
         }
+        #endif
         .confirmationDialog(Wording.discardTitle, isPresented: isConfirmingExit,
                             titleVisibility: .visible) {
             if editing?.canSave == true {
@@ -91,7 +107,9 @@ struct RootView: View {
         }
         .task {
             if editing == nil { editing = initialEditing }
+            #if os(iOS)
             if canvas == nil { canvas = initialCanvas }
+            #endif
         }
     }
 
@@ -147,6 +165,7 @@ struct RootView: View {
 
     // MARK: - `11` 캔버스
 
+    #if os(iOS)
     /// `09-T 캔버스로 만들기` — 초안을 그대로 들고 캔버스로 넘어간다.
     private func promote(_ draft: RecordDraft) {
         canvas = .opening(draft, in: store)
@@ -165,6 +184,25 @@ struct RootView: View {
         tab = .records
         selectedRecord = record
         if sizeClass == .compact { recordPath = [record] }
+    }
+    #endif
+
+    /// 캔버스가 없는 플랫폼에서는 `nil`이라 `08`의 그 버튼이 죽는다.
+    private var canvasOpener: ((Record) -> Void)? {
+        #if os(iOS)
+        openCanvas
+        #else
+        nil
+        #endif
+    }
+
+    /// 같은 이유로 `09`의 승격 손잡이도 비운다.
+    private func canvasPromoter(_ draft: RecordDraft) -> (() -> Void)? {
+        #if os(iOS)
+        { promote(draft) }
+        #else
+        nil
+        #endif
     }
 
     /// 안 보이는 탭은 자리에 남되 눈과 손과 낭독에서 빠진다.
@@ -242,7 +280,7 @@ struct RootView: View {
         } else if let record = effectiveRecord.wrappedValue {
             RecordDetailScreen(library: library, records: records, record: record,
                                editing: $editing, onRequestDelete: { pendingDelete = $0 },
-                               onOpenCanvas: openCanvas)
+                               onOpenCanvas: canvasOpener)
         } else {
             Color.clear
         }
@@ -279,7 +317,7 @@ struct RootView: View {
         RecordEditorScreen(library: library, draft: draft,
                            initialAddingPhotos: opensPhotoAdd,
                            onRequestDiscard: { pendingExit = {} },
-                           onPromoteToCanvas: { promote(draft) }) {
+                           onPromoteToCanvas: canvasPromoter(draft)) {
             editing = nil
             records.reload()
         }
@@ -318,6 +356,8 @@ private struct EditorCover: ViewModifier {
     let isCompact: Bool
 
     func body(content: Content) -> some View {
+        // macOS는 좁은 판이 없어 이 덮개가 뜰 조건이 원리적으로 없다.
+        #if os(iOS)
         content.fullScreenCover(item: isCompact ? $editing : .constant(nil)) { draft in
             RecordEditorScreen(library: library, draft: draft,
                                initialAddingPhotos: opensPhotoAdd) {
@@ -325,6 +365,9 @@ private struct EditorCover: ViewModifier {
                 records.reload()
             }
         }
+        #else
+        content
+        #endif
     }
 }
 

@@ -1,5 +1,6 @@
 // `11-P` 페이지 레일 — 좌측 목록 ‖ 우측 지금 보는 것.
 
+#if os(iOS)
 import SwiftUI
 
 /// 페이지 썸네일과 `＋`. **현재 페이지는 테라코타 테두리 하나가 말한다.**
@@ -107,3 +108,4 @@ struct CanvasPageRail: View {
         .accessibilityLabel(Wording.addPage)
     }
 }
+#endif

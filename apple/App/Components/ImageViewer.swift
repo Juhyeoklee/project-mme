@@ -45,7 +45,9 @@ struct ImageViewer<Page: View>: View {
                         .tag(position)
                 }
             }
+            #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .never))
+            #endif
             .ignoresSafeArea()
             .scaleEffect(closeScale)
             .offset(y: closeDrag)
@@ -54,7 +56,9 @@ struct ImageViewer<Page: View>: View {
         }
         // ⚠️ 안 비우면 옅어지는 검정 뒤로 부른 화면이 아니라 시스템 배경(라이트에서 흰색)이 나온다.
         .presentationBackground(.clear)
+        #if os(iOS)
         .statusBarHidden(!showsChrome)
+        #endif
         .contentShape(.rect)
         .onTapGesture { showsChrome.toggle() }
         .gesture(closeGesture)

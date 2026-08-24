@@ -1,5 +1,6 @@
 // `11` 캔버스 에디터 — iPad·macOS 전용. 창 전체를 쓴다.
 
+#if os(iOS)
 import SwiftUI
 
 /// 일기장처럼 꾸미는 화면.
@@ -399,3 +400,4 @@ private struct TypingReveal: Equatable {
     let id: UUID?
     let keyboardTop: CGFloat
 }
+#endif

@@ -1,5 +1,6 @@
 // 값 하나를 슬라이더와 스테퍼가 함께 가리킨다 — `11-I3` 글자 크기와 `11-O1` 획 굵기.
 
+#if os(iOS)
 import SwiftUI
 
 /// 슬라이더 + 스테퍼. **둘이 같은 값을 가리킨다** — 대충 맞추는 길과 1씩 맞추는 길이 함께 선다.
@@ -79,3 +80,4 @@ struct CanvasValueSlider: View {
         .accessibilityLabel(delta > 0 ? Wording.increase(name) : Wording.decrease(name))
     }
 }
+#endif

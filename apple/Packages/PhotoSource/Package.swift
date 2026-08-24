@@ -7,8 +7,9 @@ import PackageDescription
 // 이유 없는 간선은 결정 1이 반대하는 것이다. 지우면 컴파일러가 그 방향을 다시 막는다.
 let package = Package(
     name: "PhotoSource",
-    // macOS는 CI가 `swift test`를 macOS로 돌기 때문에 선언한다 — 제품 지원 선언은 `M3`에서 다시 본다.
-    platforms: [.iOS(.v26), .macOS(.v15)],
+    // macOS는 이제 제품 플랫폼이다 — CI가 `swift test`를 호스트로 도는 것과는 별개로,
+    // 앱의 macOS 하한과 같은 값을 든다 (2026-08-21).
+    platforms: [.iOS(.v26), .macOS(.v26)],
     products: [
         .library(name: "PhotoSource", targets: ["PhotoSource"]),
         .library(name: "PhotoSourceUI", targets: ["PhotoSourceUI"]),

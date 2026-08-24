@@ -153,6 +153,7 @@ enum Typography {
     /// 시스템 네비 바가 쓰는 활자를 번들 서체로 바꾼다. **활자만 준다.**
     @MainActor
     static func applyNavigationBar() {
+        #if os(iOS)
         // ⚠️ iOS 26 유리 바는 배경과 색을 무시하고, 배경색을 주면 large title을 통째로 안
         // 그린다(2026-08-11 탐침). large title 화면은 머리를 직접 그리고 여기는 inline만 받는다.
         let appearance = UINavigationBarAppearance()
@@ -167,6 +168,7 @@ enum Typography {
         bar.scrollEdgeAppearance = appearance
         bar.compactAppearance = appearance
         bar.compactScrollEdgeAppearance = appearance
+        #endif
     }
 
     /// `11` 캔버스 활자의 서체 이름. **여기만 UI 서체를 안 쓴다** — 사용자가 고른 글꼴이다.
@@ -287,9 +289,15 @@ enum Glyph {
 
 /// 모드마다 다른 값을 하나로 묶는다.
 private func mode(light: Color, dark: Color) -> Color {
+    #if os(iOS)
     Color(uiColor: UIColor { traits in
         UIColor(traits.userInterfaceStyle == .dark ? dark : light)
     })
+    #else
+    Color(nsColor: NSColor(name: nil) { appearance in
+        NSColor(appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light)
+    })
+    #endif
 }
 
 extension Color {

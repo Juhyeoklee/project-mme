@@ -1,5 +1,6 @@
 // `CAN-09` 굽기 — 페이지 한 장이 기록의 이미지 한 장이 된다.
 
+#if os(iOS)
 import SwiftUI
 
 /// 캔버스 문서를 기록이 보여줄 이미지로 굽는다.
@@ -76,3 +77,4 @@ enum CanvasBaker {
         return photos
     }
 }
+#endif

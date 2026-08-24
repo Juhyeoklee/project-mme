@@ -50,9 +50,16 @@ struct RecordDetailScreen: View {
         .toolbar(.hidden, for: .navigationBar)
         .threadBinding(.detail)
         .safeAreaInset(edge: .bottom) { toolbar }
+        // ⚠️ 위와 같다 — macOS는 덮개가 없어 시트로 뜬다.
+        #if os(iOS)
         .fullScreenCover(item: $flipping) { start in
             FlipThrough(record: shown, store: records.store, start: start.value)
         }
+        #else
+        .sheet(item: $flipping) { start in
+            FlipThrough(record: shown, store: records.store, start: start.value)
+        }
+        #endif
         // ⚠️ **화면 뿌리에 매단다** — iOS 26은 시트를 **매단 뷰**를 앵커로 잡아서, 버튼에 달면
         // iPhone에서까지 팝오버가 된다(2026-08-13 실물). 결정은 화면 전체에 걸린 것이다.
         .confirmationDialog(Wording.deleteRecordTitle, isPresented: $isConfirmingDelete,

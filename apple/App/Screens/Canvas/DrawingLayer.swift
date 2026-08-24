@@ -3,6 +3,7 @@
 // ⚠️ **되돌리기 매니저를 캔버스와 공유한다.** 안 하면 스택이 둘이 되고, `11-N2` 버튼 하나가
 // 어느 쪽을 되돌리는지 사용자가 못 고른다.
 
+#if os(iOS)
 import PencilKit
 import SwiftUI
 
@@ -117,3 +118,4 @@ private final class IsolatedUndoCanvasView: PKCanvasView {
 
     override var undoManager: UndoManager? { isolated }
 }
+#endif

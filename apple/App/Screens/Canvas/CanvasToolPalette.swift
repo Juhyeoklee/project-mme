@@ -1,5 +1,6 @@
 // `11-T` 도구 팔레트 — 8칸. 캔버스를 안 가리도록 지면 위에 뜬다.
 
+#if os(iOS)
 import SwiftUI
 
 /// 캔버스의 도구 여덟.
@@ -93,3 +94,4 @@ struct CanvasToolPalette: View {
         }
     }
 }
+#endif

@@ -72,6 +72,7 @@ enum Fixture {
         return draft
     }()
 
+    #if os(iOS)
     /// `11`을 글이 놓인 채로 연다 — 글꼴 2종과 인스펙터를 눌러보지 않고 관측하는 문.
     @MainActor
     static func canvasWithText(day: CalendarDay) -> CanvasSession? {
@@ -94,6 +95,7 @@ enum Fixture {
                              document: CanvasDocument(pages: [page]),
                              store: records.store)
     }
+    #endif
 
     private static func makeRecords() -> RecordLibrary {
         let root = URL.cachesDirectory.appending(path: "FixtureRecords")

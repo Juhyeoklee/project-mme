@@ -51,11 +51,9 @@ struct MoanogiApp: App {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if usesFixture, arguments.contains("11-text"), let day = Fixture.library.days.first {
-            root(canvas: Fixture.canvasWithText(day: day.date))
+            canvasFixture(withText: true, day: day.date)
         } else if usesFixture, arguments.contains("11"), let day = Fixture.library.days.first {
-            let draft = RecordDraft.from(moment: Fixture.momentWithBurst, day: day.date,
-                                         library: Fixture.library)
-            root(canvas: .opening(draft, in: shownRecords.store))
+            canvasFixture(withText: false, day: day.date)
         } else if usesFixture, arguments.contains("09-mixed") {
             root(editing: Fixture.mixedDraft)
         } else if usesFixture, arguments.contains("10-empty") {
@@ -89,6 +87,22 @@ struct MoanogiApp: App {
         #endif
     }
 
+    /// `-fixture 11` 문. ⚠️ 캔버스가 없는 플랫폼에서는 최상위가 그대로 뜬다.
+    @ViewBuilder
+    private func canvasFixture(withText: Bool, day: CalendarDay) -> some View {
+        #if os(iOS)
+        if withText {
+            root(canvas: Fixture.canvasWithText(day: day))
+        } else {
+            root(canvas: .opening(.from(moment: Fixture.momentWithBurst, day: day,
+                                        library: Fixture.library), in: shownRecords.store))
+        }
+        #else
+        root()
+        #endif
+    }
+
+    #if os(iOS)
     private func root(editing: RecordDraft? = nil, canvas: CanvasSession? = nil,
                       opensPhotoAdd: Bool = false, tab: RootTab = .moments,
                       opensRecord: Bool = false) -> some View {
@@ -96,6 +110,13 @@ struct MoanogiApp: App {
                  initialCanvas: canvas, opensPhotoAdd: opensPhotoAdd, initialTab: tab,
                  opensFirstRecord: opensRecord)
     }
+    #else
+    private func root(editing: RecordDraft? = nil, opensPhotoAdd: Bool = false,
+                      tab: RootTab = .moments, opensRecord: Bool = false) -> some View {
+        RootView(library: shownLibrary, records: shownRecords, initialEditing: editing,
+                 opensPhotoAdd: opensPhotoAdd, initialTab: tab, opensFirstRecord: opensRecord)
+    }
+    #endif
 
     private var shownLibrary: MomentLibrary {
         #if DEBUG

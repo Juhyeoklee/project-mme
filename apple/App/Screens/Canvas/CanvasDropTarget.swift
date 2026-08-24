@@ -3,6 +3,7 @@
 // ⚠️ **스티커 버튼을 만들지 않는다.** `CAN-03`은 자체 세트가 아니라 **받는 면**이다 —
 // 시스템 스티커도 다른 앱의 사진도 이 두 길로 들어온다.
 
+#if os(iOS)
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -118,3 +119,4 @@ private final class PasteReceiverView: UIView {
         }
     }
 }
+#endif

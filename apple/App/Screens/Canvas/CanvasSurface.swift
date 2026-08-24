@@ -3,6 +3,7 @@
 // ⚠️ **여기는 크롬 문법이 꺼진 자리다.** 놓인 사진에 테두리도 그림자도 없다 — 앱 UI가
 // 층을 쌓는 방식과 정반대인 것이 「캔버스 안에 들어왔다」는 신호를 재질만으로 세운다.
 
+#if os(iOS)
 import SwiftUI
 
 /// 캔버스 한 장을 고정 좌표(920×690)로 그린다.
@@ -551,3 +552,4 @@ private struct CanvasSelectionBox: View {
             .contentShape(.circle)
     }
 }
+#endif

@@ -47,10 +47,18 @@ struct MomentDetailScreen: View {
         .toolbar(.hidden, for: .navigationBar)
         .threadBinding(.detail)
         .safeAreaInset(edge: .bottom) { createRecordButton }
+        // ⚠️ macOS에는 전체화면 덮기가 없어 시트가 된다 — **몰입형이 아니다.**
+        #if os(iOS)
         .fullScreenCover(item: $viewing) { run in
             PhotoViewerScreen(library: library, moment: moment,
                               photos: run.photos, start: run.start)
         }
+        #else
+        .sheet(item: $viewing) { run in
+            PhotoViewerScreen(library: library, moment: moment,
+                              photos: run.photos, start: run.start)
+        }
+        #endif
     }
 
     // MARK: - `05-N` 머리

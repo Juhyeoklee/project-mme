@@ -1,5 +1,6 @@
 // `11-I` 선택 인스펙터 — 요소를 고르면 팔레트 자리에 뜬다.
 
+#if os(iOS)
 import SwiftUI
 
 /// 고른 요소에 거는 것들. **자리와 높이가 팔레트와 같다** — 손이 기억한 위치가 안 흔들린다.
@@ -90,3 +91,4 @@ struct CanvasInspector: View {
         .accessibilityLabel(Wording.moreActions)
     }
 }
+#endif

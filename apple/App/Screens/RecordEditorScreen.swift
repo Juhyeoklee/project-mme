@@ -326,7 +326,9 @@ private struct OccurredAtSheet: View {
                     .padding(Spacing.screenMargin)
             }
             .navigationTitle(Wording.editOccurredAt)
+                #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
+                #endif
                 .toolbar {
                     // ⚠️ **활자를 손으로 준다** — 네비 바 버튼은 시스템 외양이 안 덮어 그냥
                     // 두면 SF로 뜨고, 타이틀만 번들 서체라 한 줄 안에서 서체가 둘이 된다.
@@ -343,7 +345,9 @@ private struct OccurredAtSheet: View {
                     }
                 }
         }
+        #if os(iOS)
         .presentationDetents([.medium, .large])
+        #endif
     }
 }
 

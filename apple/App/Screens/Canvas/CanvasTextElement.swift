@@ -1,5 +1,6 @@
 // `11-C4` 캔버스에 쓴 글 — 그리는 법과 재는 법, 그리고 쓰는 동안의 자리.
 
+#if os(iOS)
 import SwiftUI
 
 /// 지금 글을 받고 있는 상자.
@@ -57,3 +58,4 @@ extension CanvasText {
         CGRect(origin: origin, size: CGSize(width: width, height: measure(width: width)))
     }
 }
+#endif

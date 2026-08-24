@@ -1,5 +1,6 @@
 // `11`의 두 손가락 변환 — 이동 · 배율 · 각도. 한 손짓의 세 성분이라 한 좌표계에서 합성한다.
 
+#if os(iOS)
 import SwiftUI
 import UIKit
 
@@ -169,3 +170,4 @@ struct CanvasViewport: Equatable {
         return CGPoint(x: armX * c - armY * s, y: armX * s + armY * c)
     }
 }
+#endif
