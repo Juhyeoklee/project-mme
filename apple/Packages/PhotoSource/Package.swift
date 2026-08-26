@@ -8,7 +8,7 @@ import PackageDescription
 let package = Package(
     name: "PhotoSource",
     // macOS는 이제 제품 플랫폼이다 — CI가 `swift test`를 호스트로 도는 것과는 별개로,
-    // 앱의 macOS 하한과 같은 값을 든다 (2026-08-21).
+    // 앱의 macOS 하한과 같은 값을 든다 (2026-08-24).
     platforms: [.iOS(.v26), .macOS(.v26)],
     products: [
         .library(name: "PhotoSource", targets: ["PhotoSource"]),
