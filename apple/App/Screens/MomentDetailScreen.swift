@@ -16,6 +16,7 @@ struct MomentDetailScreen: View {
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accentSet) private var accentSet
     /// 격자가 놓일 실제 폭. **열 폭을 이 값이 정한다.**
     @State private var contentWidth: CGFloat = 320
     /// 머리가 얼마나 줄었나. 0이면 펼침, 1이면 접힘.
@@ -108,9 +109,9 @@ struct MomentDetailScreen: View {
             Button { explainsMissing = true } label: {
                 Text(verbatim: "!")
                     .font(Typography.sectionLabel)
-                    .foregroundStyle(Palette.accent)
+                    .foregroundStyle(accentSet.accent)
                     .frame(width: 18, height: 18)
-                    .overlay(Circle().strokeBorder(Palette.accent, lineWidth: 1))
+                    .overlay(Circle().strokeBorder(accentSet.accent, lineWidth: 1))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Wording.missingOriginalsLabel)
@@ -138,7 +139,7 @@ struct MomentDetailScreen: View {
             Button { dismiss() } label: {
                 GlyphIcon(Glyph.back)
                     .frame(width: Layout.hitTarget, height: Layout.hitTarget)
-                    .foregroundStyle(Palette.accent)
+                    .foregroundStyle(accentSet.accent)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Wording.back)
@@ -159,14 +160,14 @@ struct MomentDetailScreen: View {
     /// 슬롯이 하나라 `FloatingBar`를 안 쓴다 — 떠 있음은 유리가 지고 카드는 묶음을 진다.
     private var createRecordButton: some View {
         Button { editing.wrappedValue = draft() } label: {
-            // ⚠️ **글리프도 강조색이다** — 성립 조건은 `Chrome.accentTint`가 갖고 있다.
+            // ⚠️ **글리프도 강조색이다** — 성립 조건은 `accentSet.accentTint`가 갖고 있다.
             GlyphIcon(Glyph.createRecord, size: 26)
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(accentSet.accent)
                 .frame(width: Layout.floatingActionDiameter,
                        height: Layout.floatingActionDiameter)
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.tint(Chrome.accentTint).interactive(), in: .circle)
+        .glassEffect(.regular.tint(accentSet.accentTint).interactive(), in: .circle)
         .accessibilityLabel(Wording.createRecord)
         .blocksNearbyTaps()
         .frame(maxWidth: .infinity, alignment: .trailing)

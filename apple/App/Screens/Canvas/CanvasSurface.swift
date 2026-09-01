@@ -42,6 +42,8 @@ struct CanvasSurface: View {
     /// 직전 빈 곳 탭. 두 번째 탭을 여기서 알아본다.
     @State private var lastTap: (at: Date, point: CGPoint, page: UUID)?
 
+    @Environment(\.accentSet) private var accentSet
+
     var body: some View {
         DraftPageContent(session: session, page: session.page, pixels: Layout.gridPixels,
                          retryToken: retryToken, override: live, hidden: typing?.id,
@@ -105,7 +107,7 @@ struct CanvasSurface: View {
             .textFieldStyle(.plain)
             .font(.custom(Typography.canvasFace(text.face, bold: text.isBold), size: text.size))
             .foregroundStyle(text.ink.color)
-            .tint(Palette.accent)
+            .tint(accentSet.accent)
             .focused($isTyping)
             .frame(width: element.frame.width, alignment: .topLeading)
             .rotationEffect(.degrees(element.rotation), anchor: .topLeading)
@@ -499,7 +501,6 @@ private struct CanvasSelectionBox: View {
     let onRotate: (CGSize) -> Void
     let onCommit: () -> Void
 
-    private static let fill = Color(hex: 0xB0552B)
     private static let edge = Color(hex: 0xFFFFFF)
     private static let handle: CGFloat = 12
     private static let rotationHandle: CGFloat = 14
@@ -507,10 +508,12 @@ private struct CanvasSelectionBox: View {
     /// 손가락은 못 닿고 포인터는 닿는 크기.
     private static let touch: CGFloat = 16
 
+    @Environment(\.accentSet) private var accentSet
+
     var body: some View {
         ZStack {
             Rectangle()
-                .strokeBorder(Self.fill, lineWidth: 2 / scale)
+                .strokeBorder(accentSet.selectionFill, lineWidth: 2 / scale)
                 .frame(width: element.frame.width, height: element.frame.height)
                 .allowsHitTesting(false)
             ForEach(CanvasCorner.allCases, id: \.self) { corner in
@@ -531,7 +534,7 @@ private struct CanvasSelectionBox: View {
         let top = -element.frame.height / 2
         return ZStack {
             Rectangle()
-                .fill(Self.fill)
+                .fill(accentSet.selectionFill)
                 .frame(width: 2 / scale, height: Self.neck / scale)
                 .offset(y: top - Self.neck / scale / 2)
                 .allowsHitTesting(false)
@@ -545,7 +548,7 @@ private struct CanvasSelectionBox: View {
 
     private func dot(_ diameter: CGFloat) -> some View {
         Circle()
-            .fill(Self.fill)
+            .fill(accentSet.selectionFill)
             .frame(width: diameter / scale, height: diameter / scale)
             .overlay(Circle().strokeBorder(Self.edge, lineWidth: 2 / scale))
             .frame(width: Self.touch / scale, height: Self.touch / scale)

@@ -12,6 +12,8 @@ struct CanvasPageRail: View {
     /// 무대가 내어 주는 높이. 레일은 내용만큼만 서고 여기서 멈춘다.
     let maxHeight: CGFloat
 
+    @Environment(\.accentSet) private var accentSet
+
     /// 획을 뜨는 배율. 썸네일이 줄어드는 만큼만 뜬다 — 전체 배율로 뜨면 90배 넓은 비트맵이 된다.
     private static let strokeScale =
         3 * Layout.canvasThumbnailWidth / Layout.canvasSize.width
@@ -83,7 +85,7 @@ struct CanvasPageRail: View {
                 .clipShape(.rect(cornerRadius: Radius.thumbnail))
                 .overlay {
                     RoundedRectangle(cornerRadius: Radius.thumbnail)
-                        .strokeBorder(index == session.pageIndex ? Palette.accent : Palette.placeholder,
+                        .strokeBorder(index == session.pageIndex ? accentSet.accent : Palette.placeholder,
                                       lineWidth: index == session.pageIndex ? 2 : 1)
                 }
         }

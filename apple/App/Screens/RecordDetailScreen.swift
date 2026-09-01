@@ -18,6 +18,7 @@ struct RecordDetailScreen: View {
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accentSet) private var accentSet
     /// 사진이 놓일 실제 폭. **높이 상한에 걸리는지를 이 값이 정한다.**
     @State private var contentWidth: CGFloat = 320
     /// 머리가 얼마나 줄었나. 0이면 펼침, 1이면 접힘.
@@ -112,7 +113,7 @@ struct RecordDetailScreen: View {
             Button { dismiss() } label: {
                 GlyphIcon(Glyph.back)
                     .frame(width: Layout.hitTarget, height: Layout.hitTarget)
-                    .foregroundStyle(Palette.accent)
+                    .foregroundStyle(accentSet.accent)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Wording.back)
@@ -130,7 +131,7 @@ struct RecordDetailScreen: View {
         } label: {
             GlyphIcon(Glyph.more)
                 .frame(width: Layout.hitTarget, height: Layout.hitTarget)
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(accentSet.accent)
         }
         .accessibilityLabel(Wording.moreActions)
         .glassEffect(.regular, in: .circle)

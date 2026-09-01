@@ -14,6 +14,8 @@ struct MomentListScreen: View {
     var selection: Binding<Moment?>?
     /// 편집기가 뜰 자리는 `RootView`가 정한다 — 화면은 초안을 넣기만 한다.
     var editing: Binding<RecordDraft?>
+    /// `13`을 여는 길. **뼈대가 진다** — iPhone은 밀고 들어가고 iPad는 창 가운데 판으로 뜬다.
+    var onOpenSettings: () -> Void = {}
 
     /// **한 행의 장수를 이 값이 정한다** — iPad 세로에서 pane이 좁아지면 3장이 안 들어간다.
     @State private var stripWidth: CGFloat = Layout.thumbnail
@@ -21,6 +23,8 @@ struct MomentListScreen: View {
     @State private var collapse: Double = 0
     /// 지금 네비가 말하는 날짜. 접힌 타이틀과 `04-B3`의 대상이 함께 이 값을 본다.
     @State private var topDayIndex = 0
+
+    @Environment(\.accentSet) private var accentSet
 
     var body: some View {
         // ⚠️ **머리를 겹쳐 띄운다** — 나란히 쌓으면 콘텐츠가 머리 아래로 지나가지 못해
@@ -80,7 +84,7 @@ struct MomentListScreen: View {
                 .frame(width: Layout.hitTarget, height: Layout.hitTarget)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(Palette.accent)
+        .foregroundStyle(accentSet.accent)
         .accessibilityLabel(label)
     }
 
@@ -99,11 +103,8 @@ struct MomentListScreen: View {
     }
 
     /// `04-N3` — **설정 진입점은 앱 전체에서 여기 하나다.**
-    /// ⚠️ 갈 화면은 아직 없다. 자리를 지금 세우는 것은 머리의 폭 계산이 그 슬롯을 전제하기 때문이다.
     private var settingsSlot: some View {
-        GlyphIcon(Glyph.settings)
-            .foregroundStyle(Palette.accent)
-            .frame(width: Layout.hitTarget, height: Layout.hitTarget)
+        iconButton(Glyph.settings, label: Wording.settingsTitle) { onOpenSettings() }
     }
 
     /// 헤더가 네비 아래로 지나가면 그 날짜가 「지금 보고 있는 날」이 된다.
@@ -236,12 +237,14 @@ struct MomentListScreen: View {
 private struct ProgressBar: View {
     let value: Double
 
+    @Environment(\.accentSet) private var accentSet
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Palette.placeholder
                 Rectangle()
-                    .fill(Palette.accent)
+                    .fill(accentSet.accent)
                     .frame(width: geometry.size.width * min(max(value, 0), 1))
             }
         }

@@ -21,6 +21,8 @@ struct CanvasValueSlider: View {
     /// 손이 붙어 있는 동안의 값.
     @State private var live: CGFloat?
 
+    @Environment(\.accentSet) private var accentSet
+
     private var shown: CGFloat { live ?? value }
 
     var body: some View {
@@ -37,7 +39,7 @@ struct CanvasValueSlider: View {
                        onChange(live.rounded())
                        self.live = nil
                    })
-                .tint(Palette.accent)
+                .tint(accentSet.accent)
                 .frame(width: Self.sliderWidth)
                 .accessibilityLabel(name)
                 .padding(.trailing, 2)

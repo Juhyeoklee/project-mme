@@ -15,6 +15,11 @@ struct MoanogiApp: App {
     @State private var store = ImageStore(source: AlbumPhotoSource(albumTitle: gameAlbumTitle))
     @State private var records = RecordLibrary(store: .inApplicationSupport)
 
+    /// 사용자가 고른 두 축. ⚠️ **같은 키를 보는 `13`·`13-A`가 고치면 여기가 따라 갱신된다** —
+    /// 값을 아래로 내려보내는 길은 하나고, 위로 올리는 길은 저장소 자신이다.
+    @AppStorage(AppearanceStorage.accentKey) private var accentSet = AccentSet.default
+    @AppStorage(AppearanceStorage.modeKey) private var appearanceMode = AppearanceMode.default
+
     /// ⚠️ 서체 등록은 **첫 렌더보다 먼저** 일어나야 한다 — `.task`에 두면 한 프레임을
     /// 시스템 서체로 그리고 나서 바뀐다.
     init() {
@@ -29,7 +34,11 @@ struct MoanogiApp: App {
                 .environment(shownStore)
                 .environment(\.recordStore, shownRecords.store)
                 .environment(\.originalBytes, shownBytes)
-                .tint(Palette.accent)
+                .environment(\.accentSet, accentSet)
+                // ⚠️ **시스템 컨트롤(스위치·슬라이더·네비 버튼)을 칠하는 유일한 길이다** —
+                // `Color.accentColor`는 이 값을 안 읽는다(2026-08-28 탐침).
+                .tint(accentSet.accent)
+                .preferredColorScheme(appearanceMode.colorScheme)
                 .task { if !usesFixture { library.start() } }
         }
     }
@@ -66,6 +75,12 @@ struct MoanogiApp: App {
             // 사진이 여럿인 순간으로 연다 — 1장짜리로는 격자도 스크롤도 안 보인다.
             root(editing: .from(moment: Fixture.momentWithBurst, day: day.date,
                                 library: Fixture.library))
+        } else if usesFixture, arguments.contains("14") {
+            root(opensDepth: .terms)
+        } else if usesFixture, arguments.contains("13-A") {
+            root(opensDepth: .theme)
+        } else if usesFixture, arguments.contains("13") {
+            root(opensSettings: true)
         } else if usesFixture, arguments.contains("08") {
             root(tab: .records, opensRecord: true)
         } else if usesFixture, arguments.contains("07") {
@@ -105,16 +120,20 @@ struct MoanogiApp: App {
     #if os(iOS)
     private func root(editing: RecordDraft? = nil, canvas: CanvasSession? = nil,
                       opensPhotoAdd: Bool = false, tab: RootTab = .moments,
-                      opensRecord: Bool = false) -> some View {
+                      opensRecord: Bool = false, opensSettings: Bool = false,
+                      opensDepth: SettingsDestination? = nil) -> some View {
         RootView(library: shownLibrary, records: shownRecords, initialEditing: editing,
                  initialCanvas: canvas, opensPhotoAdd: opensPhotoAdd, initialTab: tab,
-                 opensFirstRecord: opensRecord)
+                 opensFirstRecord: opensRecord, opensSettings: opensSettings,
+                 opensDepth: opensDepth)
     }
     #else
     private func root(editing: RecordDraft? = nil, opensPhotoAdd: Bool = false,
-                      tab: RootTab = .moments, opensRecord: Bool = false) -> some View {
+                      tab: RootTab = .moments, opensRecord: Bool = false,
+                      opensSettings: Bool = false, opensDepth: SettingsDestination? = nil) -> some View {
         RootView(library: shownLibrary, records: shownRecords, initialEditing: editing,
-                 opensPhotoAdd: opensPhotoAdd, initialTab: tab, opensFirstRecord: opensRecord)
+                 opensPhotoAdd: opensPhotoAdd, initialTab: tab, opensFirstRecord: opensRecord,
+                 opensSettings: opensSettings, opensDepth: opensDepth)
     }
     #endif
 

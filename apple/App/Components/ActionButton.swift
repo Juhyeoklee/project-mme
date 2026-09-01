@@ -11,6 +11,7 @@ struct PrimaryActionStyle: ButtonStyle {
     private struct Rendered: View {
         let configuration: Configuration
         @Environment(\.isEnabled) private var isEnabled
+        @Environment(\.accentSet) private var accentSet
 
         var body: some View {
             configuration.label
@@ -18,7 +19,7 @@ struct PrimaryActionStyle: ButtonStyle {
                 .foregroundStyle(isEnabled ? Palette.onAccent : Palette.disabled)
                 .padding(.vertical, 9)
                 .padding(.horizontal, 18)
-                .background(isEnabled ? Palette.accent : Palette.surface)
+                .background(isEnabled ? accentSet.accent : Palette.surface)
                 .clipShape(.rect(cornerRadius: Radius.button))
                 .opacity(configuration.isPressed ? 0.7 : 1)
         }
@@ -37,11 +38,12 @@ struct PlainActionStyle: ButtonStyle {
     private struct Rendered: View {
         let configuration: Configuration
         @Environment(\.isEnabled) private var isEnabled
+        @Environment(\.accentSet) private var accentSet
 
         var body: some View {
             configuration.label
                 .font(Typography.label)
-                .foregroundStyle(isEnabled ? Palette.accent : Palette.disabled)
+                .foregroundStyle(isEnabled ? accentSet.accent : Palette.disabled)
                 .padding(.vertical, 9)
                 .padding(.horizontal, 10)
                 .opacity(configuration.isPressed ? 0.5 : 1)

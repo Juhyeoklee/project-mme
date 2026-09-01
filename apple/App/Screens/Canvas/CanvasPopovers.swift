@@ -40,6 +40,8 @@ struct InkOptions: View {
     let onWidth: (CGFloat) -> Void
     let onOpacity: (CGFloat) -> Void
 
+    @Environment(\.accentSet) private var accentSet
+
     var body: some View {
         CanvasPopoverCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -103,7 +105,7 @@ struct InkOptions: View {
                         .frame(width: 28, height: 28)
                         .overlay {
                             Circle().strokeBorder(
-                                candidate == ink ? Palette.accent : Palette.placeholder,
+                                candidate == ink ? accentSet.accent : Palette.placeholder,
                                 lineWidth: candidate == ink ? 2 : 1)
                         }
                 }
@@ -119,6 +121,8 @@ struct InkOptions: View {
 struct PaperPicker: View {
     let session: CanvasSession
 
+    @Environment(\.accentSet) private var accentSet
+
     var body: some View {
         CanvasPopoverCard {
             HStack(spacing: 10) {
@@ -131,7 +135,7 @@ struct PaperPicker: View {
                                 RoundedRectangle(cornerRadius: Radius.thumbnail)
                                     .strokeBorder(
                                         candidate == session.page.paper
-                                            ? Palette.accent : Palette.placeholder,
+                                            ? accentSet.accent : Palette.placeholder,
                                         lineWidth: candidate == session.page.paper ? 2 : 1)
                             }
                     }

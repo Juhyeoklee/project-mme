@@ -102,6 +102,7 @@ private struct Highlighted: ViewModifier {
     let isOn: Bool
     let seed: UInt64
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accentSet) private var accentSet
 
     func body(content: Content) -> some View {
         content.background {
@@ -112,7 +113,7 @@ private struct Highlighted: ViewModifier {
                         Int(seed % UInt64(HighlighterStroke.patterns.count))]
                     ForEach(Array(swipes.enumerated()), id: \.offset) { _, swipe in
                         swipe.path(in: rect)
-                            .fill(Palette.highlighter)
+                            .fill(accentSet.highlighter)
                             .blendMode(scheme == .dark ? .normal : .multiply)
                     }
                 }

@@ -123,7 +123,11 @@ final class MomentLibrary {
         readings.indices.contains(index) ? readings[index].capturedAt : nil
     }
 
+    /// 지금 읽고 있는 앨범 이름. **`13`이 값으로 보인다** — 고르는 길은 아직 없다(`SRC-02`).
+    let albumTitle: String
+
     init(albumTitle: String, settings: Settings = .default) {
+        self.albumTitle = albumTitle
         self.source = AlbumPhotoSource(albumTitle: albumTitle)
         self.settings = settings
     }

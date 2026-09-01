@@ -30,54 +30,53 @@ enum Paper {
 
 /// 시맨틱 색. **위계는 단조롭다** — 라이트에서는 진해질수록, 다크에서는 밝아질수록 활성.
 enum Palette {
-    static let background = mode(light: Paper.step2, dark: Paper.step12)
-    /// 셀 배경 · 담는 칸 · 시트 안.
-    static let surface = mode(light: Paper.step3, dark: Paper.step11)
+    static let background = Color.mode(light: Paper.step2, dark: Paper.step12)
+    /// 셀 배경 · 담는 칸 · 입력 · `+N` 칸.
+    /// ⚠️ **다크에서 `pane`보다 한 단 밝아야 한다** — 같은 값이면 지면에 묻힌다.
+    static let surface = Color.mode(light: Paper.step3, dark: Paper.step10)
     /// 사진 자리 · 스켈레톤 · 구분선 · 진행 트랙.
-    static let placeholder = mode(light: Paper.step4, dark: Paper.step10)
-    /// ⚠️ **쓰는 곳이 없다.**
-    static let active = mode(light: Paper.step5, dark: Paper.step9)
+    static let placeholder = Color.mode(light: Paper.step4, dark: Paper.step10)
+    /// 면 위의 구분선 · 연사 펼침 띠 · 토글 OFF 트랙.
+    /// ⚠️ **`listSurface` 위에서는 `placeholder`를 쓸 수 없다** — 다크에서 값이 같아 선이 사라진다.
+    static let active = Color.mode(light: Paper.step5, dark: Paper.step9)
 
     /// ⚠️ **`background`와 이름을 합치면 안 되는 자리다.** 라이트에서는 값이 같지만 다크에서는
     /// `background`·`surface`가 **뒤바뀐다** — 규칙은 「지면은 바깥보다 밝다」이고 두 모드에서 같다.
-    static let pane = mode(light: Paper.step2, dark: Paper.step11)
-    static let paneOutside = mode(light: Paper.step3, dark: Paper.step12)
-    /// 실 제본. 다크에서 `active`를 쓰면 지면 위에서 안 읽혀 한 단 올렸다.
-    static let binding = mode(light: Paper.step5, dark: Paper.step8)
+    static let pane = Color.mode(light: Paper.step2, dark: Paper.step11)
+    static let paneOutside = Color.mode(light: Paper.step3, dark: Paper.step12)
+    /// 그림자 없이 **면 색 자신이 경계를 지는** 목록 묶음.
+    /// ⚠️ **`surface`와 값이 열두 칸 전부 같아도 합치지 않는다** — 하는 일이 다르다.
+    static let listSurface = Color.mode(light: Paper.step3, dark: Paper.step10)
 
-    static let label = mode(light: Paper.step12, dark: Paper.step2)
+    /// 실 제본. 다크에서 `active`를 쓰면 지면 위에서 안 읽혀 한 단 올렸다.
+    static let binding = Color.mode(light: Paper.step5, dark: Paper.step8)
+
+    static let label = Color.mode(light: Paper.step12, dark: Paper.step2)
     /// ⚠️ **한 단 어긋난다** — 다크에서 `종이-7`은 바탕 대비 3.25:1로 본문 기준에 못 미친다.
-    static let secondaryLabel = mode(light: Paper.step7, dark: Paper.step6)
-    static let disabled = mode(light: Paper.step6, dark: Paper.step8)
+    static let secondaryLabel = Color.mode(light: Paper.step7, dark: Paper.step6)
+    static let disabled = Color.mode(light: Paper.step6, dark: Paper.step8)
 
     /// 긴 텍스트 입력의 하단 선.
     /// ⚠️ **구분선(`placeholder`)과 값이 다르다** — 그 값은 다크에서 1.19:1이다.
-    static let inputUnderline = mode(light: Paper.step5, dark: Paper.step8)
+    static let inputUnderline = Color.mode(light: Paper.step5, dark: Paper.step8)
 
     /// 베일이 씌워진 사진은 그 기록에 없다.
     /// ⚠️ **`opacity`가 아니라 오버레이다** — `opacity`는 자식 배지까지 흐리게 만든다.
-    static let veil = mode(light: Paper.step2.opacity(0.65), dark: Paper.step12.opacity(0.65))
+    static let veil = Color.mode(light: Paper.step2.opacity(0.65), dark: Paper.step12.opacity(0.65))
     /// 베일 위 작은 칩. 글리프는 `background`.
-    static let badgeSurface = mode(light: Paper.step12.opacity(0.75),
+    static let badgeSurface = Color.mode(light: Paper.step12.opacity(0.75),
                                    dark: Paper.step2.opacity(0.85))
     /// `05-G2` 연사 배지의 바탕. ⚠️ **모드를 따르지 않는다** — 사진 위에 얹히므로 바탕이
     /// 지면이 아니라 사진이다. 글자는 `Paper.step1`.
     static let photoBadge = Paper.black.opacity(0.45)
 
-    /// `04-C1` 형광펜.
-    /// ⚠️ 합성 모드가 모드마다 다르다(라이트 곱하기 · 다크 일반) — 그건 `Highlighter`가 안다.
-    static let highlighter = mode(light: Color(hex: 0xB0552B).opacity(0.28),
-                                  dark: Color(hex: 0xDD8455).opacity(0.38))
-
-    /// 강조색 — 테라코타. 도구 활성 · 주요 액션 · 입력 캐럿.
-    static let accent = mode(light: Color(hex: 0xB0552B), dark: Color(hex: 0xDD8455))
-    /// 강조색 면 위의 글자.
-    static let onAccent = mode(light: Paper.step1, dark: Paper.step12)
+    /// 강조색 면 위의 글자. ⚠️ **벌과 무관하다** — 모드만 탄다.
+    static let onAccent = Color.mode(light: Paper.step1, dark: Paper.step12)
 
     /// 안내 말풍선 (`05-N4`). ⚠️ **모드를 뒤집는다** — 지면 위에 잠깐 뜨는 것이라 지면과
     /// 같은 밝기면 떠 있는 것으로 안 읽힌다.
-    static let calloutSurface = mode(light: Paper.step11, dark: Paper.step2)
-    static let onCallout = mode(light: Paper.step2, dark: Paper.step11)
+    static let calloutSurface = Color.mode(light: Paper.step11, dark: Paper.step2)
+    static let onCallout = Color.mode(light: Paper.step2, dark: Paper.step11)
 
     /// `06` — 모드를 따르지 않는 고정 상수다.
     static let viewerBackground = Paper.black
@@ -89,14 +88,10 @@ enum Palette {
 /// 매핑을 다크에 그대로 넣으면 크롬이 지면 아래로 가라앉는다.
 enum Chrome {
     /// 툴바 · 도구 팔레트. 배경 블러 위에 얹는다.
-    static let floating = mode(light: Paper.step2.opacity(0.9), dark: Paper.step10.opacity(0.9))
-    static let floatingBorder = mode(light: Paper.step1, dark: Paper.step1.opacity(0.15))
+    static let floating = Color.mode(light: Paper.step2.opacity(0.9), dark: Paper.step10.opacity(0.9))
+    static let floatingBorder = Color.mode(light: Paper.step1, dark: Paper.step1.opacity(0.15))
     /// 네비 · 스티키 구분 헤더. 지면 위에 얹히므로 한 단만 올린다.
-    static let header = mode(light: Paper.step2.opacity(0.9), dark: Paper.step11.opacity(0.9))
-
-    /// 카드 없이 홀로 떠 있는 주요 액션의 유리 틴트. ⚠️ **글리프 색과 묶여 있다** —
-    /// 올리면 같은 강조색 글리프가 원판에 섞인다(2026-08-12 실측: 0.5에서 탁해졌다).
-    static let accentTint = Palette.accent.opacity(0.2)
+    static let header = Color.mode(light: Paper.step2.opacity(0.9), dark: Paper.step11.opacity(0.9))
 
     /// 떠 있는 것의 그림자. 색은 팔레트 밖이다.
     static let shadowColor = Color.black.opacity(0.2)
@@ -268,6 +263,8 @@ enum Glyph {
     static let createRecord = "pen-line"
     /// `09-T` iPhone.
     static let save = "check"
+    /// `13-A` 고른 행. ⚠️ **`save`와 같은 자산이어도 이름을 가른다** — 하는 일이 다르다.
+    static let selected = "check"
 
     // MARK: - `11` 캔버스
 
@@ -287,20 +284,20 @@ enum Glyph {
 
 // MARK: - 조각
 
-/// 모드마다 다른 값을 하나로 묶는다.
-private func mode(light: Color, dark: Color) -> Color {
-    #if os(iOS)
-    Color(uiColor: UIColor { traits in
-        UIColor(traits.userInterfaceStyle == .dark ? dark : light)
-    })
-    #else
-    Color(nsColor: NSColor(name: nil) { appearance in
-        NSColor(appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light)
-    })
-    #endif
-}
-
 extension Color {
+    /// 모드마다 다른 값을 하나로 묶는다. **`Design/` 안의 공용 조각이다** — 강조색 여섯 벌도 쓴다.
+    static func mode(light: Color, dark: Color) -> Color {
+        #if os(iOS)
+        Color(uiColor: UIColor { traits in
+            UIColor(traits.userInterfaceStyle == .dark ? dark : light)
+        })
+        #else
+        Color(nsColor: NSColor(name: nil) { appearance in
+            NSColor(appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light)
+        })
+        #endif
+    }
+
     /// `0xRRGGBB`. **`Design/` 밖에서도 쓴다** — 캔버스 종이·잉크는 램프 밖 값이다.
     init(hex: UInt32) {
         self.init(.sRGB,

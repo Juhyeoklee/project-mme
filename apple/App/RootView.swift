@@ -36,6 +36,10 @@ struct RootView: View {
     /// 합성 데이터로 `08`을 바로 띄운다. ⚠️ **탭 안쪽으로 밀어 넣어야 값이 있다** — 밖에서
     /// 띄우면 탭 바가 없는 화면을 보게 되고, 그 조합이 실물과 다르다(2026-08-13).
     var opensFirstRecord = false
+    /// 합성 데이터로 `13`을 바로 연다.
+    var opensSettings = false
+    /// 합성 데이터로 `13` 아래 뎁스를 바로 연다.
+    var opensDepth: SettingsDestination?
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.recordStore) private var store
@@ -54,26 +58,39 @@ struct RootView: View {
     #endif
     @State private var tab: RootTab
     @State private var recordPath: [Record] = []
+    /// `13`이 떠 있는가. **뼈대가 든다** — iPad에서 창 가운데 서야 하고, 그것이 「결정이
+    /// 걸린 범위」가 창이라는 뜻이다(구현 4 규칙).
+    @State private var showsSettings = false
+    /// iPhone에서 `13`으로 밀고 들어간 자리.
+    @State private var settingsPath: [SettingsRoute] = []
+    /// iPad 시트 **안**에서 밀고 들어간 자리. ⚠️ **바깥 경로와 갈라 둔다** — 시트가 닫히면
+    /// 그 안의 깊이도 함께 사라져야 한다.
+    @State private var sheetPath: [SettingsRoute] = []
 
     init(library: MomentLibrary, records: RecordLibrary, initialEditing: RecordDraft? = nil,
          opensPhotoAdd: Bool = false,
-         initialTab: RootTab = .moments, opensFirstRecord: Bool = false) {
+         initialTab: RootTab = .moments, opensFirstRecord: Bool = false,
+         opensSettings: Bool = false, opensDepth: SettingsDestination? = nil) {
         self.library = library
         self.records = records
         self.initialEditing = initialEditing
         self.opensPhotoAdd = opensPhotoAdd
         self.initialTab = initialTab
         self.opensFirstRecord = opensFirstRecord
+        self.opensSettings = opensSettings
+        self.opensDepth = opensDepth
         _tab = State(initialValue: initialTab)
     }
 
     #if os(iOS)
     init(library: MomentLibrary, records: RecordLibrary, initialEditing: RecordDraft? = nil,
          initialCanvas: CanvasSession?, opensPhotoAdd: Bool = false,
-         initialTab: RootTab = .moments, opensFirstRecord: Bool = false) {
+         initialTab: RootTab = .moments, opensFirstRecord: Bool = false,
+         opensSettings: Bool = false, opensDepth: SettingsDestination? = nil) {
         self.init(library: library, records: records, initialEditing: initialEditing,
                   opensPhotoAdd: opensPhotoAdd, initialTab: initialTab,
-                  opensFirstRecord: opensFirstRecord)
+                  opensFirstRecord: opensFirstRecord, opensSettings: opensSettings,
+                  opensDepth: opensDepth)
         self.initialCanvas = initialCanvas
     }
     #endif
@@ -94,6 +111,24 @@ struct RootView: View {
                          onClose: { canvas = nil }, onSaved: arrive)
         }
         #endif
+        // ⚠️ **iPad에서만 뜬다** — iPhone은 밀고 들어간다. 시스템 폼 시트가 창 가운데
+        // 540으로 서는 것이 곧 화면설계가 정한 폭이다.
+        .sheet(isPresented: $showsSettings, onDismiss: { sheetPath = [] }) {
+            NavigationStack(path: $sheetPath) {
+                SettingsScreen(sourceName: library.albumTitle,
+                               onClose: { showsSettings = false },
+                               onOpen: { sheetPath.append(SettingsRoute($0)) })
+                    .navigationDestination(for: SettingsRoute.self) { route in
+                        switch route {
+                        case .theme: ThemeScreen(isInSheet: true)
+                        case .terms: LegalScreen(document: Wording.terms, isInSheet: true)
+                        case .privacy: LegalScreen(document: Wording.privacy, isInSheet: true)
+                        case .settings: EmptyView()
+                        }
+                    }
+            }
+            .presentationBackground(Palette.pane)
+        }
         .confirmationDialog(Wording.discardTitle, isPresented: isConfirmingExit,
                             titleVisibility: .visible) {
             if editing?.canSave == true {
@@ -106,6 +141,15 @@ struct RootView: View {
             Button(Wording.delete, role: .destructive) { confirmDelete() }
         }
         .task {
+            if opensSettings || opensDepth != nil {
+                let depth = opensDepth.map(SettingsRoute.init)
+                if sizeClass == .regular {
+                    showsSettings = true
+                    sheetPath = depth.map { [$0] } ?? []
+                } else {
+                    settingsPath = [.settings] + (depth.map { [$0] } ?? [])
+                }
+            }
             if editing == nil { editing = initialEditing }
             #if os(iOS)
             if canvas == nil { canvas = initialCanvas }
@@ -222,17 +266,34 @@ struct RootView: View {
         if sizeClass == .regular {
             twoPanes(list: MomentListScreen(library: library,
                                             selection: guardingEditor(effectiveMoment),
-                                            editing: $editing),
+                                            editing: $editing,
+                                            onOpenSettings: { showsSettings = true }),
                      detail: momentPane)
         } else {
-            NavigationStack {
-                MomentListScreen(library: library, selection: nil, editing: $editing)
+            NavigationStack(path: $settingsPath) {
+                MomentListScreen(library: library, selection: nil, editing: $editing,
+                                 onOpenSettings: { settingsPath.append(.settings) })
                     .tabBar(selection: $tab)
                     .navigationDestination(for: Moment.self) { moment in
                         // 뒤로 버튼은 시스템이 붙여준다. iPad는 pane 교체라 안 붙어 분기가 없다.
                         MomentDetailScreen(library: library, moment: moment, editing: $editing)
                     }
+                    .navigationDestination(for: SettingsRoute.self) { route in
+                        settingsDestination(route)
+                    }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func settingsDestination(_ route: SettingsRoute) -> some View {
+        switch route {
+        case .settings:
+            SettingsScreen(sourceName: library.albumTitle,
+                           onOpen: { settingsPath.append(SettingsRoute($0)) })
+        case .theme: ThemeScreen()
+        case .terms: LegalScreen(document: Wording.terms)
+        case .privacy: LegalScreen(document: Wording.privacy)
         }
     }
 
@@ -388,6 +449,7 @@ private struct RootTabBar: View {
     @Binding var selection: RootTab
 
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accentSet) private var accentSet
 
     var body: some View {
         HStack(spacing: 8) {
@@ -410,12 +472,12 @@ private struct RootTabBar: View {
     private func word(_ tab: RootTab) -> some View {
         Text(tab.title)
             .font(Typography.tabLabel)
-            .foregroundStyle(selection == tab ? Palette.accent : Palette.secondaryLabel)
+            .foregroundStyle(selection == tab ? accentSet.accent : Palette.secondaryLabel)
             .background {
                 // ⚠️ **긋는 쪽에만 애니메이션이 있다** — 지우는 쪽에도 걸면 획 둘이 동시에
                 // 움직여 어느 쪽을 고른 것인지가 그 동안 흐려진다.
                 HighlighterSweep(drawn: selection == tab ? 1 : 0)
-                    .fill(Palette.highlighter)
+                    .fill(accentSet.glassHighlighter)
                     .blendMode(scheme == .dark ? .normal : .multiply)
                     .animation(selection == tab ? .easeOut(duration: 0.35) : nil,
                                value: selection)
@@ -423,5 +485,21 @@ private struct RootTabBar: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 6)
             .contentShape(.rect)
+    }
+}
+
+/// `13` 아래로 밀고 들어가는 자리. **iPhone에서만 쓴다** — iPad는 시트 안에서 갈린다.
+private enum SettingsRoute: Hashable {
+    case settings
+    case theme
+    case terms
+    case privacy
+
+    init(_ destination: SettingsDestination) {
+        switch destination {
+        case .theme: self = .theme
+        case .terms: self = .terms
+        case .privacy: self = .privacy
+        }
     }
 }

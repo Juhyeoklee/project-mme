@@ -62,6 +62,71 @@ enum Wording {
     /// `09-N4`.
     static let moreActions = "더보기"
 
+    // MARK: - `13` 설정
+
+    /// `13-N1`이자 `04-N3`의 낭독 이름.
+    static let settingsTitle = "설정"
+    static let sourceRow = "소스"
+    static let themeRow = "테마"
+    static let termsRow = "이용약관"
+    static let privacyRow = "개인정보 처리방침"
+    static let versionRow = "버전"
+    /// `13-L1` — **비활성이다.** 눌러서 도달할 곳이 `M3`에는 없다.
+    static let signInRow = "로그인"
+    /// `13-F` 계정 슬롯. ⚠️ **계정 상태가 바뀌면 이 자리의 내용이 바뀐다.**
+    static let accountUnavailable = ["로그인은 추후 제공 예정이에요", "계정 없이도 전부 쓸 수 있어요"]
+
+    // MARK: - `14` 약관 · 개인정보 처리방침
+
+    /// ⚠️ **잠정 문안이다** — 실제 조항은 배포 앞에 확정한다.
+    /// ⚠️ **화면에 뜨는 줄이라 앱 말투다** — 이모지와 내부 어휘를 안 쓴다.
+    static let provisionalNotice = "아직 확정된 문안이 아니에요"
+    static let effectiveDate = "시행일 2026년 0월 0일"
+
+    static let terms = LegalDocument(title: termsRow, clauses: [
+        .init(heading: "제1조 (목적)",
+              body: "이 약관은 모아노기가 제공하는 서비스의 이용 조건과 절차, 이용자와 서비스의 권리·의무를 정하는 것을 목적으로 합니다."),
+        .init(heading: "제2조 (사진과 저장)",
+              body: "서비스는 기기에 있는 사진을 읽기만 하며 원본을 바꾸거나 지우지 않습니다. 기록으로 남기기로 한 사진만 서비스가 복사해 보관합니다."),
+        .init(heading: "제3조 (계정)",
+              body: "계정 없이 서비스를 이용할 수 있습니다. 만든 기록을 다른 사람에게 보여줄 때 계정이 필요합니다."),
+    ])
+
+    /// ⚠️ **약관과 같이 잠정이다.**
+    static let privacy = LegalDocument(title: privacyRow, clauses: [
+        .init(heading: "제1조 (수집하지 않는 것)",
+              body: "당신의 스크린샷은 기기를 떠나지 않습니다. 기록으로 남기기로 한 것만 서비스에 올라갑니다."),
+        .init(heading: "제2조 (네트워크)",
+              body: "정리하고 기록하는 데 인터넷이 필요 없습니다. 네트워크는 남에게 보여줄 때만 씁니다."),
+        .init(heading: "제3조 (공개)",
+              body: "기본은 비공개입니다. 공개는 당신이 누를 때만 일어납니다."),
+    ])
+
+    // MARK: - `13-A` 테마
+
+    static let appearanceModeSection = "화면 모드"
+    static let accentSection = "포인트 컬러"
+
+    static func appearanceMode(_ mode: AppearanceMode) -> String {
+        switch mode {
+        case .system: "시스템 따름"
+        case .light: "라이트"
+        case .dark: "다크"
+        }
+    }
+
+    /// ⚠️ **화면에 안 쓴다 — 낭독 이름이다.** 색은 눈으로 고르므로 이름이 하는 일이 없다.
+    static func accentLabel(_ set: AccentSet) -> String {
+        switch set {
+        case .terracotta: "테라코타"
+        case .burgundy: "버건디"
+        case .navy: "먹빛남색"
+        case .olive: "이끼 올리브"
+        case .ginkgo: "은행잎"
+        case .rose: "장미"
+        }
+    }
+
     // MARK: - 기록 만들기
 
     static let createRecord = "기록 만들기"
@@ -177,4 +242,16 @@ enum Wording {
     private static func twoDigits(_ value: Int) -> String {
         value < 10 ? "0\(value)" : "\(value)"
     }
+}
+
+/// 긴 글 한 판이 그리는 것. **화면은 이 값을 그리기만 한다** — 실제 조항이 확정돼도
+/// `Wording`만 갈면 되고 화면은 안 바뀐다.
+struct LegalDocument {
+    struct Clause {
+        let heading: String
+        let body: String
+    }
+
+    let title: String
+    let clauses: [Clause]
 }

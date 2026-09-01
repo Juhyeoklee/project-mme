@@ -13,9 +13,9 @@ enum PaneSide {
 }
 
 extension View {
-    /// 지면 바탕. iPad 2단에서는 `지면`, iPhone에서는 `바탕`이다.
+    /// 지면 바탕. **기기를 안 가린다** — 화면 배경은 어디서나 `지면`이다.
     func paneBackground() -> some View {
-        modifier(PaneBackground())
+        background(Palette.pane)
     }
 
     /// 실 제본을 지면 왼쪽에 흘린다.
@@ -44,16 +44,6 @@ extension View {
 }
 
 // MARK: - 조각
-
-/// ⚠️ **iPad 2단에서 `바탕`을 칠하면 안 된다** — 다크에서 지면과 바깥이 같은 값이 되어
-/// 두 장의 종이가 통째로 안 보인다.
-private struct PaneBackground: ViewModifier {
-    @Environment(\.horizontalSizeClass) private var sizeClass
-
-    func body(content: Content) -> some View {
-        content.background(sizeClass == .regular ? Palette.pane : Palette.background)
-    }
-}
 
 /// ⚠️ **iPad 2단에서는 사이드바 안쪽 하나뿐이다** — 떠 있는 사이드바에 분할선이 없어 좌우
 /// 대칭을 만들 필요가 없다. 그래서 상세 지면은 iPhone에서만 긋는다.

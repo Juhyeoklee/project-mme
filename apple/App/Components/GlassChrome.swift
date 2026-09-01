@@ -81,7 +81,7 @@ private enum Scrim {
     /// 높이를 줄이면 그 자리가 잘린 선으로 보인다 (2026-08-11 실물).
     static let stops: [Gradient.Stop] = stride(from: 0.0, through: 1.0, by: 1.0 / 12).map {
         // smoothstep을 뒤집은 것 — 1에서 시작해 0으로, 양 끝이 평평하다.
-        Gradient.Stop(color: Palette.background.opacity(1 - $0 * $0 * (3 - 2 * $0)),
+        Gradient.Stop(color: Palette.pane.opacity(1 - $0 * $0 * (3 - 2 * $0)),
                       location: $0)
     }
 }

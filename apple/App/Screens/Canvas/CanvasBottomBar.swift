@@ -46,13 +46,15 @@ struct CanvasBarGlyph: View {
     let glyph: String
     var isActive = false
 
+    @Environment(\.accentSet) private var accentSet
+
     var body: some View {
         GlyphIcon(glyph, size: CanvasBarButton.glyphSize)
             .foregroundStyle(isActive ? Palette.onAccent : Palette.label)
             .frame(width: CanvasBarButton.width, height: CanvasBarButton.height)
             .background {
                 if isActive {
-                    RoundedRectangle(cornerRadius: Radius.button).fill(Palette.accent)
+                    RoundedRectangle(cornerRadius: Radius.button).fill(accentSet.accent)
                 }
             }
     }
@@ -69,6 +71,8 @@ struct CanvasBarSegment: View {
     var isEnabled = true
     let action: () -> Void
 
+    @Environment(\.accentSet) private var accentSet
+
     var body: some View {
         Button(action: action) {
             Text(label)
@@ -78,7 +82,7 @@ struct CanvasBarSegment: View {
                 .frame(height: 36)
                 .background {
                     if isActive {
-                        RoundedRectangle(cornerRadius: Radius.button).fill(Palette.accent)
+                        RoundedRectangle(cornerRadius: Radius.button).fill(accentSet.accent)
                     }
                 }
         }

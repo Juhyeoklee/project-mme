@@ -44,6 +44,7 @@ struct RecordEditorScreen: View {
     @Environment(\.recordStore) private var store
     @Environment(\.originalBytes) private var originalBytes
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.accentSet) private var accentSet
 
     var body: some View {
         content.measuresContentWidth($contentWidth)
@@ -109,7 +110,7 @@ struct RecordEditorScreen: View {
                     } label: {
                         GlyphIcon(Glyph.more)
                             .frame(width: Layout.hitTarget, height: Layout.hitTarget)
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(accentSet.accent)
                     }
                     .accessibilityLabel(Wording.moreActions)
                     .glassEffect(.regular, in: .circle)
@@ -227,7 +228,7 @@ struct RecordEditorScreen: View {
             .padding(.bottom, 12)
             .overlay(alignment: .bottom) {
                 Rectangle()
-                    .fill(captionFocused ? Palette.accent : Palette.inputUnderline)
+                    .fill(captionFocused ? accentSet.accent : Palette.inputUnderline)
                     .frame(height: 1)
             }
             .padding(.leading, leadingMargin)
@@ -272,13 +273,13 @@ struct RecordEditorScreen: View {
     private var saveAction: some View {
         Button { Task { await save(status: .published) } } label: {
             GlyphIcon(Glyph.save, size: 26)
-                .foregroundStyle(draft.canSave ? Palette.accent : Palette.disabled)
+                .foregroundStyle(draft.canSave ? accentSet.accent : Palette.disabled)
                 .frame(width: Layout.floatingActionDiameter,
                        height: Layout.floatingActionDiameter)
         }
         .buttonStyle(.plain)
         .disabled(!draft.canSave)
-        .glassEffect(draft.canSave ? .regular.tint(Chrome.accentTint).interactive() : .regular,
+        .glassEffect(draft.canSave ? .regular.tint(accentSet.accentTint).interactive() : .regular,
                      in: .circle)
         .accessibilityLabel(Wording.save)
         .blocksNearbyTaps()
