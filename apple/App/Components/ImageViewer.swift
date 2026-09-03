@@ -98,8 +98,7 @@ struct ImageViewer<Page: View>: View {
                 .font(Typography.subtitle)
                 .padding(.bottom, Spacing.screenMargin)
         }
-        // 뷰어 크롬의 글자는 모드를 따르지 않는다 — 배경이 늘 검정이다.
-        .foregroundStyle(Paper.step2)
+        .foregroundStyle(Palette.onViewer)
         .padding(.top, Spacing.momentGap)
     }
 

@@ -307,7 +307,7 @@ private struct BurstBadge: View {
             Text("\(count)")
                 .font(Typography.note)
         }
-        .foregroundStyle(Paper.step1)
+        .foregroundStyle(Palette.onPhotoBadge)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
         .background(Palette.photoBadge, in: .rect(cornerRadius: Radius.badge))
@@ -326,7 +326,7 @@ private struct MissingBadge: View {
     var body: some View {
         Text(verbatim: count > 1 ? "!\(count)" : "!")
             .font(Typography.note)
-            .foregroundStyle(Paper.step1)
+            .foregroundStyle(Palette.onPhotoBadge)
             .frame(minWidth: 18)
             .frame(height: 18)
             .padding(.horizontal, count > 1 ? 5 : 0)

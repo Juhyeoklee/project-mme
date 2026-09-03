@@ -501,7 +501,6 @@ private struct CanvasSelectionBox: View {
     let onRotate: (CGSize) -> Void
     let onCommit: () -> Void
 
-    private static let edge = Color(hex: 0xFFFFFF)
     private static let handle: CGFloat = 12
     private static let rotationHandle: CGFloat = 14
     private static let neck: CGFloat = 26
@@ -550,7 +549,7 @@ private struct CanvasSelectionBox: View {
         Circle()
             .fill(accentSet.selectionFill)
             .frame(width: diameter / scale, height: diameter / scale)
-            .overlay(Circle().strokeBorder(Self.edge, lineWidth: 2 / scale))
+            .overlay(Circle().strokeBorder(Palette.selectionEdge, lineWidth: 2 / scale))
             .frame(width: Self.touch / scale, height: Self.touch / scale)
             .contentShape(.circle)
     }

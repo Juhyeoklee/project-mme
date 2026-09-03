@@ -1,15 +1,10 @@
 // 디자인 토큰. **여기서 값을 발명하지 않는다** — 이름은 크기가 아니라 역할이고,
-// 치수는 `Layout.swift`가 따로 든다.
-//
-// 층이 둘인데 **비대칭이다** — 뉴트럴만 원시값 램프를 갖고 강조색은 시맨틱이 값을 직접 든다.
+// 치수는 `Layout.swift`가 따로 든다. 왜 이 값인가는 토큰 문서가 진다.
 
 import CoreText
 import SwiftUI
 
-/// 원시값 — 「종이」 램프 12단 + 램프 밖 상수 하나.
-///
-/// ⚠️ **라이트와 다크가 같은 램프를 반대 방향에서 읽는다** — 바탕과 글자가 2 ↔ 12로 자리를
-/// 맞바꾼다. 두 벌을 따로 관리하지 않는다.
+/// 원시값 — 「종이」 램프 12단.
 enum Paper {
     static let step1 = Color(hex: 0xFFFFFF)
     static let step2 = Color(hex: 0xFBF8F3)
@@ -17,121 +12,91 @@ enum Paper {
     static let step4 = Color(hex: 0xE6DFD3)
     static let step5 = Color(hex: 0xD3CBBC)
     static let step6 = Color(hex: 0xAFA89A)
-    /// 라이트 `보조 글자`. `면` 위 4.5:1이 하한이고 이 값은 4.93이다.
     static let step7 = Color(hex: 0x6C655B)
     static let step8 = Color(hex: 0x57514A)
     static let step9 = Color(hex: 0x3E3A35)
     static let step10 = Color(hex: 0x2C2925)
     static let step11 = Color(hex: 0x201D1A)
     static let step12 = Color(hex: 0x141210)
-    /// 램프 밖 고정 상수 — `06` 뷰어.
-    static let black = Color(hex: 0x000000)
 }
 
-/// 시맨틱 색. **위계는 단조롭다** — 라이트에서는 진해질수록, 다크에서는 밝아질수록 활성.
+/// 시맨틱 색. **전부 `Color.mode`다** — 모드를 안 따르는 것도 문법이 아니라
+/// **두 슬롯의 같은 값**으로 말한다. 은행잎(`AccentSet`)과 같다.
+/// ⚠️ **값이 같은 이름을 합치지 마라** — 하는 일이 다르면 값이 갈리는 날이 온다.
 enum Palette {
     static let background = Color.mode(light: Paper.step2, dark: Paper.step12)
-    /// 셀 배경 · 담는 칸 · 입력 · `+N` 칸.
-    /// ⚠️ **다크에서 `pane`보다 한 단 밝아야 한다** — 같은 값이면 지면에 묻힌다.
     static let surface = Color.mode(light: Paper.step3, dark: Paper.step10)
-    /// 사진 자리 · 스켈레톤 · 구분선 · 진행 트랙.
     static let placeholder = Color.mode(light: Paper.step4, dark: Paper.step10)
-    /// 면 위의 구분선 · 연사 펼침 띠 · 토글 OFF 트랙.
-    /// ⚠️ **`listSurface` 위에서는 `placeholder`를 쓸 수 없다** — 다크에서 값이 같아 선이 사라진다.
     static let active = Color.mode(light: Paper.step5, dark: Paper.step9)
 
-    /// ⚠️ **`background`와 이름을 합치면 안 되는 자리다.** 라이트에서는 값이 같지만 다크에서는
-    /// `background`·`surface`가 **뒤바뀐다** — 규칙은 「지면은 바깥보다 밝다」이고 두 모드에서 같다.
     static let pane = Color.mode(light: Paper.step2, dark: Paper.step11)
     static let paneOutside = Color.mode(light: Paper.step3, dark: Paper.step12)
-    /// 그림자 없이 **면 색 자신이 경계를 지는** 목록 묶음.
-    /// ⚠️ **`surface`와 값이 열두 칸 전부 같아도 합치지 않는다** — 하는 일이 다르다.
+    /// ⚠️ **`surface`와 값이 같아도 합치지 마라** — 하는 일이 다르다.
     static let listSurface = Color.mode(light: Paper.step3, dark: Paper.step10)
 
-    /// 실 제본. 다크에서 `active`를 쓰면 지면 위에서 안 읽혀 한 단 올렸다.
     static let binding = Color.mode(light: Paper.step5, dark: Paper.step8)
 
     static let label = Color.mode(light: Paper.step12, dark: Paper.step2)
-    /// ⚠️ **한 단 어긋난다** — 다크에서 `종이-7`은 바탕 대비 3.25:1로 본문 기준에 못 미친다.
     static let secondaryLabel = Color.mode(light: Paper.step7, dark: Paper.step6)
     static let disabled = Color.mode(light: Paper.step6, dark: Paper.step8)
 
-    /// 긴 텍스트 입력의 하단 선.
-    /// ⚠️ **구분선(`placeholder`)과 값이 다르다** — 그 값은 다크에서 1.19:1이다.
+    /// ⚠️ **`binding`과 값이 같아도 합치지 마라** — 하는 일이 다르다.
     static let inputUnderline = Color.mode(light: Paper.step5, dark: Paper.step8)
 
-    /// 베일이 씌워진 사진은 그 기록에 없다.
-    /// ⚠️ **`opacity`가 아니라 오버레이다** — `opacity`는 자식 배지까지 흐리게 만든다.
+    /// ⚠️ **`opacity`가 아니라 오버레이로 얹는다** — `opacity`는 자식 배지까지 흐리게 만든다.
     static let veil = Color.mode(light: Paper.step2.opacity(0.65), dark: Paper.step12.opacity(0.65))
-    /// 베일 위 작은 칩. 글리프는 `background`.
     static let badgeSurface = Color.mode(light: Paper.step12.opacity(0.75),
                                    dark: Paper.step2.opacity(0.85))
-    /// `05-G2` 연사 배지의 바탕. ⚠️ **모드를 따르지 않는다** — 사진 위에 얹히므로 바탕이
-    /// 지면이 아니라 사진이다. 글자는 `Paper.step1`.
-    static let photoBadge = Paper.black.opacity(0.45)
+    static let photoBadge = Color.mode(light: Color(hex: 0x000000).opacity(0.45),
+                                 dark: Color(hex: 0x000000).opacity(0.45))
+    static let onPhotoBadge = Color.mode(light: Paper.step1, dark: Paper.step1)
 
-    /// 강조색 면 위의 글자. ⚠️ **벌과 무관하다** — 모드만 탄다.
     static let onAccent = Color.mode(light: Paper.step1, dark: Paper.step12)
 
-    /// 안내 말풍선 (`05-N4`). ⚠️ **모드를 뒤집는다** — 지면 위에 잠깐 뜨는 것이라 지면과
-    /// 같은 밝기면 떠 있는 것으로 안 읽힌다.
     static let calloutSurface = Color.mode(light: Paper.step11, dark: Paper.step2)
+    /// ⚠️ **`pane`과 값이 같아도 합치지 마라** — 하는 일이 다르다.
     static let onCallout = Color.mode(light: Paper.step2, dark: Paper.step11)
 
-    /// `06` — 모드를 따르지 않는 고정 상수다.
-    static let viewerBackground = Paper.black
+    static let viewerBackground = Color.mode(light: Color(hex: 0x000000), dark: Color(hex: 0x000000))
+    static let onViewer = Color.mode(light: Paper.step2, dark: Paper.step2)
+
+    /// ⚠️ **`onPhotoBadge`와 값이 같아도 합치지 마라** — 하는 일이 다르다.
+    static let selectionEdge = Color.mode(light: Paper.step1, dark: Paper.step1)
 }
 
 /// 재질 — 떠 있는 크롬과 지면.
-///
-/// ⚠️ **떠 있는 것은 자기가 뜬 면보다 밝다.** 두 모드에서 같은 규칙이고, 라이트에서 정한
-/// 매핑을 다크에 그대로 넣으면 크롬이 지면 아래로 가라앉는다.
 enum Chrome {
-    /// 툴바 · 도구 팔레트. 배경 블러 위에 얹는다.
     static let floating = Color.mode(light: Paper.step2.opacity(0.9), dark: Paper.step10.opacity(0.9))
     static let floatingBorder = Color.mode(light: Paper.step1, dark: Paper.step1.opacity(0.15))
-    /// 네비 · 스티키 구분 헤더. 지면 위에 얹히므로 한 단만 올린다.
     static let header = Color.mode(light: Paper.step2.opacity(0.9), dark: Paper.step11.opacity(0.9))
 
-    /// 떠 있는 것의 그림자. 색은 팔레트 밖이다.
-    static let shadowColor = Color.black.opacity(0.2)
+    static let shadowColor = Color.mode(light: Color.black.opacity(0.2), dark: Color.black.opacity(0.2))
     static let shadowRadius: CGFloat = 16
     static let shadowOffset: CGFloat = 4
 }
 
 /// 타이포 7단 + 액센트.
-///
-/// ⚠️ **값이 시스템 서체 기준보다 한 단씩 작다** — 자면율이 0.951이라 같은 크기로 보이는
-/// 값이다(Apple SD Gothic Neo 0.848 ÷ Plex 0.892). **서체를 바꾸면 이 표를 통째로 다시 잰다.**
 enum Typography {
     static let title = plex(.bold, 32, relativeTo: .largeTitle)
     static let date = plex(.semiBold, 21, relativeTo: .title2)
     static let time = plex(.semiBold, 16, relativeTo: .headline)
-    /// 네비 바 버튼도 겸한다. 16은 iOS 관례 17보다 작지만 Plex로 찍으면 같은 크기로 읽힌다.
     static let body = plex(.regular, 16, relativeTo: .body)
     static let subtitle = plex(.regular, 14, relativeTo: .subheadline)
-    /// 목록을 끊는 구분 머리 — `10-B`.
-    /// ⚠️ **`label`과 갈라 둔다** — 합치면 버튼 서체가 여기까지 온다.
+    /// ⚠️ **`label`과 합치지 마라** — 합치면 버튼 서체가 구분 머리까지 온다.
     static let sectionLabel = plex(.semiBold, 14, relativeTo: .subheadline)
-    /// 버튼 문구. **네비 평문 버튼도 겸한다.**
     static let label = accent(18, relativeTo: .subheadline)
     static let note = plex(.regular, 12, relativeTo: .caption)
 
-    /// 펼친 머리의 활자. 접히면 `time`으로 교차한다 — **크기를 보간하지 않는다.**
     static let headerLarge: CGFloat = 32
 
-    /// 머리의 큰 타이틀.
     static func accentTitle(_ size: CGFloat) -> Font {
         accent(size, relativeTo: .largeTitle)
     }
 
-    /// `09-N2` 머리 — 액센트는 숫자 폭이 안 맞아 UI 서체다.
     static func plexTitle(_ size: CGFloat) -> Font {
         plex(.bold, size, relativeTo: .largeTitle)
     }
-    /// 빈 상태.
     static let emptyState = accent(21, relativeTo: .title2)
-    /// 최상위 탭의 낱말.
     static let tabLabel = accent(18, relativeTo: .title2)
 
     // MARK: - 서체
@@ -166,8 +131,7 @@ enum Typography {
         #endif
     }
 
-    /// `11` 캔버스 활자의 서체 이름. **여기만 UI 서체를 안 쓴다** — 사용자가 고른 글꼴이다.
-    /// ⚠️ 손글씨는 굵기가 1단이라 `bold`가 아무 일도 안 한다.
+    /// `11` 캔버스 활자의 서체 이름. ⚠️ 손글씨는 굵기가 1단이라 `bold`가 아무 일도 안 한다.
     static func canvasFace(_ face: CanvasText.Face, bold: Bool) -> String {
         switch face {
         case .handwriting: "PoorStory-Regular"
@@ -175,8 +139,7 @@ enum Typography {
         }
     }
 
-    /// `11-I1` 글꼴 칸의 활자. **라벨이 곧 미리보기라 자기 서체로 선다.**
-    /// ⚠️ 손글씨만 18이다 — 그 아래로는 세로획이 급격히 흐려진다(실기기 판정 2026-08-07).
+    /// `11-I1` 글꼴 칸의 활자.
     static func canvasSegment(_ face: CanvasText.Face) -> Font {
         switch face {
         case .handwriting: .custom(canvasFace(.handwriting, bold: false), size: 18)
@@ -184,7 +147,6 @@ enum Typography {
         }
     }
 
-    /// 번들에 실린 여섯 벌. 캔버스용 둘(`GowunBatang`)은 `11`이 쓴다.
     static let faceNames = [
         "IBMPlexSansKR-Regular", "IBMPlexSansKR-SemiBold", "IBMPlexSansKR-Bold",
         "PoorStory-Regular",
@@ -202,8 +164,7 @@ enum Typography {
         .custom("IBMPlexSansKR-\(weight.rawValue)", size: size, relativeTo: style)
     }
 
-    /// ⚠️ **18 아래로 쓰지 않는다** — 푸어스토리의 세로획이 Plex보다 26% 얇아
-    /// 작아질수록 급격히 흐려진다(실기기 판정 2026-08-07).
+    /// 하한 18.
     private static func accent(_ size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
         .custom("PoorStory-Regular", size: size, relativeTo: style)
     }
@@ -211,46 +172,31 @@ enum Typography {
 
 /// 간격. **스케일로 승격하지 않는다** — 레이아웃 계산의 결과지 스케일이 아니다.
 enum Spacing {
-    /// 격자 셀 사이. ⚠️ **정사각 격자가 정한 값이다** — 벽돌쌓기만 보고 줄이면 정사각이 맞물린다.
     static let cellGap: CGFloat = 6
-    /// `04` 스트립. **위 값을 안 따라온다.**
     static let thumbnailGap: CGFloat = 3
     static let expandedInset: CGFloat = 3
     static let momentGap: CGFloat = 8
-    /// `07` 기록 카드 사이. ⚠️ **`momentGap`과 값이 달라 묶지 않는다.**
     static let recordGap: CGFloat = 12
-    /// 우측 여백 전부. `04`는 좌우 둘 다 쓴다.
     static let screenMargin: CGFloat = 16
-    /// **좌측(제본 쪽) 여백 — iPhone 한정.** 대칭으로 두면 제본이 있는 왼쪽에서만
-    /// 사진과 부딪힌다.
     static let bindingMargin: CGFloat = 20
-    /// ⚠️ **`04`만 좌 17이다** — `118×3 + 3×2 = 360`이라 총 여백 33이 천장이고,
-    /// 20/16(=36)이면 스트립이 3장/행에서 2장/행으로 깨진다.
     static let listLeading: CGFloat = 17
     static let dayGap: CGFloat = 32
-    /// iPad 지면 바깥 여백이자 지면 사이 간격.
     static let paneGap: CGFloat = 12
-    /// 카드 자기 패딩 — 선택 배경이 들어갈 자리.
     static let cardInset: CGFloat = 6
 }
 
-/// 반경. 동심으로 겹친다 — 카드 12 > 버튼 8 > 타일 6.
+/// 반경.
 enum Radius {
     static let thumbnail: CGFloat = 6
     static let badge: CGFloat = 4
     static let button: CGFloat = 8
     static let card: CGFloat = 12
-    /// iPad 2단의 지면.
     static let pane: CGFloat = 22
-    /// `11` 캔버스와 그 위에 놓인 것. **카드 반경을 쓰지 않는다** — 캔버스 안은 크롬 문법이
-    /// 꺼진 자리라 모서리도 거의 안 깎는다.
     static let canvas: CGFloat = 2
 }
 
-/// 번들 아이콘 이름. **관례가 강한 개념만 아이콘으로 말한다** — 약한 것은 글자가 진다.
-///
-/// ⚠️ **시스템 심볼이 아니라 `App/Design/Icons`의 lucide 벡터다.** 새 글리프도 거기서 찾는다 —
-/// 없다고 SF Symbol을 섞으면 한 캡슐 안에 두 계열이 산다.
+/// 번들 아이콘 이름.
+/// ⚠️ **시스템 심볼이 아니라 `App/Design/Icons`의 lucide 벡터다.** 없다고 SF Symbol을 섞지 마라.
 enum Glyph {
     static let back = "chevron-left"
     static let more = "ellipsis"
@@ -258,12 +204,10 @@ enum Glyph {
     static let add = "plus"
     static let subtract = "minus"
     static let close = "x"
-    /// `05-G2` 연사 배지.
     static let burst = "copy"
     static let createRecord = "pen-line"
-    /// `09-T` iPhone.
     static let save = "check"
-    /// `13-A` 고른 행. ⚠️ **`save`와 같은 자산이어도 이름을 가른다** — 하는 일이 다르다.
+    /// ⚠️ **`save`와 같은 자산이어도 합치지 마라** — 하는 일이 다르다.
     static let selected = "check"
 
     // MARK: - `11` 캔버스
@@ -278,14 +222,13 @@ enum Glyph {
     static let redo = "redo-2"
     static let bringToFront = "bring-to-front"
     static let sendToBack = "send-to-back"
-    /// `11-I` 요소 삭제. ⚠️ **되돌리기가 받는 자리라 바 위에 선다** — `08` 기록 삭제와 층이 다르다.
     static let delete = "trash-2"
 }
 
 // MARK: - 조각
 
 extension Color {
-    /// 모드마다 다른 값을 하나로 묶는다. **`Design/` 안의 공용 조각이다** — 강조색 여섯 벌도 쓴다.
+    /// 모드마다 다른 값을 하나로 묶는다. 모드를 안 따르는 값은 같은 것을 두 번 넣는다.
     static func mode(light: Color, dark: Color) -> Color {
         #if os(iOS)
         Color(uiColor: UIColor { traits in
@@ -298,7 +241,7 @@ extension Color {
         #endif
     }
 
-    /// `0xRRGGBB`. **`Design/` 밖에서도 쓴다** — 캔버스 종이·잉크는 램프 밖 값이다.
+    /// `0xRRGGBB`.
     init(hex: UInt32) {
         self.init(.sRGB,
                   red: Double((hex >> 16) & 0xFF) / 255,
