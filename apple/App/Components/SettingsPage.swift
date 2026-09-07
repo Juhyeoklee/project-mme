@@ -71,21 +71,8 @@ struct SettingsSheet<Leading: View, Content: View>: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    /// ⚠️ **타이틀은 창 가운데고 왼쪽 슬롯은 그 위에 겹친다** — 나란히 두면 낱말 길이가
-    /// 타이틀을 밀어 화면마다 가운데가 달라진다.
     private var header: some View {
-        ZStack {
-            Text(title)
-                .font(Typography.time)
-                .foregroundStyle(Palette.label)
-            HStack(spacing: 0) {
-                leading
-                Spacer(minLength: 0)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 10)
-        .frame(height: 64)
+        SheetHeader(title: title) { leading }
     }
 
     private static var inset: CGFloat { 24 }

@@ -20,19 +20,22 @@ final class MomentLibrary {
     /// 진행 단계. 화면이 보는 것은 진행바 하나뿐이고(`04-A1`) 이 구분은 여기 안에서만 쓰인다.
     enum Phase: Equatable {
         case idle
+        /// 읽을 앨범이 없다 — 아직 안 골랐거나 고른 것이 사라졌다 (`SRC-02`).
+        /// **권한과 무관하다**, 그래서 `blocked`와 갈라 둔다.
+        case needsSource
         /// 열거 중 — 1.4초라 대개 안 보인다.
         case enumerating
         case readingLocal
         /// 원격 받아오기 — **여기가 분 단위다.**
         case readingRemote
         case ready
-        /// 권한이 없거나 앨범이 없다. 이유 문자열은 개발 중에 보려고 들고만 있다.
+        /// 읽기 권한이 없다. 이유 문자열은 개발 중에 보려고 들고만 있다.
         case blocked(String)
 
         var isWorking: Bool {
             switch self {
             case .enumerating, .readingLocal, .readingRemote: true
-            case .idle, .ready, .blocked: false
+            case .idle, .needsSource, .ready, .blocked: false
             }
         }
     }
@@ -61,7 +64,9 @@ final class MomentLibrary {
     /// 끝내 원본을 못 받은 사진 (`R8`). **`05`가 이 값으로 표시를 세운다.**
     private(set) var missingOriginals: Set<Int> = []
 
-    private let source: AlbumPhotoSource
+    /// 지금 소스를 읽는 어댑터. ⚠️ **원본 바이트와 썸네일도 이것을 본다** — 인스턴스가
+    /// 하나라야 소스를 바꾼 뒤에 낡은 앨범을 든 사본이 남지 않는다.
+    private(set) var source: AlbumPhotoSource
     private let settings: Settings
     private var task: Task<Void, Never>?
     /// 지금 유효한 실행의 번호. ⚠️ **취소만으로는 앞 실행의 쓰기를 못 막는다** — PhotoKit의
@@ -123,16 +128,47 @@ final class MomentLibrary {
         readings.indices.contains(index) ? readings[index].capturedAt : nil
     }
 
-    /// 지금 읽고 있는 앨범 이름. **`13`이 값으로 보인다** — 고르는 길은 아직 없다(`SRC-02`).
-    let albumTitle: String
+    /// 사용자가 고른 앨범 (`SRC-01`). `nil`이면 소스 미지정이다.
+    private(set) var albumID: String?
+    /// 그 앨범의 **지금** 이름. `13`이 값으로 보인다.
+    /// ⚠️ **저장하지 않고 매번 읽는다** — 사용자가 사진 앱에서 이름을 바꾸면 따라가야 한다.
+    private(set) var sourceName: String?
 
-    init(albumTitle: String, settings: Settings = .default) {
-        self.albumTitle = albumTitle
-        self.source = AlbumPhotoSource(albumTitle: albumTitle)
+    init(albumID: String?, settings: Settings = .default) {
+        self.albumID = albumID
+        // ⚠️ 소스가 없으면 빈 식별자다 — 어댑터에 앨범을 묻는 두 경로(`assets()` · `title()`)를
+        // `firstPass`의 이른 `guard`가 막는다. 그 밖의 경로는 앨범을 안 본다.
+        self.source = AlbumPhotoSource(albumID: albumID ?? "")
         self.settings = settings
     }
 
     // MARK: - 흐름
+
+    /// 소스를 갈아 끼운다 (`SRC-04`). **거는 것까지만 한다** — 시작은 부르는 쪽이 한다.
+    func use(albumID: String?) {
+        guard albumID != self.albumID else { return }
+        self.albumID = albumID
+        source = AlbumPhotoSource(albumID: albumID ?? "")
+        // 앞 실행을 무효로 돌리고 자리를 비운다 — 안 그러면 죽은 실행이 새 앨범의 배열에 쓴다.
+        _ = beginRun()
+        clear()
+    }
+
+    /// 앞 소스의 결과를 지운다. ⚠️ **`generation`은 올린다** — 썸네일이 옛 자산을 붙들고 있다.
+    private func clear() {
+        days = []
+        assets = []
+        inputs = []
+        readings = []
+        pending = []
+        missingOriginals = []
+        momentCount = 0
+        photoCount = 0
+        progress = 0
+        sourceName = nil
+        phase = .idle
+        generation += 1
+    }
 
     /// 아직 도는 것이 없을 때만 시작한다.
     func start() {
@@ -178,19 +214,33 @@ final class MomentLibrary {
     /// 목록이 서고 이어서 바이트를 읽을 것이 남았으면 `true`.
     private func firstPass(_ epoch: Int) async -> Bool {
         if isStale(epoch) { return false }
-        phase = .enumerating
-        progress = 0
-
-        var access = AlbumPhotoSource.currentAccess()
-        if !access.canRead { access = await AlbumPhotoSource.requestAccess() }
-        if isStale(epoch) { return false }
+        // ⚠️ **여기서 권한을 요청하지 않는다** — `SRC-07`이 요청 **전에** 설명을 요구하고
+        // 그 설명이 `01`이다. 분류는 묻기만 한다.
+        let access = AlbumPhotoSource.currentAccess()
         guard access.canRead else {
             phase = .blocked("읽기 권한 없음 (\(access))")
             return false
         }
+        // 부분 접근에는 앨범이 없다 — 고를 것이 없으므로 「미지정」이라는 상태도 없다.
+        guard access == .limited || albumID != nil else {
+            phase = .needsSource
+            return false
+        }
+        phase = .enumerating
+        progress = 0
 
         do {
-            assets = try source.assets()
+            if access == .limited {
+                assets = try AlbumPhotoSource.permittedAssets()
+                sourceName = nil
+            } else {
+                assets = try source.assets()
+                sourceName = try source.title()
+            }
+        } catch PhotoSourceError.albumNotFound {
+            // 고른 앨범이 사라졌다. **저장은 안 지운다** — 앨범이 돌아오면 그대로 산다.
+            phase = .needsSource
+            return false
         } catch {
             phase = .blocked("\(error)")
             return false
@@ -199,6 +249,7 @@ final class MomentLibrary {
         pending = Set(inputs.indices)
         missingOriginals = []
         reclassify()
+        probeSource()
         guard !assets.isEmpty else {
             phase = .ready
             return false
@@ -311,6 +362,23 @@ final class MomentLibrary {
         progress = assets.isEmpty ? 0 : Double(assets.count - pending.count) / Double(assets.count)
     }
 
+    /// ⚠️ **`-sourceprobe`로만 켠다** — 소스마다 어느 층에서 끊기는지 본다.
+    private func probeSource() {
+        #if DEBUG
+        // 시각은 파일명에서 오므로 이름 규칙이 안 맞으면 사진이 시간축에 아예 안 놓인다.
+        guard ProcessInfo.processInfo.arguments.contains("-sourceprobe") else { return }
+        let timed = readings.count { $0.capturedAt != nil }
+        let signalled = readings.count { $0.signals != nil }
+        NSLog("[소스탐침] \(sourceName ?? "이름없음") · 사진 \(assets.count)장 · "
+              + "시각 \(timed) · 신호 \(signalled) · 순간 \(momentCount)")
+        for (index, reading) in readings.enumerated().prefix(6) {
+            NSLog("[소스탐침] \(assets[index].filename) → 시각 "
+                  + "\(reading.capturedAt.map { "\($0.month)/\($0.day) \($0.hour):\($0.minute)" } ?? "없음")"
+                  + " · 신호 \(reading.signalStatus)")
+        }
+        #endif
+    }
+
     /// **커널을 부르는 유일한 자리.** 넘기는 것은 언제나 `inputs` 전체다 — ADR `0004` (d).
     private func reclassify() {
         let result = Classifier.classify(inputs, settings: settings)
@@ -337,7 +405,8 @@ extension MomentLibrary {
                         assets: [SourceAsset],
                         phase: Phase = .ready,
                         progress: Double = 1) -> MomentLibrary {
-        let library = MomentLibrary(albumTitle: "preview")
+        let library = MomentLibrary(albumID: "preview")
+        library.sourceName = "합성 앨범"
         library.assets = assets
         library.days = classification.days
         library.readings = classification.readings
@@ -349,6 +418,12 @@ extension MomentLibrary {
     }
 }
 #endif
+
+/// 고른 소스의 저장 키. **식별자 하나만 저장한다** — 이름까지 저장하면 사용자가 앨범
+/// 이름을 바꿨을 때 두 벌 중 한쪽만 낡는다.
+enum SourceStorage {
+    static let albumKey = "source.albumID"
+}
 
 // MARK: - 상한
 

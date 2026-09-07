@@ -73,6 +73,11 @@ struct HighlighterStroke: Shape {
 struct HighlighterSweep: Shape {
     /// 0이면 안 그었고 1이면 끝까지 그었다.
     var drawn: CGFloat
+    /// 촉의 굵기. **활자가 커지면 같이 굵어져야 한다** — 안 그러면 큰 글자 위에서 밑줄이 된다.
+    var thickness: CGFloat = 20
+    /// 상자 높이에서 획이 앉는 자리. ⚠️ **손글씨는 어센트가 커서 글자가 상자 아래쪽에 산다** —
+    /// 가운데에 그으면 글자 위를 덮는다.
+    var center: CGFloat = 0.5
 
     var animatableData: CGFloat {
         get { drawn }
@@ -83,14 +88,61 @@ struct HighlighterSweep: Shape {
         // ⚠️ **0에서 빈 획이어야 한다** — 촉이 비스듬히 잘려 있어 길이를 0으로 줄여도
         // 시작점에 삼각형 조각이 남는다. 안 고른 탭에 얼룩이 하나 붙는다.
         guard drawn > 0.001 else { return Path() }
-        return Self.swipe.path(in: rect, drawn: drawn)
+        return Self.swipe(thickness, center).path(in: rect, drawn: drawn)
     }
 
     /// 낱말을 덮는 굵은 획. ⚠️ **글자 높이를 안 따라간다** — 마커 촉의 굵기는 활자가 아니라
     /// 펜이 정하는 값이고, 글자에 맞추면 획이 얇아져 배경 칩처럼 읽힌다(2026-08-13 실물).
-    private static let swipe = HighlighterStroke.Swipe(
-        from: -0.02, to: 1.02, center: 0.5, thickness: 20,
-        tilt: -1.5, headCut: 3, tailCut: 2)
+    private static func swipe(_ thickness: CGFloat, _ center: CGFloat) -> HighlighterStroke.Swipe {
+        HighlighterStroke.Swipe(from: -0.02, to: 1.02, center: center, thickness: thickness,
+                                tilt: -1.5, headCut: 3, tailCut: 2)
+    }
+}
+
+/// 눈앞에서 그어지는 획. **시간이 아니라 속도를 고정한다** — 손으로 긋는 것은 길이가 달라도
+/// 속도가 비슷해서, 짧은 낱말은 짧게 긴 줄은 길게 걸린다.
+private struct SweepingHighlight: ViewModifier {
+    let isOn: Bool
+    let delay: Double
+    let center: CGFloat
+
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accentSet) private var accentSet
+    @Environment(\.accessibilityReduceMotion) private var reducesMotion
+    @State private var drawn: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content.background {
+            GeometryReader { geometry in
+                HighlighterSweep(drawn: isOn ? drawn : 0,
+                                 thickness: geometry.size.height * Self.weight,
+                                 center: center)
+                    .fill(accentSet.highlighter)
+                    .blendMode(scheme == .dark ? .normal : .multiply)
+                    .onAppear { if isOn { draw(across: geometry.size.width) } }
+                    // ⚠️ **지우는 쪽에는 애니메이션이 없다** — 역방향으로 지우면 시선이 왕복한다.
+                    .onChange(of: isOn) { _, on in
+                        if on { draw(across: geometry.size.width) } else { drawn = 0 }
+                    }
+            }
+        }
+    }
+
+    private func draw(across width: CGFloat) {
+        guard !reducesMotion else {
+            drawn = 1
+            return
+        }
+        let seconds = min(width / Self.speed, Self.longest)
+        withAnimation(.easeOut(duration: seconds).delay(delay)) { drawn = 1 }
+    }
+
+    /// 글자 상자 높이에 대한 촉의 굵기.
+    private static let weight: CGFloat = 0.58
+    /// 초당 pt. ⚠️ **실물 판정 전이다** — 눈으로 보고 고친다.
+    private static let speed: CGFloat = 700
+    /// 긴 줄에서 늘어지지 않게 거는 상한.
+    private static let longest: Double = 0.5
 }
 
 /// 형광펜을 요약 줄 뒤에 긋는다.
@@ -123,6 +175,13 @@ private struct Highlighted: ViewModifier {
 }
 
 extension View {
+    /// 이 줄에 형광펜이 **그어지는 것을 보인다.** 한 화면에 둘이면 `delay`로 차례를 준다 —
+    /// 동시에 그으면 둘 다 놓친다.
+    func highlighterSweeps(_ isOn: Bool = true, after delay: Double = 0,
+                           center: CGFloat = 0.6) -> some View {
+        modifier(SweepingHighlight(isOn: isOn, delay: delay, center: center))
+    }
+
     /// 이 줄에 형광펜을 긋는다. **`seed`는 그 줄이 속한 것의 신원이어야 한다** —
     /// 매 렌더마다 다시 뽑으면 스크롤할 때마다 같은 카드의 획이 바뀐다.
     func highlighted(_ isOn: Bool, seed: UInt64) -> some View {

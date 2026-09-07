@@ -34,12 +34,14 @@ extension View {
             .frame(maxWidth: .infinity)
     }
 
-    /// iPad 2단의 지면 한 장 — 배경과 반경만 진다.
+    /// iPad 2단의 지면 한 장 — 배경 · 반경 · 그림자.
     /// ⚠️ **폭을 건드리지 않는다** — `maxWidth`를 걸면 부르는 쪽이 정한 폭이 도로 늘어난다.
     func pane() -> some View {
         frame(maxHeight: .infinity)
             .background(Palette.pane)
             .clipShape(.rect(cornerRadius: Radius.pane))
+            .shadow(color: Chrome.paneShadowColor,
+                    radius: Chrome.paneShadowRadius, y: Chrome.paneShadowOffset)
     }
 }
 

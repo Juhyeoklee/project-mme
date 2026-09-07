@@ -59,3 +59,34 @@ private struct PhotoImporter: ViewModifier {
         item.supportedContentTypes.first?.preferredFilenameExtension ?? "jpg"
     }
 }
+
+public extension View {
+    /// 허용 목록을 넓히는 시스템 시트. ⚠️ **부분 접근에서만 뜻이 있다** — 그 밖에서는 아무 일도
+    /// 안 일어난다. macOS에는 부분 접근 자체가 없어 넓힐 목록이 없다.
+    func limitedLibraryPicker(isPresented: Binding<Bool>) -> some View {
+        #if os(iOS)
+        background(LimitedLibraryPicker(isPresented: isPresented).allowsHitTesting(false))
+        #else
+        self
+        #endif
+    }
+}
+
+#if os(iOS)
+import Photos
+
+/// ⚠️ **시스템이 뷰 컨트롤러에서만 띄운다** — SwiftUI에 대응물이 없어 빈 컨트롤러 하나를
+/// 계층에 심고 그 위에서 연다.
+private struct LimitedLibraryPicker: UIViewControllerRepresentable {
+    @Binding var isPresented: Bool
+
+    func makeUIViewController(context: Context) -> UIViewController { UIViewController() }
+
+    func updateUIViewController(_ controller: UIViewController, context: Context) {
+        guard isPresented, controller.presentedViewController == nil else { return }
+        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: controller)
+        // 닫히는 것을 알려주는 손잡이가 없다 — 띄운 즉시 내린 것으로 친다.
+        DispatchQueue.main.async { isPresented = false }
+    }
+}
+#endif

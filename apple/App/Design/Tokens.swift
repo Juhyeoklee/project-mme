@@ -30,6 +30,10 @@ enum Palette {
     static let active = Color.mode(light: Paper.step5, dark: Paper.step9)
 
     static let pane = Color.mode(light: Paper.step2, dark: Paper.step11)
+    /// ⚠️ **`pane`과 값이 같아도 합치지 마라** — 하는 일이 다르다.
+    static let cardSurface = Color.mode(light: Paper.step2, dark: Paper.step10)
+    /// ⚠️ **`surface`와 합치지 마라** — 다크에서 `cardSurface`와 값이 같아 통째로 사라진다.
+    static let innerSurface = Color.mode(light: Paper.step3, dark: Paper.step9)
     static let paneOutside = Color.mode(light: Paper.step3, dark: Paper.step12)
     /// ⚠️ **`surface`와 값이 같아도 합치지 마라** — 하는 일이 다르다.
     static let listSurface = Color.mode(light: Paper.step3, dark: Paper.step10)
@@ -73,6 +77,19 @@ enum Chrome {
     static let shadowColor = Color.mode(light: Color.black.opacity(0.2), dark: Color.black.opacity(0.2))
     static let shadowRadius: CGFloat = 16
     static let shadowOffset: CGFloat = 4
+
+    /// ⚠️ **`shadowColor`·`cardShadowColor`와 합치지 마라** — 셋이 서로 다른 깊이다.
+    /// ⚠️ **다크가 훨씬 진하다** — 창 바탕이 거의 검어서 라이트 값을 그대로 쓰면 안 보인다.
+    static let paneShadowColor = Color.mode(light: Color.black.opacity(0.12),
+                                            dark: Color.black.opacity(0.6))
+    static let paneShadowRadius: CGFloat = 24
+    static let paneShadowOffset: CGFloat = 6
+
+    /// ⚠️ **종이 그림자와 합치지 마라** — 얕고 따뜻하다.
+    static let cardShadowColor = Color.mode(light: Color(hex: 0x3A322A).opacity(0.1),
+                                            dark: Color(hex: 0x3A322A).opacity(0.1))
+    static let cardShadowRadius: CGFloat = 14
+    static let cardShadowOffset: CGFloat = 3
 }
 
 /// 타이포 7단 + 액센트.
@@ -88,6 +105,8 @@ enum Typography {
     static let note = plex(.regular, 12, relativeTo: .caption)
 
     static let headerLarge: CGFloat = 32
+    /// ⚠️ **`headerLarge`와 합치지 마라** — 값이 가까워도 하는 일이 다르다.
+    static let onboardingHeadline: CGFloat = 36
 
     static func accentTitle(_ size: CGFloat) -> Font {
         accent(size, relativeTo: .largeTitle)

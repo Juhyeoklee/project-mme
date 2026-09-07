@@ -4,14 +4,23 @@
 import Foundation
 import Photos
 
-/// 이름이 있는 앨범 하나를 소스로 읽는다 — 앨범 찾기 · 자산 열거 · 원본 바이트 로드.
+/// 앨범 하나를 소스로 읽는다 — 앨범 찾기 · 자산 열거 · 원본 바이트 로드.
 /// 출력이 커널 입력 (파일명, 바이트)를 공급한다 (ADR `0002`).
+///
+/// **후보를 고르는 일은 `AlbumCatalog`이 진다** — 이 타입은 이미 정해진 하나만 읽는다.
 public struct AlbumPhotoSource: Sendable {
-    /// 소스로 삼을 앨범의 이름. "어느 이름이 게임 것인가"는 부르는 쪽이 안다.
-    public let albumTitle: String
+    /// 소스로 삼을 앨범의 식별자. "어느 것이 게임 것인가"는 부르는 쪽이 안다.
+    ///
+    /// ⚠️ **이름이 아니다** — 같은 이름의 앨범이 둘 이상일 수 있고, 이름은 사용자가 바꾼다.
+    public let albumID: String
 
-    public init(albumTitle: String) {
-        self.albumTitle = albumTitle
+    public init(albumID: String) {
+        self.albumID = albumID
+    }
+
+    /// 이 앨범의 지금 이름. **저장하지 않고 물을 때마다 읽는다** — 사용자가 바꾸면 따라간다.
+    public func title() throws -> String {
+        try collection().localizedTitle ?? ""
     }
 
     // MARK: - 권한
@@ -45,35 +54,37 @@ public struct AlbumPhotoSource: Sendable {
 
         var result: [SourceAsset] = []
         PHAsset.fetchAssets(in: collection, options: options).enumerateObjects { asset, _, _ in
-            guard let filename = Self.filename(of: asset) else { return }
-            result.append(SourceAsset(id: asset.localIdentifier, filename: filename,
-                                      pixelWidth: asset.pixelWidth, pixelHeight: asset.pixelHeight))
+            if let asset = asset.sourceAsset { result.append(asset) }
         }
         return result
     }
 
-    /// 커널 입력의 절반인 파일명. **원본(`.photo`)이 없어도 얻는다** — 바이트 없는 사진의
-    /// 취급은 ADR `0004` 결정 2 (a)가 이미 정했다.
-    private static func filename(of asset: PHAsset) -> String? {
-        // ⚠️ 여기서 버리면 그 사진이 소스에 있는데도 어디에도 안 보인다.
-        let resources = PHAssetResource.assetResources(for: asset)
-        return (resources.first { $0.type == .photo } ?? resources.first)?.originalFilename
+    /// 사용자가 허용한 사진 전부. **부분 접근에는 앨범이 없어 이 집합이 곧 컨테이너다.**
+    ///
+    /// ⚠️ **부분 접근에서만 연다** — 전체 접근에서 부르면 라이브러리를 통째로 훑어 `SRC-08`이
+    /// 깨진다. 부르는 쪽의 조심이 아니라 여기서 막는다.
+    public static func permittedAssets() throws -> [SourceAsset] {
+        let access = currentAccess()
+        guard access == .limited else { throw PhotoSourceError.accessNotGranted(access) }
+
+        let options = PHFetchOptions()
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
+
+        var result: [SourceAsset] = []
+        PHAsset.fetchAssets(with: options).enumerateObjects { asset, _, _ in
+            if let asset = asset.sourceAsset { result.append(asset) }
+        }
+        return result
     }
 
-    /// 술어로 제목을 거르지 않는다 — PhotoKit이 어떤 키를 받는지가 문서로 닫혀 있지 않아
-    /// 조용한 미탐이 된다. 앨범 수가 작으므로 받아와서 거른다.
+    /// ⚠️ **사용자가 앨범을 지우면 여기서 실패한다** — 식별자는 남아 있어도 가리킬 것이 없다.
     private func collection() throws -> PHAssetCollection {
-        // ⚠️ 같은 이름의 앨범이 둘 이상일 수 있다(2026-08-03). 첫 매치를 쓰는 것은 소스가
-        // 코드 고정이라 성립한다 — `M3`에서는 식별자로 잡아야 한다.
-        let fetched = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
-        var found: PHAssetCollection?
-        fetched.enumerateObjects { collection, _, stop in
-            if collection.localizedTitle == albumTitle {
-                found = collection
-                stop.pointee = true
-            }
+        let fetched = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [albumID],
+                                                             options: nil)
+        guard let found = fetched.firstObject else {
+            throw PhotoSourceError.albumNotFound(id: albumID)
         }
-        guard let found else { throw PhotoSourceError.albumNotFound(title: albumTitle) }
         return found
     }
 
@@ -232,6 +243,19 @@ extension AlbumPhotoSource {
     }
 }
 #endif
+
+extension PHAsset {
+    /// `SourceAsset`을 만드는 유일한 자리 — 열거와 후보 목록이 같은 규칙을 쓴다.
+    var sourceAsset: SourceAsset? {
+        // 이름을 못 얻으면 버린다 — 그 절반이 커널 입력이다 (ADR `0002`).
+        // 원본(`.photo`)이 없어도 이름은 얻는다 — ADR `0004` 결정 2 (a).
+        let resources = PHAssetResource.assetResources(for: self)
+        guard let filename = (resources.first { $0.type == .photo }
+                              ?? resources.first)?.originalFilename else { return nil }
+        return SourceAsset(id: localIdentifier, filename: filename,
+                           pixelWidth: pixelWidth, pixelHeight: pixelHeight)
+    }
+}
 
 extension ReadAccess {
     init(_ status: PHAuthorizationStatus) {

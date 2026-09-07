@@ -11,8 +11,13 @@ enum Wording {
     /// `07-N1`이자 탭 이름.
     static let recordsTitle = "기록"
 
-    /// `04-E1`.
+    // `04-E1`은 셋으로 갈린다 — 소스가 없는 것 · 사진이 0장인 것 · 사진은 있는데 못 묶은 것.
+    /// 소스는 있고 사진이 0장.
     static let empty = "아직 사진이 없어요"
+    /// 소스를 아직 안 정했다 (`SYS-01`).
+    static let sourceUnset = "아직 볼 앨범을 안 정했어요"
+    /// 사진은 있는데 순간이 0이다. ⚠️ **문구는 세션이 정했다.**
+    static let noMomentsHere = "이 앨범에서는 순간을 못 묶었어요"
 
     /// `05` 원본을 끝내 못 받은 사진 (`R8`).
     /// ⚠️ **문구는 잠정이다** — 오류 카피는 `M3`가 정한다.
@@ -43,8 +48,12 @@ enum Wording {
     }
 
     static func time(_ clock: WallClock) -> String {
-        "\(clock.hour):\(twoDigits(clock.minute))"
+        time(hour: clock.hour, minute: clock.minute)
     }
+
+    /// 벽시계 없이 부르는 입구. **견본이 쓴다** — 있지도 않은 시각을 지어내지 않으려면
+    /// 시·분만 있으면 된다.
+    static func time(hour: Int, minute: Int) -> String { "\(hour):\(twoDigits(minute))" }
 
     /// `05-N2` — `7월 26일 18:05`. 날짜 헤더와 달리 요일이 없다.
     static func detailTitle(_ clock: WallClock) -> String {
@@ -61,6 +70,46 @@ enum Wording {
     static let close = "닫기"
     /// `09-N4`.
     static let moreActions = "더보기"
+
+    // MARK: - `01` 권한 요청
+
+    /// `01-N1` — **줄마다 따로 선다.** 형광펜이 첫 줄에만 그어진다.
+    static let permissionHeadline = ["마비노기 모바일이 만든", "앨범 하나로 시작해요"]
+    /// `01-N2` — 첫 줄이 왜 묻는지, 둘째 줄이 무엇만 읽는지.
+    static let permissionBody = """
+        앨범 목록을 보려면 사진 접근이 필요해요.
+        고른 앨범 안의 사진만 읽어요.
+        """
+    /// `01-B1`이자 `02-N1` 타이틀. **같은 말이라 같은 문자열이다.**
+    static let chooseAlbum = "앨범 고르기"
+
+    // MARK: - `02` 소스 지정
+
+    /// `02-N2` — 왜 게임 앨범이어야 하는지를 한 줄이 진다.
+    static let sourceHint = "게임이 사진에 남긴 정보로 순간을 묶어요."
+    /// `02-N3` — 온보딩에서 나가는 낱말. 설정에서 들어오면 `취소`다.
+    static let later = "나중에"
+
+    /// `02` 부분 접근 — 앨범이라는 낱말을 못 쓴다.
+    static let pickPhotos = "사진 고르기"
+    static let pickedPhotos = "고른 사진"
+    static let pickMorePhotos = "사진 더 고르기"
+    static let limitedHint = """
+        허용한 사진만 볼 수 있어요.
+        새로 찍은 사진은 저절로 들어오지 않아요.
+        """
+
+    /// `02` 거부 — 목록이 아예 없다.
+    static let bringPhotos = "사진 가져오기"
+    static let openSettings = "설정 열기"
+    static let deniedHint = """
+        사진 접근이 꺼져 있어 앨범을 볼 수 없어요.
+        설정에서 켜거나, 사진을 직접 가져올 수 있어요.
+        """
+    /// `02-L` 스트립의 마지막 칸. ⚠️ **`more`와 상한이 다르다** — `04`는 순간 단위라 안 닿는다.
+    static func moreInSource(_ count: Int) -> String {
+        count > 999 ? "999+" : more(count)
+    }
 
     // MARK: - `13` 설정
 

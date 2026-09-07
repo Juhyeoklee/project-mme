@@ -4,6 +4,8 @@
 // 있는지 모르고, 편집기가 덮개로 뜨는지 지면으로 뜨는지도 여기가 정한다.
 
 import MomentKernel
+import PhotoSource
+import PhotoSourceUI
 import SwiftUI
 
 /// 최상위 탭. **둘뿐이고 늘지 않는다** — 설정은 탭이 아니라 `04`의 버튼 하나다.
@@ -40,6 +42,16 @@ struct RootView: View {
     var opensSettings = false
     /// 합성 데이터로 `13` 아래 뎁스를 바로 연다.
     var opensDepth: SettingsDestination?
+    /// 합성 데이터로 `02`를 바로 연다.
+    var opensSource = false
+    /// `02`가 후보를 어디서 받나. **뼈대가 진다** — 화면은 받은 것을 그리기만 한다.
+    var sourceCandidates: () async -> [SourceCandidate] = { [] }
+    /// 지금의 읽기 권한. `02`의 갈래를 이 값이 정한다.
+    var access: ReadAccess = .authorized
+    /// 부분 접근 — 시스템 피커를 다시 연다.
+    var onPickMorePhotos: () -> Void = {}
+    /// 고른 소스를 저장하는 길. `@AppStorage`가 앱 진입점에 있다.
+    var onChooseSource: (String) -> Void = { _ in }
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.recordStore) private var store
@@ -63,6 +75,15 @@ struct RootView: View {
     @State private var showsSettings = false
     /// iPhone에서 `13`으로 밀고 들어간 자리.
     @State private var settingsPath: [SettingsRoute] = []
+    /// `02`가 떠 있는가. **소스가 없으면 저절로 올라온다**(`SYS-01`).
+    @State private var showsSource = false
+    /// 설정에서 열었는가. 나가는 낱말이 갈린다.
+    @State private var changesSource = false
+    /// `나중에`로 내렸는가. ⚠️ **안 들면 내린 자리에서 곧바로 다시 올라온다.**
+    @State private var declinedSource = false
+    @State private var candidates: [SourceCandidate] = []
+    /// `SRC-05` — 거부 갈래에서 사진을 직접 집는 중.
+    @State private var importsPhotos = false
     /// iPad 시트 **안**에서 밀고 들어간 자리. ⚠️ **바깥 경로와 갈라 둔다** — 시트가 닫히면
     /// 그 안의 깊이도 함께 사라져야 한다.
     @State private var sheetPath: [SettingsRoute] = []
@@ -115,9 +136,10 @@ struct RootView: View {
         // 540으로 서는 것이 곧 화면설계가 정한 폭이다.
         .sheet(isPresented: $showsSettings, onDismiss: { sheetPath = [] }) {
             NavigationStack(path: $sheetPath) {
-                SettingsScreen(sourceName: library.albumTitle,
+                SettingsScreen(sourceName: library.sourceName,
                                onClose: { showsSettings = false },
-                               onOpen: { sheetPath.append(SettingsRoute($0)) })
+                               onOpen: { sheetPath.append(SettingsRoute($0)) },
+                               onChangeSource: { Task { await changeSource() } })
                     .navigationDestination(for: SettingsRoute.self) { route in
                         switch route {
                         case .theme: ThemeScreen(isInSheet: true)
@@ -128,6 +150,35 @@ struct RootView: View {
                     }
             }
             .presentationBackground(Palette.pane)
+        }
+        .sheet(isPresented: $showsSource) {
+            SourcePickerScreen(access: access, candidates: candidates,
+                               current: library.albumID,
+                               isChangingSource: changesSource,
+                               onConfirm: { chosen in
+                                   showsSource = false
+                                   onChooseSource(chosen.id)
+                               },
+                               onDismiss: {
+                                   showsSource = false
+                                   declinedSource = true
+                               },
+                               onPickMore: onPickMorePhotos,
+                               onOpenSettings: openSettings,
+                               onImport: {
+                                   showsSource = false
+                                   importsPhotos = true
+                               })
+                .sourceSheet(isPad: sizeClass == .regular,
+                             height: Layout.sourceSheetHeight(hasList: access.canRead,
+                                                              hasCandidates: candidates.count > 1))
+        }
+        // ⚠️ **`09`로 곧장 간다** — 소스가 없으면 순간이 없고, 원칙 `P3`가 막은 것은
+        // 「새 기록 만들기」 진입점이지 소스가 원리적으로 없는 갈래의 유일한 길이 아니다.
+        .photoImporter(isPresented: $importsPhotos) { photo in
+            let draft = editing ?? .importing()
+            _ = draft.addImported(photo.data, fileExtension: photo.fileExtension)
+            editing = draft
         }
         .confirmationDialog(Wording.discardTitle, isPresented: isConfirmingExit,
                             titleVisibility: .visible) {
@@ -140,6 +191,8 @@ struct RootView: View {
                             titleVisibility: .visible) {
             Button(Wording.delete, role: .destructive) { confirmDelete() }
         }
+        .task { await offerSource() }
+        .onChange(of: library.phase) { Task { await offerSource() } }
         .task {
             if opensSettings || opensDepth != nil {
                 let depth = opensDepth.map(SettingsRoute.init)
@@ -155,6 +208,34 @@ struct RootView: View {
             if canvas == nil { canvas = initialCanvas }
             #endif
         }
+    }
+
+    // MARK: - `02` 소스 지정
+
+    /// 소스가 없으면 시트를 올린다. ⚠️ **`나중에`로 한 번 내리면 다시 안 올린다** — 그
+    /// 자리에서 돌아올 길은 빈 `04`의 버튼이다.
+    private func offerSource() async {
+        guard opensSource || (library.phase == .needsSource && !declinedSource) else { return }
+        guard !showsSource else { return }
+        changesSource = false
+        candidates = await sourceCandidates()
+        showsSource = true
+    }
+
+    /// ⚠️ **`M3` 화면 문서가 iOS·iPadOS만 다룬다** — macOS 권한 모델은 「바」의 몫이다.
+    private func openSettings() {
+        #if os(iOS)
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+        #endif
+    }
+
+    /// `13`의 `소스` 행에서 연다. ⚠️ **설정을 먼저 내린다** — iPad에서 시트 위에 시트가 된다.
+    private func changeSource() async {
+        showsSettings = false
+        candidates = await sourceCandidates()
+        changesSource = true
+        showsSource = true
     }
 
     /// iPad에서 확인 시트는 전부 여기서 뜬다 — **같은 결정이 부른 자리마다 다른 데 서지 않게.**
@@ -267,12 +348,14 @@ struct RootView: View {
             twoPanes(list: MomentListScreen(library: library,
                                             selection: guardingEditor(effectiveMoment),
                                             editing: $editing,
-                                            onOpenSettings: { showsSettings = true }),
+                                            onOpenSettings: { showsSettings = true },
+                                            onChooseSource: { Task { await changeSource() } }),
                      detail: momentPane)
         } else {
             NavigationStack(path: $settingsPath) {
                 MomentListScreen(library: library, selection: nil, editing: $editing,
-                                 onOpenSettings: { settingsPath.append(.settings) })
+                                 onOpenSettings: { settingsPath.append(.settings) },
+                                 onChooseSource: { Task { await changeSource() } })
                     .tabBar(selection: $tab)
                     .navigationDestination(for: Moment.self) { moment in
                         // 뒤로 버튼은 시스템이 붙여준다. iPad는 pane 교체라 안 붙어 분기가 없다.
@@ -289,8 +372,9 @@ struct RootView: View {
     private func settingsDestination(_ route: SettingsRoute) -> some View {
         switch route {
         case .settings:
-            SettingsScreen(sourceName: library.albumTitle,
-                           onOpen: { settingsPath.append(SettingsRoute($0)) })
+            SettingsScreen(sourceName: library.sourceName,
+                           onOpen: { settingsPath.append(SettingsRoute($0)) },
+                           onChangeSource: { Task { await changeSource() } })
         case .theme: ThemeScreen()
         case .terms: LegalScreen(document: Wording.terms)
         case .privacy: LegalScreen(document: Wording.privacy)

@@ -3,12 +3,14 @@
 import SwiftUI
 
 struct SettingsScreen: View {
-    /// 지금 읽고 있는 앨범 이름. `13`은 값을 보이기만 한다.
-    let sourceName: String
+    /// 지금 읽고 있는 앨범 이름. `nil`이면 소스 미지정이라 값 자리가 빈다.
+    let sourceName: String?
     /// iPad 시트에서만 채운다 — iPhone은 네비가 되돌아갈 길을 진다.
     var onClose: (() -> Void)?
     /// 뎁스로 가는 길. **뼈대가 진다** — iPhone은 밀고 들어가고 iPad는 시트 안에서 갈린다.
     var onOpen: (SettingsDestination) -> Void = { _ in }
+    /// `소스` 행 — **`02` 시트로 곧장 간다**(`SRC-04`). 설정 안의 뎁스가 아니다.
+    var onChangeSource: () -> Void = {}
 
     @Environment(\.accentSet) private var accentSet
 
@@ -37,7 +39,7 @@ struct SettingsScreen: View {
             }
             SettingsGroup(rows: [
                 SettingsRow(label: Wording.sourceRow, value: sourceName,
-                            showsChevron: true, action: {}),
+                            showsChevron: true, action: onChangeSource),
                 SettingsRow(label: Wording.themeRow, showsAccentDot: true,
                             showsChevron: true, action: { onOpen(.theme) }),
                 SettingsRow(label: Wording.termsRow, showsChevron: true,

@@ -16,6 +16,9 @@ struct MomentListScreen: View {
     var editing: Binding<RecordDraft?>
     /// `13`을 여는 길. **뼈대가 진다** — iPhone은 밀고 들어가고 iPad는 창 가운데 판으로 뜬다.
     var onOpenSettings: () -> Void = {}
+    /// `04-E1`에서 `02`로 곧장 가는 길. ⚠️ **설정 진입점이 둘이 되는 것이 아니다** —
+    /// 설정을 지나지 않고 시트를 연다.
+    var onChooseSource: () -> Void = {}
 
     /// **한 행의 장수를 이 값이 정한다** — iPad 세로에서 pane이 좁아지면 3장이 안 들어간다.
     @State private var stripWidth: CGFloat = Layout.thumbnail
@@ -223,12 +226,32 @@ struct MomentListScreen: View {
             .padding(.trailing, Spacing.screenMargin)
             .padding(.top, 8)
         } else {
-            Text(Wording.empty)
+            empty
+        }
+    }
+
+    /// ⚠️ **갈래가 셋이다** — 소스가 없는 것 · 사진이 0장인 것 · **사진은 있는데 못 묶은 것.**
+    /// 앞의 둘은 길이 필요하고 셋째는 앨범을 바꿀 길이 필요하다.
+    @ViewBuilder
+    private var empty: some View {
+        let needsSource = library.phase == .needsSource
+        let unplaced = !library.assets.isEmpty
+        VStack(spacing: 20) {
+            Text(needsSource ? Wording.sourceUnset
+                 : unplaced ? Wording.noMomentsHere : Wording.empty)
                 .font(Typography.emptyState)
                 .foregroundStyle(Palette.secondaryLabel)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 44)
+                .multilineTextAlignment(.center)
+            if needsSource || unplaced {
+                Button(Wording.chooseAlbum, action: onChooseSource)
+                    .buttonStyle(PrimaryActionStyle())
+            }
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 44)
+        // ⚠️ **화면이 아니라 「빈 자리」의 가운데다** — 화면 기준으로 잡으면 탭 바가 아래를
+        // 먹어 덩어리가 처진다.
+        .containerRelativeFrame(.vertical, alignment: .center) { height, _ in height }
     }
 }
 

@@ -29,6 +29,27 @@ public struct SourceAsset: Sendable, Hashable, Identifiable {
     }
 }
 
+/// 소스로 삼을 수 있는 후보 하나 (`SRC-02`). 이름·장수·대표 이미지를 함께 든다.
+///
+/// ⚠️ **셋을 갈라 두지 않는 것은 스트립 때문이다** — 대표 이미지를 그리려면 `SourceAsset`이
+/// 필요하고, 타입을 나누면 부르는 쪽이 이름과 이미지를 매번 다시 맞춰야 한다.
+public struct SourceCandidate: Sendable, Hashable, Identifiable {
+    /// 컨테이너 식별자. **이름이 아니다** — 같은 이름의 앨범이 둘 이상일 수 있다.
+    public let id: String
+    public let title: String
+    /// 컨테이너 안의 사진 수. `preview`보다 크면 나머지는 부르는 쪽이 `+N`으로 접는다.
+    public let count: Int
+    /// 스트립에 놓을 최신 몇 장. 요청한 수보다 적을 수 있다.
+    public let preview: [SourceAsset]
+
+    public init(id: String, title: String, count: Int, preview: [SourceAsset]) {
+        self.id = id
+        self.title = title
+        self.count = count
+        self.preview = preview
+    }
+}
+
 /// 읽기 접근 상태. 플랫폼이 주는 가장 좁은 읽기 권한이 `.readWrite`라 그것을 요청하지만,
 /// 공개 API에는 쓰기가 없고 쓰기 심볼 금지는 검증기가 강제한다 (원칙 `P5`).
 public enum ReadAccess: Sendable, Hashable, CustomStringConvertible {
@@ -61,7 +82,7 @@ public enum ReadAccess: Sendable, Hashable, CustomStringConvertible {
 /// 어댑터가 말하는 실패. 리스크 `R8`이 사는 자리가 `originalNotOnDevice`다.
 public enum PhotoSourceError: Error, Sendable, Hashable, CustomStringConvertible {
     case accessNotGranted(ReadAccess)
-    case albumNotFound(title: String)
+    case albumNotFound(id: String)
     /// 자산이 사라졌거나 식별자가 더 이상 유효하지 않다.
     case assetNotFound(assetID: String)
     case noOriginalResource(assetID: String)
@@ -73,7 +94,7 @@ public enum PhotoSourceError: Error, Sendable, Hashable, CustomStringConvertible
     public var description: String {
         switch self {
         case .accessNotGranted(let access): "권한 없음 (\(access))"
-        case .albumNotFound(let title): "앨범 없음: \"\(title)\""
+        case .albumNotFound(let id): "앨범 없음: \(id)"
         case .assetNotFound(let id): "자산 없음: \(id)"
         case .noOriginalResource(let id): "원본 리소스 없음: \(id)"
         case .originalNotOnDevice(let id): "원본이 기기에 없음 (R8): \(id)"

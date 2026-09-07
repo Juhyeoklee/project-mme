@@ -73,6 +73,45 @@ enum Layout {
     /// 본문 폭 357에서 774가 되어 한 화면(가용 ≈750)을 넘는다.
     static let recordPhotoMaxHeight: CGFloat = 480
 
+    // MARK: - `01` 온보딩
+
+    /// 주요 액션 버튼의 폭 상한 — **iPhone에서 여백을 뺀 폭이 그대로 상한이다.**
+    /// 넓은 지면에서는 여기서 멈춰 가운데 선다.
+    static let actionButtonMaxWidth: CGFloat = 360
+    /// 머리글 한 줄이 차지하는 높이. 손글씨 36의 1.45배다.
+    static let onboardingLineHeight: CGFloat = 52
+    /// 첫 덩어리가 시작하는 자리. iPad는 지면 안이라 값이 다르다.
+    static let onboardingTopInset: CGFloat = 150
+    static let onboardingPadTopInset: CGFloat = 110
+    /// iPad 지면 안쪽 좌우 여백.
+    static let onboardingPadMargin: CGFloat = 44
+    /// `01-S` 견본 카드의 폭 상한. iPhone에서는 본문 폭이 이보다 좁아 안 걸린다.
+    static let sampleCardMaxWidth: CGFloat = 480
+
+    // MARK: - `02` 소스 지정
+
+    /// 타일 하나가 셀간격까지 먹는 폭. **타일 크기가 고정이고 칸 수가 폭을 따라간다** —
+    /// iPhone은 사진 2 + `+N`, iPad는 5 + `+N`이 된다.
+    static let sourceTileSpan: CGFloat = 120
+    /// 스트립의 칸 수 하한. 사진 둘과 `+N`.
+    static let sourceStripMinimum = 3
+    static func sourceCells(inWidth width: CGFloat) -> Int {
+        max(sourceStripMinimum, Int((width + Spacing.cellGap) / sourceTileSpan))
+    }
+
+    /// 후보 사이. **행 안(6)보다 훨씬 넓다** — 어느 스트립이 어느 이름의 것인지가 여기서 갈린다.
+    static let sourceRowGap: CGFloat = 20
+    /// iPhone 시트 높이. **갈래마다 담을 것이 달라 높이도 다르다** — 목록 · 한 줄 · 안내뿐.
+    /// 목록 판만 스크롤한다.
+    static func sourceSheetHeight(hasList: Bool, hasCandidates: Bool) -> CGFloat {
+        guard hasList else { return 430 }
+        return hasCandidates ? 646 : 520
+    }
+    /// iPad는 창 가운데 떠 있는 판이다. ⚠️ **`13`(시스템 폼 540)보다 넓다.**
+    static let sourcePadSheet = CGSize(width: 750, height: 560)
+    /// 후보마다 들고 올 사진 수. 가장 넓은 판(iPad 6칸)이 다섯을 그린다.
+    static let sourcePreviewLimit = 6
+
     /// 사진 위에 얹히는 원형 배지.
     static let badgeDiameter: CGFloat = 22
     /// `05-T` 우하단에 뜨는 원형 액션.

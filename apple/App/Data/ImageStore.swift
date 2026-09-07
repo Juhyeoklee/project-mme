@@ -20,12 +20,6 @@ final class ImageStore {
     private let cache = NSCache<NSString, Box>()
     private var inFlight: [String: Task<CGImage?, Never>] = [:]
 
-    convenience init(source: AlbumPhotoSource, memoryLimitBytes: Int = 96 * 1024 * 1024) {
-        self.init(loader: { asset, pixels, network in
-            try? await source.image(of: asset, maxPixelSize: pixels, allowingNetwork: network)
-        }, memoryLimitBytes: memoryLimitBytes)
-    }
-
     init(loader: @escaping Loader, memoryLimitBytes: Int = 96 * 1024 * 1024) {
         self.load = loader
         cache.totalCostLimit = memoryLimitBytes

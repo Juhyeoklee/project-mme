@@ -38,11 +38,46 @@ enum Fixture {
         else { throw NoFixtureBytes() }
         return data
     }
+    /// 권한 갈래마다 다른 후보. 부분 접근에는 하나뿐이고 거부에는 없다.
+    static func candidates(for access: ReadAccess) -> [SourceCandidate] {
+        switch access {
+        case .limited:
+            [SourceCandidate(id: "permitted", title: Wording.pickedPhotos, count: 35,
+                             preview: Array(assets.prefix(6)))]
+        case .denied, .restricted: []
+        case .authorized, .notDetermined: candidates
+        }
+    }
+
+    // ⚠️ 시뮬레이터에 앨범을 만들 수 없어 여기가 `02`의 유일한 문이다.
+    // 장수는 `+N`의 세 갈래를 보려고 갈랐다 — 두 자리 · 세 자리 · 네 자리.
+    static let candidates = [
+        SourceCandidate(id: "album-game", title: "Mabinogi Mobile", count: 35,
+                        preview: Array(assets.prefix(6))),
+        SourceCandidate(id: "album-shots", title: "스크린샷", count: 1_412,
+                        preview: Array(assets.dropFirst(6).prefix(6))),
+        SourceCandidate(id: "album-fav", title: "즐겨찾는 항목", count: 86,
+                        preview: Array(assets.dropFirst(12).prefix(6))),
+    ]
+
     static let library = MomentLibrary.preview(classification, assets: assets)
     /// 첫 분류 진행 중 — `04-A1` 진행바가 뜨고 부제 숫자가 올라가는 상태.
     static let working = MomentLibrary.preview(classification, assets: assets,
                                                phase: .readingRemote, progress: 0.42)
     static let emptyLibrary = MomentLibrary.preview(Classifier.classify([]), assets: [])
+    /// 소스를 아직 안 정한 판.
+    static let unsetLibrary = MomentLibrary.preview(Classifier.classify([]), assets: [],
+                                                    phase: .needsSource)
+    /// ⚠️ **사진은 있는데 순간이 0이다** — 실기기에서 2,406장이 이렇게 들어왔다.
+    /// 이름 규칙이 안 맞아 한 장도 시간축에 안 놓인 상태다.
+    static let unplacedLibrary = MomentLibrary.preview(
+        Classifier.classify(unplacedInputs), assets: unplacedAssets)
+
+    private static let unplacedInputs = (0..<8).map { PhotoInput(filename: "IMG_\(3000 + $0).HEIC") }
+    private static let unplacedAssets = unplacedInputs.enumerated().map { index, input in
+        SourceAsset(id: "unplaced-\(index)", filename: input.filename,
+                    pixelWidth: 0, pixelHeight: 0)
+    }
 
     /// 배지·펼침이 붙는 자리를 본다.
     static let momentWithBurst = allMoments.first { moment in

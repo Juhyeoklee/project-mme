@@ -287,6 +287,24 @@ extension RecordDraft {
                            photos: photos(at: indices, library: library))
     }
 
+    /// `SRC-05` — 소스를 못 얻었을 때의 유일한 길 (`P3`가 막은 진입점이 아니다).
+    static func importing() -> RecordDraft {
+        // ⚠️ 순간이 없어 발생일시를 받을 데가 없다. 사용자가 `09-N4`로 고친다.
+        let now = deviceClock()
+        return RecordDraft(day: now.calendarDay, start: now, startsFromMoment: false, photos: [])
+    }
+
+    /// ⚠️ **`Calendar`를 쓰는 유일한 자리다.** 값이 이상해도 분류에 안 섞인다 — 이 초안은
+    /// 순간에서 오지 않았고 커널을 한 번도 안 지난다.
+    private static func deviceClock() -> WallClock {
+        let parts = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second], from: Date())
+        return WallClock(year: parts.year ?? 2000, month: parts.month ?? 1, day: parts.day ?? 1,
+                         hour: parts.hour ?? 0, minute: parts.minute ?? 0,
+                         second: parts.second ?? 0, hundredth: 0)
+            ?? WallClock(year: 2000, month: 1, day: 1, hour: 0, minute: 0, second: 0, hundredth: 0)!
+    }
+
     /// `ARC-06` — 이미 저장된 기록을 고치러 들어간다. 신원과 사진과 설명을 그대로 싣는다.
     static func editing(_ record: Record) -> RecordDraft {
         // ⚠️ **캔버스 기록의 사진은 `images`가 아니라 `canvas.sources`다** — 뒤바꾸면 구운
