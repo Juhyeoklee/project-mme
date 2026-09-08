@@ -39,8 +39,7 @@ public struct AlbumPhotoSource: Sendable {
     // MARK: - 자산 열거
 
     /// 앨범 안의 사진을 최신순으로 열거한다. **정렬에만 촬영 시각을 쓰고 값은 안 내보낸다** —
-    /// `PHAsset.creationDate`는 파일 안에 대응물이 없어 다른 언어 구현이 재현할 수 없고,
-    /// 커널 입력에 섞이면 ADR `0001` 결정 6이 커널 밖에서 깨진다.
+    /// `SourceAsset`에 날짜 자리가 없다. 내보내는 계약은 ADR `0014`가 정했다.
     ///
     /// **이름을 얻은 사진은 전부 넘긴다** (ADR `0004` 결정 2 (d)).
     public func assets() throws -> [SourceAsset] {
