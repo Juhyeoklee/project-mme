@@ -25,7 +25,7 @@ struct SignalReadingTests {
     }
 
     @Test func 쓰지_않는_필드가_섞여_있어도_읽는다() {
-        // 게임은 10개를 써넣는다(`ios-album` §3.1). 커널이 쓰는 것은 4개고 나머지는 지나친다.
+        // 게임은 10개를 써넣는다. 커널이 쓰는 것은 4개고 나머지는 지나친다.
         let reading = read(PNGFixture.capture(extraText: [
             ("Author", "이모모쨩"),
             ("Erinn Time", "16 : 59"),
@@ -106,7 +106,7 @@ struct SignalReadingTests {
     }
 
     @Test func 압축된_iTXt는_풀지_않고_상태로_보고한다() {
-        // ADR `0002` 대가 2 — zlib은 import 0을 깬다. 만나면 새 결정이 필요하다.
+        // zlib은 import 0을 깬다. 만나면 새 결정이 필요하다.
         let bytes = PNGFixture.capture(compressedKeys: ["Location Display Name",
                                                         "Camera Position",
                                                         "Camera Rotation",

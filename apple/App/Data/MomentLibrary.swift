@@ -10,7 +10,7 @@ import PhotoSource
 /// 패스를 가른 것은 열거가 212장 1.4초인데 원본 한 장이 441초까지 가기 때문이다
 /// (`R8` 실측 2026-08-03).
 ///
-/// ⚠️ **손으로 지켜야 하는 계약 하나 — 기계가 못 막는다** (ADR `0004` 결정 2 (d)). 1패스에
+/// ⚠️ **손으로 지켜야 하는 계약 하나 — 기계가 못 막는다**). 1패스에
 /// 자산을 *전량 열거해 전부* 넘긴다 — 일부만 넘기면 **시간 경계의 불변마저 사라진다.**
 /// 커널을 부르는 곳은 `reclassify()` 하나뿐이고 **넘기는 배열은 항상 `inputs` 전체다 —
 /// 부분 배열을 넘기는 경로를 만들지 마라.**
@@ -77,7 +77,7 @@ final class MomentLibrary {
     /// 넘겨도 다운로드는 안 죽는다 — 버리는 것은 결과지 일이 아니다.
     private let remoteTimeout: Duration = .seconds(20)
     /// 원격 도중 재분류 간격(장). ⚠️ 재분류마다 장소 경계가 다시 계산돼 행이 흔들린다
-    /// (ADR `0011`) — 거슬리면 판정 단위가 아니라 이 값을 먼저 늘린다.
+    /// — 거슬리면 판정 단위가 아니라 이 값을 먼저 늘린다.
     private let remoteReclassifyEvery = 16
 
     /// 커널이 사진마다 읽어낸 것. **`assets`와 같은 길이·같은 순서다.**
@@ -379,7 +379,7 @@ final class MomentLibrary {
         #endif
     }
 
-    /// **커널을 부르는 유일한 자리.** 넘기는 것은 언제나 `inputs` 전체다 — ADR `0004` (d).
+    /// **커널을 부르는 유일한 자리.** 넘기는 것은 언제나 `inputs` 전체다.
     private func reclassify() {
         let result = Classifier.classify(inputs, settings: settings)
         days = result.days

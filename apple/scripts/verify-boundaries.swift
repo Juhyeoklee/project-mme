@@ -1,5 +1,5 @@
 #!/usr/bin/env swift
-// 경계 검증기 — ADR `0001` 결정 4가 닫아둔 3항목. 그 이상은 검사하지 않는다.
+// 경계 검증기 — 컴파일러가 못 막는 3항목. 그 이상은 검사하지 않는다.
 //
 //   ① MomentKernel 소스의 import — 커널은 import 0이다. 의존 선언이 없는 패키지에서
 //      컴파일이 통과하는 import는 시스템(플랫폼) 모듈뿐이므로, import가 보이면 곧 위반이다.
@@ -9,7 +9,7 @@
 //      오탐은 빨간불이 보여 그 자리에서 명단을 고치면 되지만, 미탐은 조용히 도구를 죽인다.
 //      주석에 걸리는 것도 오탐으로 감수한다.
 //
-// 실행 — 로컬과 CI가 같은 명령이다 (ADR `0001` 결정 4):
+// 실행 — 로컬과 CI가 같은 명령이다:
 //   cd apple && swift scripts/verify-boundaries.swift
 
 import Foundation
@@ -72,13 +72,13 @@ func importedModule(_ line: String) -> String? {
 }
 
 // ① 커널은 import 0
-scan("Packages/MomentKernel/Sources", rule: "① 커널은 import 0 (ADR 0001 결정 2)") { line in
+scan("Packages/MomentKernel/Sources", rule: "① 커널은 import 0") { line in
     isImportLine(line)
 }
 
 // ② App은 사진 프레임워크를 직접 import하지 않는다
 let photoFrameworks: Set<String> = ["Photos", "PhotosUI"]
-scan("App", rule: "② App은 사진 프레임워크 직접 import 금지 (ADR 0001 결정 2)") { line in
+scan("App", rule: "② App은 사진 프레임워크 직접 import 금지") { line in
     guard let module = importedModule(line) else { return false }
     return photoFrameworks.contains(module)
 }

@@ -2,13 +2,13 @@
 import PackageDescription
 
 // `MomentKernel` 의존을 지웠다 (2026-08-03).
-// 간선의 원래 근거는 ADR `0001` 결정 2의 "계약 타입의 주인은 커널" 이었는데,
-// ADR `0002`가 커널 입력을 (파일명, 바이트)로 바꿔 어댑터가 커널에서 가져올 타입이 남지 않았다.
+// 원래 근거는 "계약 타입의 주인은 커널" 이었는데, 커널 입력이 (파일명, 바이트)로
+// 내려가며 어댑터가 커널에서 가져올 타입이 남지 않았다.
 // 이유 없는 간선은 결정 1이 반대하는 것이다. 지우면 컴파일러가 그 방향을 다시 막는다.
 let package = Package(
     name: "PhotoSource",
     // macOS는 이제 제품 플랫폼이다 — CI가 `swift test`를 호스트로 도는 것과는 별개로,
-    // 앱의 macOS 하한과 같은 값을 든다 (ADR `0013`).
+    // 앱의 macOS 하한과 같은 값을 든다.
     platforms: [.iOS(.v26), .macOS(.v26)],
     products: [
         .library(name: "PhotoSource", targets: ["PhotoSource"]),
@@ -17,7 +17,7 @@ let package = Package(
     targets: [
         .target(name: "PhotoSource"),
         // 사용자가 건네는 사진(`REC-10`). **`PhotoSource`에 의존하지 않는다** —
-        // 소스를 넓히지 않고 바이트만 넘기므로 가져올 타입이 없다 (ADR `0012`).
+        // 소스를 넓히지 않고 바이트만 넘기므로 가져올 타입이 없다.
         .target(name: "PhotoSourceUI"),
         .testTarget(name: "PhotoSourceTests", dependencies: ["PhotoSource"]),
     ]

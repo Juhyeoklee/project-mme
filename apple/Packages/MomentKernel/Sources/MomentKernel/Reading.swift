@@ -1,6 +1,6 @@
 // 입력과 그 해석 결과.
 //
-// **커널 입력 = 사진별 (파일명, 바이트)** — ADR `0002`. 바이트가 선택값인 이유는 `PhotoInput`에.
+// **커널 입력 = 사진별 (파일명, 바이트)**. 바이트가 선택값인 이유는 `PhotoInput`에.
 // **커널에 식별자 개념이 없다** — 출력은 입력 배열의 인덱스고, 원본과 잇는 일은 `App`이 한다.
 
 /// 사진 한 장의 입력.
@@ -77,7 +77,7 @@ extension Substring {
 }
 
 /// 바이트에서 꺼낸 분류 신호. 여기 있는 것이 곧 **`M5` 웹 자산 구현이 재현해야 할 전부**다
-/// (ADR `0001` 결정 6). 쓰지 않는 필드는 파싱도 노출도 안 한다 — 노출하면 언젠가 계약이 된다.
+///. 쓰지 않는 필드는 파싱도 노출도 안 한다 — 노출하면 언젠가 계약이 된다.
 public struct CaptureSignals: Sendable, Hashable {
     /// **좌표계가 구역마다 별개라** 장소 판정의 하드 파티션으로 쓴다.
     public let zoneName: String
@@ -103,7 +103,7 @@ public enum SignalStatus: Sendable, Hashable {
     case malformedPNG
     /// PNG인데 `iTXt`가 없다.
     case textChunkMissing
-    /// 필요한 값이 **압축된** `iTXt` 안에 있다. ADR `0002` 대가 2가 예고한 자리 —
+    /// 필요한 값이 **압축된** `iTXt` 안에 있다 —
     /// 풀려면 zlib이 필요하고 그건 import 0을 깬다. **새 결정이 필요하다.**
     case textChunkCompressed
     case fieldMissing(String)

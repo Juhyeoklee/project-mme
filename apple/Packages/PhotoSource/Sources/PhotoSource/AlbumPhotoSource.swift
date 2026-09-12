@@ -1,11 +1,11 @@
-// 앨범 하나를 소스로 읽는 어댑터. ADR `0001` 결정 5의 "구현체 교체" 규칙에서 첫 구현체다 —
+// 앨범 하나를 소스로 읽는 어댑터. "구현체 교체" 규칙의 첫 구현체다 —
 // macOS 폴더 소스가 오면 조건문이 아니라 같은 일을 하는 다른 타입이 온다.
 
 import Foundation
 import Photos
 
 /// 앨범 하나를 소스로 읽는다 — 앨범 찾기 · 자산 열거 · 원본 바이트 로드.
-/// 출력이 커널 입력 (파일명, 바이트)를 공급한다 (ADR `0002`).
+/// 출력이 커널 입력 (파일명, 바이트)를 공급한다.
 ///
 /// **후보를 고르는 일은 `AlbumCatalog`이 진다** — 이 타입은 이미 정해진 하나만 읽는다.
 public struct AlbumPhotoSource: Sendable {
@@ -39,9 +39,9 @@ public struct AlbumPhotoSource: Sendable {
     // MARK: - 자산 열거
 
     /// 앨범 안의 사진을 최신순으로 열거한다. **정렬에만 촬영 시각을 쓰고 값은 안 내보낸다** —
-    /// `SourceAsset`에 날짜 자리가 없다. 내보내는 계약은 ADR `0014`가 정했다.
+    /// `SourceAsset`에 날짜 자리가 없다.
     ///
-    /// **이름을 얻은 사진은 전부 넘긴다** (ADR `0004` 결정 2 (d)).
+    /// **이름을 얻은 사진은 전부 넘긴다**).
     public func assets() throws -> [SourceAsset] {
         let access = Self.currentAccess()
         guard access.canRead else { throw PhotoSourceError.accessNotGranted(access) }
@@ -132,7 +132,7 @@ public struct AlbumPhotoSource: Sendable {
     /// ⚠️ **얼마나 즉시인지는 아직 「판정 불가」다**(2026-08-04). 재판정은 `M2` 실기기 작업이다.
     ///
     /// **분류 신호는 여기서 오지 않는다** — 신호는 원본 `iTXt`에 있고 `originalBytes`만이 준다.
-    /// 두 경로를 섞으면 ADR `0001` 결정 6의 "생산 과정도 계약이다"가 깨진다.
+    /// 두 경로를 섞으면 "입력값의 생산 과정도 계약이다"가 깨진다.
     ///
     /// - Parameter maxPixelSize: 긴 변의 상한. 종횡비는 유지된다.
     public func image(of asset: SourceAsset,
@@ -246,8 +246,8 @@ extension AlbumPhotoSource {
 extension PHAsset {
     /// `SourceAsset`을 만드는 유일한 자리 — 열거와 후보 목록이 같은 규칙을 쓴다.
     var sourceAsset: SourceAsset? {
-        // 이름을 못 얻으면 버린다 — 그 절반이 커널 입력이다 (ADR `0002`).
-        // 원본(`.photo`)이 없어도 이름은 얻는다 — ADR `0004` 결정 2 (a).
+        // 이름을 못 얻으면 버린다 — 그 절반이 커널 입력이다.
+        // 원본(`.photo`)이 없어도 이름은 얻는다 — 바이트 없는 사진도 시간축에 참여한다.
         let resources = PHAssetResource.assetResources(for: self)
         guard let filename = (resources.first { $0.type == .photo }
                               ?? resources.first)?.originalFilename else { return nil }

@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// ⚠️ **위 자격을 알고 넘은 유일한 자리다** — 창을 늘 넓은 판으로 쳐서 iPad 판이 그대로 뜬다.
-/// 무엇으로 가를지는 macOS 화면설계가 정한다. 판정 원문은 ADR `0013`의 대가 1.
+/// 무엇으로 가를지는 macOS 화면설계가 정한다.
 enum UserInterfaceSizeClass: Hashable {
     case compact
     case regular

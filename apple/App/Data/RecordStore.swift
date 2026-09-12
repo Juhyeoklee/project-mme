@@ -214,7 +214,7 @@ extension RecordStore {
 /// 디스크에 적히는 형태.
 ///
 /// ⚠️ **커널의 `WallClock`에 저장 형식을 얹지 않는다** — 그 공개 API는 다른 언어 구현이
-/// 재현할 계약이다 (ADR `0002`).
+/// 재현할 계약이다.
 private struct StoredRecord: Codable {
     var schemaVersion: Int
     var id: UUID
