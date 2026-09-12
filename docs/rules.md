@@ -156,13 +156,15 @@
 
 # 기계로 보는 넷 — 전부 0이어야 한다
 
-```
-cd apple
-grep -rn '§' --include='*.swift' . | grep -v '/.build/' | grep -vE '(`[a-z0-9-]+`|실험) §'
-grep -rnE '^ *(public )?(protocol|actor) ' --include='*.swift' --exclude-dir=.build .
-grep -rn 'throws' Packages/MomentKernel/Sources
-find . -name 'Utils.swift' -o -name 'Helpers.swift' -o -name 'Common.swift' -o -name 'Extensions.swift'
-```
+| | 무엇을 막나 | 원문 |
+|---|---|---|
+| **산출물 문서 절 참조** | 화면설계서·토큰의 절 번호(`§`) — 개정되면 움직인다 | 「참조는 「안 죽는 층」만 가리킨다」 |
+| **프로토콜·actor** | 구현체가 하나뿐인데 뚫린 층 | 「타입과 층」 · 「상한」 |
+| **커널 `throws`** | 커널이 던지면 실패 세 층이 무너진다 | 「실패 — 세 층」 |
+| **이름 없는 유틸 파일** | `Utils` · `Helpers` · `Common` · `Extensions` | 「하지 않는 것」 1 |
+
+**명령은 `apple/scripts/gates.sh`에 있다.** 여기 사본을 두지 않는다 —
+자가 두 벌이 되면 한쪽이 낡고 **조용한 0**을 낸다.
 
 **넷 다 grep 한 줄이고 자가 틀릴 여지가 없다.** 이것이 선정 기준이다.
 

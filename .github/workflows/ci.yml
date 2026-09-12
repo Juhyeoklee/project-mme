@@ -1,4 +1,9 @@
-# CI 잡 하나 — 하는 일은 검증기 · 테스트 · 빌드뿐
+# CI 잡 하나 — 하는 일은 `apple/scripts/gates.sh`를 부르는 것뿐이다.
+#
+# 명령을 여기 적지 않는다. 에이전트가 손으로 돌리는 것과 CI가 돌리는 것이
+# 두 벌로 살면 한쪽이 낡고, 낡은 쪽으로 돈 세션이 초록을 잘못 믿는다.
+# 잡을 게이트마다 쪼개지 않는 대가로 스텝 단위 표시를 잃지만,
+# 스크립트가 게이트마다 ✅/❌를 찍고 실패한 것만 로그를 편다.
 name: CI
 
 on:
@@ -16,38 +21,5 @@ jobs:
       - name: Select Xcode 26
         run: sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -n 1)"
 
-      - name: Boundary verifier
-        working-directory: apple
-        run: swift scripts/verify-boundaries.swift
-
-      - name: Kernel tests
-        run: swift test --package-path apple/Packages/MomentKernel
-
-      - name: PhotoSource tests
-        run: swift test --package-path apple/Packages/PhotoSource
-
-      - name: Build app (iOS Simulator)
-        run: >
-          xcodebuild build
-          -project apple/Moanogi.xcodeproj
-          -scheme Moanogi
-          -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO
-
-      # macOS는 시뮬레이터가 없어 빌드만 돈다.
-      - name: Build app (macOS)
-        run: >
-          xcodebuild build
-          -project apple/Moanogi.xcodeproj
-          -scheme Moanogi
-          -destination 'platform=macOS,arch=arm64'
-          CODE_SIGNING_ALLOWED=NO
-
-      # 앱 테스트는 시뮬레이터를 실제로 띄운다 — generic 목적지로는 안 돈다.
-      # 기기 이름은 러너 이미지마다 다르므로 iOS 26+ 중 마지막 iPhone을 골라 쓴다.
-      - name: App tests (iOS Simulator)
-        run: |
-          SIM=$(xcrun simctl list devices available | awk '/^-- iOS 2[6-9]/{ok=1;next} /^--/{ok=0} ok && /iPhone/{gsub(/ \(.*/,"");gsub(/^ +/,"");n=$0} END{print n}')
-          echo "시뮬레이터: $SIM"
-          xcodebuild test -project apple/Moanogi.xcodeproj -scheme Moanogi \
-            -destination "platform=iOS Simulator,name=$SIM" CODE_SIGNING_ALLOWED=NO
+      - name: Gates
+        run: apple/scripts/gates.sh

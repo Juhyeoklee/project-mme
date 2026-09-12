@@ -12,30 +12,19 @@
 - `MomentKernel`은 **import 0** — 플랫폼·시간대·로케일을 모른다
 - 사진 라이브러리를 아는 모듈은 `PhotoSource` 하나 — **공개 API에 쓰기 연산 없음** (원칙 `P5`)
 - 커널 입력값의 **생산 과정도 계약이다** — 신호를 더할 때 이 문장부터 읽어라
-- 컴파일러가 못 막는 3항목은 검증기가 막는다 — 게이트는 세 층, 늘리지도 줄이지도 않는다
+- 컴파일러가 못 막는 3항목은 검증기가 막는다 — **여기서 항목을 늘리지 않는다**
 
-## 게이트 — CI와 같은 명령을 직접 돌린다
+## 게이트 — 명령 하나다
 
 ```
-cd apple && swift scripts/verify-boundaries.swift
-swift test --package-path apple/Packages/MomentKernel
-swift test --package-path apple/Packages/PhotoSource
-xcodebuild build -project apple/Moanogi.xcodeproj -scheme Moanogi \
-  -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
-
-# macOS는 시뮬레이터가 없어 빌드만 돈다
-xcodebuild build -project apple/Moanogi.xcodeproj -scheme Moanogi \
-  -destination 'platform=macOS,arch=arm64' CODE_SIGNING_ALLOWED=NO
-
-# 앱 테스트는 시뮬레이터를 실제로 띄운다 — generic 목적지로는 안 돈다
-SIM=$(xcrun simctl list devices available | awk '/^-- iOS 2[6-9]/{ok=1;next} /^--/{ok=0} ok && /iPhone/{gsub(/ \(.*/,"");gsub(/^ +/,"");n=$0} END{print n}')
-xcodebuild test -project apple/Moanogi.xcodeproj -scheme Moanogi \
-  -destination "platform=iOS Simulator,name=$SIM" CODE_SIGNING_ALLOWED=NO
+apple/scripts/gates.sh
 ```
 
-빌드·테스트 루프에 도구를 더하지 않는다. 최종 차단은 컴파일러와 CI다.
+**게이트 여섯 + 기계 대조 넷을 한 번에 돌리고, 실패한 것만 로그를 편다.**
+CI(`.github/workflows/ci.yml`)가 **같은 파일**을 부른다 — 사본이 없으므로 어긋날 자리가 없다.
 
-이 블록은 `.github/workflows/ci.yml`의 사본이다 — 구조가 바뀌어 CI가 바뀌면 **이 블록을 같이 고친다.** 진실은 `ci.yml`이다.
+빌드·테스트 루프에 도구를 더하지 않는다. 이 스크립트는 도구가 아니라 **명령이 사는 한 자리**다.
+최종 차단은 컴파일러와 CI다.
 
 ## 코드와 주석
 
@@ -65,7 +54,7 @@ xcodebuild test -project apple/Moanogi.xcodeproj -scheme Moanogi \
 리뷰어가 보는 넷 —
 
 1. **우회 냄새** — 새 코드가 기존 코드의 결함에 맞춰 기이해진 자리 (우회는 만든 눈에 안 보인다)
-2. **계약의 의미층** — 검증기가 못 보는 것: 커널 입력값의 생산 과정 · 부분 입력 계약 · 원칙 `P1`~`P5`
+2. **계약의 의미층** — 검증기가 못 보는 것: **`docs/rules.md` 「기계가 못 막는 셋」** · 원칙 `P1`~`P5`
 3. **규칙** — `docs/rules.md`. 특히 **「하지 않는 것」과 표면 상한** — 층과 공개 API가 소리 없이 는다
 4. **테스트가 명세인가** — 이름이 요구를 말하는가, 기대값이 구현의 복사가 아닌가
 
@@ -74,10 +63,10 @@ xcodebuild test -project apple/Moanogi.xcodeproj -scheme Moanogi \
 ## 도구
 
 - **Xcode MCP `RenderPreview`** — 화면이 생긴 시점의 재판정에서 **채택**으로 뒤집혔다. 뒤집은 것은 `previewVariantOverrides`다 — Color Scheme·Dynamic Type을 호출 인자로 강제할 수 있다. 동작 조건: Xcode가 프로젝트를 열고 있을 것. 기준선: 콜드 ~91초 · 웜 2.5~10초
-- **프리뷰 픽스처는 `static let`** — 갱신마다 새로 만들면 객체 신원이 바뀌어 무한 갱신 루프가 되고 Xcode가 통째로 물린다(2026-08-04 실측)
-- **`#Preview`는 상태 변형을 나란히 볼 때, `-fixture`는 흐름 안에서 볼 때** (2026-08-14 정리). `04`~`06`이 프리뷰를 갖고 `07`~`10`이 안 갖는 것은 **뒤의 넷이 혼자 못 서기 때문**이다 — `09`는 초안이 있어야 뜨고 `10`은 `09` 위에만 뜬다. 프리뷰 여섯이 전부 상태 변형인 것(`04 정상`·`04 첫 분류 중`·`04 사진 0장`)이 그 축의 실물이다
+- **프리뷰 픽스처는 `static let`** — 갱신마다 새로 만들면 객체 신원이 바뀌어 무한 갱신 루프가 되고 Xcode가 통째로 물린다
+- **`#Preview`는 상태 변형을 나란히 볼 때, `-fixture`는 흐름 안에서 볼 때**. `04`~`06`이 프리뷰를 갖고 `07`~`10`이 안 갖는 것은 **뒤의 넷이 혼자 못 서기 때문**이다 — `09`는 초안이 있어야 뜨고 `10`은 `09` 위에만 뜬다. 프리뷰 여섯이 전부 상태 변형인 것(`04 정상`·`04 첫 분류 중`·`04 사진 0장`)이 그 축의 실물이다
 - **실기기 배포** — `apple/scripts/deploy-device.sh`. 기기 조회 → 빌드 → 설치 → 실행
-- **편집 직후 진단은 믿는다** — `xcode-build-server` + 워크스페이스 루트의 `buildServer.json`이 `.xcodeproj` 타깃까지 인덱스를 연결한다(2026-08-04 채택 · 오탐 3종 해소 확인). 진단과 빌드가 어긋나면 진단을 무시하지 말고 빌드 서버 연결부터 의심한다
+- **편집 직후 진단은 믿는다** — `xcode-build-server` + 워크스페이스 루트의 `buildServer.json`이 `.xcodeproj` 타깃까지 인덱스를 연결한다(오탐 3종 해소 확인). 진단과 빌드가 어긋나면 진단을 무시하지 말고 빌드 서버 연결부터 의심한다
 
 ## 금지
 
