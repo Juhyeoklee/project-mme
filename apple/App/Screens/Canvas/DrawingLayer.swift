@@ -9,7 +9,7 @@ import SwiftUI
 
 /// 종이 위에 겹쳐 놓는 투명한 획 층.
 ///
-/// **손가락도 그린다** (사용자 판정 2026-08-18). 시스템 기본값(`.default`)은 펜슬이 붙은
+/// **손가락도 그린다**. 시스템 기본값(`.default`)은 펜슬이 붙은
 /// 기기에서 펜슬만 받는데, 그러면 펜슬을 안 든 순간 그리기가 통째로 막힌다.
 ///
 /// ⚠️ **그 대가로 손가락 한 개짜리 이동이 사라진다** — 캔버스를 옮기고 크기를 바꾸려면
@@ -112,7 +112,7 @@ struct StrokeImage: View {
 ///
 /// ⚠️ **PencilKit의 되돌리기는 그림이 아니라 이 뷰에 걸린다.** 페이지를 넘기면 같은 뷰에
 /// 다른 그림이 올라가므로, 그 스택을 앱 버튼에 물리면 **되돌리기가 이전 페이지의 그림을
-/// 지금 페이지에 써 넣는다**(2026-08-18 실기기). 획의 되돌리기는 `CanvasSession`이 진다.
+/// 지금 페이지에 써 넣는다**. 획의 되돌리기는 `CanvasSession`이 진다.
 private final class IsolatedUndoCanvasView: PKCanvasView {
     private let isolated = UndoManager()
 

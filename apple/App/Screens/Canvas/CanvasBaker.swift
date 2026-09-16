@@ -13,9 +13,9 @@ import SwiftUI
 @MainActor
 enum CanvasBaker {
     /// 굽는 배율. **12pt 손글씨가 @2x면 24px에서 뭉갠다**(`CAN-04`는 크기 하한이 없다).
-    /// 한 페이지가 341KB · 100ms고 @4x는 56% 무거워진다(2026-08-18 실측).
+    /// 한 페이지가 341KB · 100ms고 @4x는 56% 무거워진다.
     static let scale: CGFloat = 3
-    /// JPEG 압축률. **무손실은 같은 지면이 1118KB로 3.3배**인데 눈에 안 보인다(2026-08-18 실측).
+    /// JPEG 압축률. **무손실은 같은 지면이 1118KB로 3.3배**인데 눈에 안 보인다.
     static let quality: CGFloat = 0.92
     static let fileExtension = "jpg"
 

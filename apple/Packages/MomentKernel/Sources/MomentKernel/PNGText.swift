@@ -90,7 +90,7 @@ enum PNGText {
         else { return nil }
         let textStart = translatedEnd + 1
         guard textStart <= end else { return nil }
-        // 규격상 종료자가 없는데 **실물이 NUL을 하나 더 쓴다**(2026-08-03, 211/211).
+        // 규격상 종료자가 없는데 **실물이 NUL을 하나 더 쓴다**(211/211).
         // 안 떼면 값 끝이 `>`가 아니라 좌표 파싱이 통째로 실패한다.
         var textEnd = end
         while textEnd > textStart, bytes[textEnd - 1] == 0 { textEnd -= 1 }

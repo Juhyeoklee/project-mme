@@ -38,13 +38,13 @@ extension View {
     }
 
     /// 머리 뒤의 가림막이자 **자기 자리를 통째로 막는 층** — 네비 바가 원래 스크롤을 안 받는다.
-    /// ⚠️ iPad는 가림막을 안 깔아 통째로 투명했고, 타이틀 옆 탭이 뒤로 샜다(2026-08-13 로그).
+    /// ⚠️ iPad는 가림막을 안 깔아 통째로 투명했고, 타이틀 옆 탭이 뒤로 샜다.
     func headerScrim() -> some View {
         modifier(HeaderScrim()).contentShape(.rect)
     }
 
     /// 떠 있는 크롬이 **자기 둘레까지** 탭을 삼킨다 — 캡슐 옆 투명 여백은 히트 테스트를 안 잡는다.
-    /// ⚠️ 띠 전체를 막으면 그 자리에서 **스크롤이 죽는다** — 머리와 갈리는 자리다(2026-08-13 실물).
+    /// ⚠️ 띠 전체를 막으면 그 자리에서 **스크롤이 죽는다** — 머리와 갈리는 자리다.
     func blocksNearbyTaps(halo: CGFloat = 8) -> some View {
         padding(halo).contentShape(.rect).padding(-halo)
     }
@@ -57,7 +57,7 @@ extension View {
     }
 }
 
-/// ⚠️ **iPad 지면에서는 가림막을 안 깐다** (사용자 판정 2026-08-12) — 뒤에 지나갈 것을
+/// ⚠️ **iPad 지면에서는 가림막을 안 깐다** — 뒤에 지나갈 것을
 /// 가려 버리면 유리가 할 일이 없어진다.
 ///
 /// 필요한 이유는 iPhone에만 있다 — 유리 캡슐 위쪽의 **상태 표시줄**이 비어서, 밝은 사진이
@@ -78,7 +78,7 @@ private struct HeaderScrim: ViewModifier {
 /// 머리 뒤 가림막의 감쇠 곡선.
 private enum Scrim {
     /// ⚠️ **양 끝 기울기가 0이어야 하고 높이는 머리 전체를 쓴다** — 직선으로 0까지 가거나
-    /// 높이를 줄이면 그 자리가 잘린 선으로 보인다 (2026-08-11 실물).
+    /// 높이를 줄이면 그 자리가 잘린 선으로 보인다.
     static let stops: [Gradient.Stop] = stride(from: 0.0, through: 1.0, by: 1.0 / 12).map {
         // smoothstep을 뒤집은 것 — 1에서 시작해 0으로, 양 끝이 평평하다.
         Gradient.Stop(color: Palette.pane.opacity(1 - $0 * $0 * (3 - 2 * $0)),

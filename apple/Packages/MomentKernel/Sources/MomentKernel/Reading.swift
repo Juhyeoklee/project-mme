@@ -36,7 +36,7 @@ public struct Vector3: Sendable, Hashable {
     }
 
     /// 각도 벡터로 볼 때의 거리. **360도 되감기를 접는다** — 안 접으면 359도와 1도가
-    /// 358도 차이로 읽힌다. 표본에 실제로 있었다(2026-08-03).
+    /// 358도 차이로 읽힌다. 표본에 실제로 있었다.
     public func angularDistance(to other: Vector3) -> Double {
         let dx = Vector3.fold(x - other.x)
         let dy = Vector3.fold(y - other.y)

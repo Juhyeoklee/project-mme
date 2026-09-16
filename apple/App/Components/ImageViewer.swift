@@ -77,8 +77,8 @@ struct ImageViewer<Page: View>: View {
                 Text(topLine(current))
                     .font(Typography.time)
                 HStack {
-                    // ⚠️ **닫기만 유리를 진다** — 밝은 사진 위에서 흰 글리프가 사라진다
-                    // (2026-08-13 실기기). 나머지 크롬은 글자라 이 층위에 안 얹는다.
+                    // ⚠️ **닫기만 유리를 진다** — 밝은 사진 위에서 흰 글리프가 사라진다.
+                    // 나머지 크롬은 글자라 이 층위에 안 얹는다.
                     Button { dismiss() } label: {
                         GlyphIcon(Glyph.close, size: 18)
                             .frame(width: Layout.hitTarget, height: Layout.hitTarget)

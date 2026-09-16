@@ -25,7 +25,7 @@ struct PhotoViewerScreen: View {
                        fills: false,
                        emptyColor: Palette.viewerBackground,
                        // ⚠️ 여백도 검정이어야 한다 — 라이트에서 흰 여백이 깔리면
-                       // 그 위의 흰 크롬이 사라진다 (2026-08-04 실기기).
+                       // 그 위의 흰 크롬이 사라진다.
                        matteColor: Palette.viewerBackground,
                        // 여기서만 네트워크를 연다 — 사용자가 이 한 장을 지목했다.
                        allowingNetwork: true,

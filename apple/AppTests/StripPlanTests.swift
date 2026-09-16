@@ -11,7 +11,7 @@ private func width(forPerRow count: Int) -> CGFloat {
 }
 
 /// ⚠️ **`@MainActor`가 필요하다** — `plan`은 `View` 소속이라 격리를 물려받는다.
-/// 빼면 컴파일은 통과하고 **실행 중에 격리 검사가 트랩을 낸다**(2026-08-10 실측).
+/// 빼면 컴파일은 통과하고 **실행 중에 격리 검사가 트랩을 낸다**.
 @Suite("스트립 칸 배분")
 @MainActor
 struct StripPlanTests {

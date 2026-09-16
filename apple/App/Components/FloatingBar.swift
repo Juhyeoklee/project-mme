@@ -10,7 +10,7 @@ import SwiftUI
 /// ⚠️ **유리를 지는 것은 카드다** — 안의 버튼은 내용물이라 불투명하다. 둘 다 유리면
 /// 카드가 묶는 일을 하는지가 안 보인다.
 ///
-/// ⚠️ **폭 상한을 바가 직접 진다** — 부르는 쪽에 맡기면 안 걸린다(2026-08-13 실측: 62pt 차).
+/// ⚠️ **폭 상한을 바가 직접 진다** — 부르는 쪽에 맡기면 안 걸린다(62pt 차).
 struct FloatingBar<Content: View>: View {
     @ViewBuilder var content: Content
 

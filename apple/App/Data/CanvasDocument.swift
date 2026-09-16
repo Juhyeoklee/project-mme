@@ -77,7 +77,7 @@ struct CanvasElement: Identifiable, Hashable, Sendable {
     /// 도 단위 (`CAN-02`).
     var rotation: Double
     /// 사용자가 직접 정한 자리. **`nil`이면 종류가 정한다** (`CAN-06`).
-    /// ⚠️ **앱은 이 값을 안 건드린다** — 손으로 정리해 둔 배치가 무너진다(사용자 판정 2026-08-18).
+    /// ⚠️ **앱은 이 값을 안 건드린다** — 손으로 정리해 둔 배치가 무너진다.
     var pinned: Pin?
 
     init(id: UUID = UUID(), content: Content, frame: CGRect, rotation: Double = 0,

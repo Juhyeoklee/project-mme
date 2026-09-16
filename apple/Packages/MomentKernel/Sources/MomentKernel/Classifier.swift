@@ -7,19 +7,18 @@ public struct Settings: Sendable, Hashable {
 
     /// `MOM-02` — 같은 구역 안에서 장소를 가르는 카메라 위치 거리.
     /// **판정 단위는 인접쌍이 아니라 군집이다** (인접쌍은 메타값 좌표에서도 실패했다).
-    /// 60은 기준 A 실기기 전량 판정으로 확정했다 (2026-08-04 · 커밋 `0b9d9f7`).
+    /// 60은 실기기 전량 판정으로 정한 값이다.
     public var placeClusterDistance: Double
 
     /// `MOM-04`. 시선이 같은 쌍의 pHash 거리가 여기서 꺾인다.
     public var burstGapSeconds: Double
-    /// 아래 회전·화각과 함께 실험의 「시선이 같다」 정의 그대로다.
+    /// 아래 회전·화각과 함께 「시선이 같다」를 정의한다.
     public var burstCameraDistance: Double
     public var burstAngleDegrees: Double
     /// 정확히 같기를 요구하면 부동소수에 취약하다.
     public var burstFieldOfViewTolerance: Double
 
-    /// `MOM-06`. 표본에서 촬영이 3~5시에 비고 6시대에 아침 플레이가 있다 — 4시가 그 골이다
-    /// (2026-08-03 세션 관측. 실험 문서에는 없다).
+    /// `MOM-06`. 표본에서 촬영이 3~5시에 비고 6시대에 아침 플레이가 있다 — 4시가 그 골이다.
     public var dayCutoffHour: Int
 
     public init(momentGapSeconds: Int = 1800,
@@ -143,7 +142,7 @@ public enum Classifier {
 
     /// 장소 라벨. 신호가 없으면 `nil`.
     ///
-    /// **구역 이름이 하드 파티션이다** — 카메라 좌표계가 구역마다 별개라(2026-08-03 측정)
+    /// **구역 이름이 하드 파티션이다** — 카메라 좌표계가 구역마다 별개라
     /// 전역 거리로만 재면 다른 구역이 우연히 가까워질 수 있다.
     static func placeLabels(_ run: [Placed], distance: Double) -> [Int?] {
         // ⚠️ 처음 나온 순서로 모은다 — `Dictionary` 순회는 결정적이지 않다.

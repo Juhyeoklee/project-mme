@@ -53,7 +53,7 @@ struct MoanogiApp: App {
                 .environment(\.originalBytes, shownBytes)
                 .environment(\.accentSet, accentSet)
                 // ⚠️ **시스템 컨트롤(스위치·슬라이더·네비 버튼)을 칠하는 유일한 길이다** —
-                // `Color.accentColor`는 이 값을 안 읽는다(2026-08-28 탐침).
+                // `Color.accentColor`는 이 값을 안 읽는다.
                 .tint(accentSet.accent)
                 .preferredColorScheme(appearanceMode.colorScheme)
                 .limitedLibraryPicker(isPresented: $picksMorePhotos)

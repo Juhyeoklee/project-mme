@@ -134,7 +134,7 @@ enum Typography {
     static func applyNavigationBar() {
         #if os(iOS)
         // ⚠️ iOS 26 유리 바는 배경과 색을 무시하고, 배경색을 주면 large title을 통째로 안
-        // 그린다(2026-08-11 탐침). large title 화면은 머리를 직접 그리고 여기는 inline만 받는다.
+        // 그린다. large title 화면은 머리를 직접 그리고 여기는 inline만 받는다.
         let appearance = UINavigationBarAppearance()
         appearance.configureWithDefaultBackground()
         if let inline = UIFont(name: "IBMPlexSansKR-SemiBold", size: 16) {

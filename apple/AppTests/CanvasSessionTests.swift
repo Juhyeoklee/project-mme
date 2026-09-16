@@ -129,7 +129,7 @@ struct CanvasSessionTests {
     // MARK: - 되돌리기와 페이지
 
     /// ⚠️ **되돌리기가 다른 페이지를 건드리면 그 페이지로 데려간다** — 안 데려가면 지금 안
-    /// 보이는 페이지가 조용히 바뀐다 (사용자 판정 2026-08-18).
+    /// 보이는 페이지가 조용히 바뀐다.
     @Test func 다른_페이지의_획을_되돌리면_그_페이지로_데려간다() throws {
         let session = try #require(CanvasSession.opening(try draft(), in: store()))
         let first = session.page.id
@@ -263,7 +263,7 @@ struct CanvasSessionTests {
 
     // MARK: - `CAN-06` 겹침 순서
 
-    /// **손대지 않으면 종류가 정한다** — 사진 → 글 → 획 (사용자 판정 2026-08-18).
+    /// **손대지 않으면 종류가 정한다** — 사진 → 글 → 획.
     @Test func 손대지_않으면_사진_글_획_순으로_쌓인다() throws {
         let session = try #require(CanvasSession.opening(try draft(), in: store()))
         let photo = try #require(session.page.elements.first?.id)
@@ -286,7 +286,7 @@ struct CanvasSessionTests {
     }
 
     /// ⚠️ **못 박은 자리는 그 뒤로 안 흔들린다** — 앱이 다시 맞추면 손으로 정리해 둔 배치가
-    /// 무너진다 (사용자 판정 2026-08-18).
+    /// 무너진다.
     @Test func 못_박은_자리는_새_요소가_들어와도_그대로다() throws {
         let session = try #require(CanvasSession.opening(try draft(), in: store()))
         let raised = try #require(session.page.elements.first?.id)

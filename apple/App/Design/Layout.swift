@@ -22,7 +22,7 @@ enum Layout {
     static let stripRows = 2
 
     /// **상수로 박으면 안 되는 값이다** — `3장`은 특정 폭의 결과지 전제가 아니고,
-    /// iPad 세로(252pt)에서는 3장이 안 들어간다(2026-08-04 실기기).
+    /// iPad 세로(252pt)에서는 3장이 안 들어간다.
     static func thumbnailsPerRow(inWidth width: CGFloat) -> Int {
         max(1, Int((width + Spacing.thumbnailGap) / (thumbnail + Spacing.thumbnailGap)))
     }
@@ -41,11 +41,11 @@ enum Layout {
     static let detailCellAspect: CGFloat = 4.0 / 3.0
 
     /// 본문 폭의 상한. 값은 iPad 2단의 상세 지면 폭이다.
-    /// ⚠️ **안 걸면 넓은 지면에서 머리·툴바·밑줄이 전부 화면 끝까지 늘어난다**(2026-08-11 실측).
+    /// ⚠️ **안 걸면 넓은 지면에서 머리·툴바·밑줄이 전부 화면 끝까지 늘어난다**.
     static let readableWidth: CGFloat = 750
 
     /// `09` 사진 격자의 열 수 — 폭이 정한다.
-    /// ⚠️ 2를 박으면 넓은 지면에서 타일 하나가 화면 절반이 된다(2026-08-11 실측).
+    /// ⚠️ 2를 박으면 넓은 지면에서 타일 하나가 화면 절반이 된다.
     static func editorColumns(inWidth width: CGFloat) -> Int {
         max(2, Int(width / 380))
     }
@@ -55,7 +55,7 @@ enum Layout {
         max(3, Int(width / 130))
     }
     /// 떠 있는 툴바와 탭 바의 높이. **둘이 한 값을 쓴다** — 같은 화면에 나란히 서는 자리가
-    /// 있어 몇 pt만 어긋나도 그대로 보인다(2026-08-13 실기기).
+    /// 있어 몇 pt만 어긋나도 그대로 보인다.
     static let floatingBarHeight: CGFloat = 50
     /// 그 툴바의 폭 상한. ⚠️ **본문 폭을 그대로 쓰면 안 된다** — 넓은 지면에서 세 버튼이
     /// 양 끝으로 벌어져 한 묶음으로 안 읽힌다. iPhone 본문(357)보다 커서 거기서는 안 걸린다.
@@ -150,7 +150,7 @@ enum Layout {
     static let thumbnailPixels = 354
     /// 격자 셀. iPad 4열의 셀 폭(194pt)이 상한이라 그 3배.
     static let gridPixels = 600
-    /// `06`. 표본 원본이 1680×1167이라(2026-08-03) 그 위로는 늘려봐야 소용이 없다.
+    /// `06`. 표본 원본이 1680×1167이라 그 위로는 늘려봐야 소용이 없다.
     static let fullPixels = 2400
     /// `07-C4`. 카드 폭 전체라 썸네일보다 훨씬 크다.
     static let recordCoverPixels = 1200

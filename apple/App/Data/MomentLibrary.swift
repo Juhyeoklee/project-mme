@@ -8,9 +8,9 @@ import PhotoSource
 ///
 /// 진행 중에도 `days`는 항상 완결된 분류 결과다 — 2패스가 도는 동안 장소 경계만 다시 계산된다.
 /// 패스를 가른 것은 열거가 212장 1.4초인데 원본 한 장이 441초까지 가기 때문이다
-/// (`R8` 실측 2026-08-03).
+/// (`R8`).
 ///
-/// ⚠️ **손으로 지켜야 하는 계약 하나 — 기계가 못 막는다**). 1패스에
+/// ⚠️ **손으로 지켜야 하는 계약 하나 — 기계가 못 막는다.** 1패스에
 /// 자산을 *전량 열거해 전부* 넘긴다 — 일부만 넘기면 **시간 경계의 불변마저 사라진다.**
 /// 커널을 부르는 곳은 `reclassify()` 하나뿐이고 **넘기는 배열은 항상 `inputs` 전체다 —
 /// 부분 배열을 넘기는 경로를 만들지 마라.**
@@ -392,7 +392,7 @@ final class MomentLibrary {
     private func finish() {
         phase = .ready
         progress = 1
-        // 분류가 끝나면 바이트는 쓸 곳이 없다 — 211장이면 170MB다 (2026-08-03).
+        // 분류가 끝나면 바이트는 쓸 곳이 없다 — 211장이면 170MB다.
         // 재분류에 전량이 동시에 필요하므로 줄일 수 있는 것은 들고 있는 기간뿐이다.
         inputs = assets.map { PhotoInput(filename: $0.filename) }
     }
@@ -437,7 +437,7 @@ private func withOptionalTimeout<T: Sendable>(
 ) async throws -> T {
     guard let limit else { return try await operation() }
     // ⚠️ `TaskGroup`으로 경주하면 상한이 통째로 무력해진다 — 몸통이 나가도 그룹이 남은 자식을
-    // 기다리는데 진 쪽이 취소를 안 받는다 (상한 1초·작업 5초에 5.3초, 2026-08-10 실측).
+    // 기다리는데 진 쪽이 취소를 안 받는다 (상한 1초·작업 5초에 5.3초).
     let work = Task(operation: operation)
     let first = ResumeOnce()
     return try await withCheckedThrowingContinuation { continuation in

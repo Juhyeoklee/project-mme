@@ -9,7 +9,7 @@
 //      오탐은 빨간불이 보여 그 자리에서 명단을 고치면 되지만, 미탐은 조용히 도구를 죽인다.
 //      주석에 걸리는 것도 오탐으로 감수한다.
 //
-// 실행 — 로컬과 CI가 같은 명령이다:
+// 실행 — 훅과 `gates.sh`가 이 명령을 부른다:
 //   cd apple && swift scripts/verify-boundaries.swift
 
 import Foundation

@@ -52,7 +52,7 @@ struct CanvasGripTests {
     ///
     /// ⚠️ **`.moved()`를 이어 붙이면 안 된다** — `resized`·`scaled`는 `frame`이 아니라
     /// **손대기 직전 값(`origin`)에서 다시 계산**하고 `moved`는 그 값을 안 건드린다.
-    /// 이어 붙이면 클램프가 손댈 것이 없어 **테스트가 공허하게 통과한다**(리뷰 2026-08-19).
+    /// 이어 붙이면 클램프가 손댈 것이 없어 **테스트가 공허하게 통과한다**.
     /// 실물에서는 커밋이 그 자리를 문서에 앉히고, 다음 손짓이 거기서 새로 시작한다.
     private func gripping(_ grip: LiveTransform.Grip) -> LiveTransform {
         let pushed = LiveTransform.kept(CGRect(x: -5000, y: 0, width: 400, height: 300))

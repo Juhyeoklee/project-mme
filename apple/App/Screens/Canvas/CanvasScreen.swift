@@ -35,7 +35,7 @@ struct CanvasScreen: View {
     @State private var popover: CanvasPopover?
     @State private var isConfirmingCancel = false
     /// 화면 맞춤 배율 위에 얹히는 배율·이동·각도. **문서는 안 돌아간다** — 굽는 결과도
-    /// 저장 형식도 그대로다 (사용자 판정 2026-08-19).
+    /// 저장 형식도 그대로다.
     @State private var viewport = CanvasViewport()
     /// 소프트 키보드의 윗변(전역 좌표). **물리 키보드거나 없으면 화면 밖이라 아무 일도 안 한다.**
     @State private var keyboardTop: CGFloat = .infinity

@@ -57,7 +57,7 @@ echo
 echo "── 기계 대조 넷 (docs/rules.md · 전부 0) ──"
 
 # 넷 다 grep 한 줄이고 자가 틀릴 여지가 없다 — 그게 선정 기준이다.
-# 여기서 항목을 늘리지 않는다. 길이를 세는 자는 네 번 틀렸다(rules.md).
+# 여기서 항목을 늘리지 않는다 — 늘리려면 rules.md를 먼저 고친다.
 check() {
     local name="$1" out
     out="$(eval "$2")"
@@ -71,7 +71,7 @@ check() {
 }
 
 check "산출물 문서 절 참조" \
-    "grep -rn '§' --include='*.swift' . | grep -v '/.build/' | grep -vE '(\`[a-z0-9-]+\`|실험) §'"
+    "grep -rn '§' --include='*.swift' --exclude-dir=.build ."
 check "프로토콜·actor" \
     "grep -rnE '^ *(public )?(protocol|actor) ' --include='*.swift' --exclude-dir=.build ."
 check "커널 throws" \

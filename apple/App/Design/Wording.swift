@@ -16,7 +16,7 @@ enum Wording {
     static let empty = "아직 사진이 없어요"
     /// 소스를 아직 안 정했다 (`SYS-01`).
     static let sourceUnset = "아직 볼 앨범을 안 정했어요"
-    /// 사진은 있는데 순간이 0이다. ⚠️ **문구는 세션이 정했다.**
+    /// 사진은 있는데 순간이 0이다.
     static let noMomentsHere = "이 앨범에서는 순간을 못 묶었어요"
 
     /// `05` 원본을 끝내 못 받은 사진 (`R8`).

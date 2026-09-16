@@ -36,7 +36,7 @@ struct RootView: View {
     var opensPhotoAdd = false
     var initialTab: RootTab = .moments
     /// 합성 데이터로 `08`을 바로 띄운다. ⚠️ **탭 안쪽으로 밀어 넣어야 값이 있다** — 밖에서
-    /// 띄우면 탭 바가 없는 화면을 보게 되고, 그 조합이 실물과 다르다(2026-08-13).
+    /// 띄우면 탭 바가 없는 화면을 보게 되고, 그 조합이 실물과 다르다.
     var opensFirstRecord = false
     /// 합성 데이터로 `13`을 바로 연다.
     var opensSettings = false
@@ -118,7 +118,7 @@ struct RootView: View {
 
     var body: some View {
         // ⚠️ **탭을 갈아끼우지 않고 둘 다 살려 둔다** — 갈아끼우면 화면 트리가 통째로 다시
-        // 서면서 한 프레임이 깜빡이고, 스크롤 위치도 같이 사라진다 (2026-08-12 실물).
+        // 서면서 한 프레임이 깜빡이고, 스크롤 위치도 같이 사라진다.
         ZStack {
             pane(momentsTab, shown: tab == .moments)
             pane(recordsTab, shown: tab == .records)
@@ -239,7 +239,7 @@ struct RootView: View {
     }
 
     /// iPad에서 확인 시트는 전부 여기서 뜬다 — **같은 결정이 부른 자리마다 다른 데 서지 않게.**
-    /// ⚠️ 지면 안에서 띄우면 팝오버가 그 지면을 앵커로 잡는다 (사용자 판정 2026-08-13).
+    /// ⚠️ 지면 안에서 띄우면 팝오버가 그 지면을 앵커로 잡는다.
     private var isConfirmingDelete: Binding<Bool> {
         Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
     }
@@ -443,7 +443,7 @@ struct RootView: View {
                     .pane()
                     .overlay(alignment: .bottom) {
                         // ⚠️ **아래 여백이 `08` 툴바와 같아야 한다** — 다르면 나란히 선 두 바의
-                        // 바닥선이 어긋나 높이가 달라 보인다(2026-08-13 실측).
+                        // 바닥선이 어긋나 높이가 달라 보인다.
                         RootTabBar(selection: guardingEditor($tab))
                             .padding(.bottom, 12)
                     }
@@ -457,7 +457,7 @@ struct RootView: View {
     }
 
     /// iPad 지면의 편집기. ⚠️ **`취소`의 확인 시트를 여기가 띄운다** — 지면 안에서 띄우면
-    /// 지면 가운데에 서서 목록·탭에서 부른 같은 시트와 자리가 달라진다 (사용자 판정 2026-08-13).
+    /// 지면 가운데에 서서 목록·탭에서 부른 같은 시트와 자리가 달라진다.
     private func editor(_ draft: RecordDraft) -> some View {
         RecordEditorScreen(library: library, draft: draft,
                            initialAddingPhotos: opensPhotoAdd,
@@ -518,7 +518,7 @@ private struct EditorCover: ViewModifier {
 
 extension View {
     /// 탭 바를 이 화면 바닥에 앉힌다. ⚠️ **탭의 뿌리 화면에만 건다** — `NavigationStack`이
-    /// 바깥 인셋을 푸시 대상에 안 내려줘 `08` 툴바와 같은 자리에 포개진다(2026-08-13 실측).
+    /// 바깥 인셋을 푸시 대상에 안 내려줘 `08` 툴바와 같은 자리에 포개진다.
     func tabBar(selection: Binding<RootTab>) -> some View {
         safeAreaInset(edge: .bottom, spacing: 0) {
             RootTabBar(selection: selection).padding(.bottom, 12)
@@ -545,7 +545,7 @@ private struct RootTabBar: View {
         }
         .padding(.horizontal, 10)
         // ⚠️ **높이를 툴바와 같은 값으로 박는다** — 낱말 높이에 맡기면 `08` 툴바와 몇 pt가
-        // 어긋나고, 둘이 한 화면에 서는 iPad에서 그 차이가 그대로 보인다(2026-08-13 실기기).
+        // 어긋나고, 둘이 한 화면에 서는 iPad에서 그 차이가 그대로 보인다.
         .frame(height: Layout.floatingBarHeight)
         .glassEffect(.regular, in: .rect(cornerRadius: Radius.card))
         .blocksNearbyTaps()

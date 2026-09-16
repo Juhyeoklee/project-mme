@@ -15,7 +15,7 @@ struct PhotoTile: View {
     /// 사진이 **아직 없을 때**의 바탕.
     var emptyColor: Color = Palette.placeholder
     /// 사진이 **있을 때** fit하고 남는 여백의 바탕. ⚠️ **`emptyColor`와 묶으면 안 된다** —
-    /// `06` 여백이 라이트에서 흰색이 되어 흰 크롬이 사라진다(2026-08-04 실물).
+    /// `06` 여백이 라이트에서 흰색이 되어 흰 크롬이 사라진다.
     var matteColor: Color = Palette.surface
 
     var body: some View {

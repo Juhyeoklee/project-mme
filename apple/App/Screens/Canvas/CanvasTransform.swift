@@ -76,7 +76,7 @@ struct CanvasPinch: UIGestureRecognizerRepresentable {
 /// 위 셋이 저마다 하나씩 만들어 다는 델리게이트. **무상태라 인스턴스가 갈려도 결과가 같다.**
 ///
 /// ⚠️ **동시 인식을 허용하지 않으면 끌기가 한 번도 발화하지 않는다** — 같은 자리에 핀치와
-/// PencilKit이 서 있어서 두 손가락이 닿는 순간 중재에서 진다 (2026-08-18 실기기).
+/// PencilKit이 서 있어서 두 손가락이 닿는 순간 중재에서 진다.
 final class CanvasGestureDelegate: NSObject, UIGestureRecognizerDelegate {
     func gestureRecognizer(_ recognizer: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer)
@@ -92,7 +92,7 @@ final class CanvasGestureDelegate: NSObject, UIGestureRecognizerDelegate {
 
 /// 두 손가락 회전.
 ///
-/// **보는 각도만 돌린다** — 문서도 굽는 결과도 안 바뀐다 (사용자 판정 2026-08-19).
+/// **보는 각도만 돌린다** — 문서도 굽는 결과도 안 바뀐다.
 struct CanvasRotate: UIGestureRecognizerRepresentable {
     let isEnabled: Bool
     let leadingInset: CGFloat

@@ -60,7 +60,7 @@ struct SecondaryActionStyle: ButtonStyle {
 /// 평문 — 배경 없음.
 ///
 /// ⚠️ **버튼 문구는 한 활자다** — 네비 평문 버튼만 예외를 두면 같은 화면 안에서 서체가
-/// 둘이 된다 (사용자 판정 2026-08-13).
+/// 둘이 된다.
 struct PlainActionStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         Rendered(configuration: configuration)

@@ -6,7 +6,6 @@
 # 스크린샷·스파이크 산출물은 이 레포 밖(상위 workspace)에 있다.
 # 아래는 실수로 안쪽에 들어왔을 때를 대비한 이중 안전장치.
 screenshots*/
-spike/session-report.html
 
 # ── Xcode / SPM
 .build/

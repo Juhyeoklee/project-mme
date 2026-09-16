@@ -1,13 +1,11 @@
 // swift-tools-version: 6.2
 import PackageDescription
 
-// `MomentKernel` 의존을 지웠다 (2026-08-03).
-// 원래 근거는 "계약 타입의 주인은 커널" 이었는데, 커널 입력이 (파일명, 바이트)로
-// 내려가며 어댑터가 커널에서 가져올 타입이 남지 않았다.
-// 이유 없는 간선은 결정 1이 반대하는 것이다. 지우면 컴파일러가 그 방향을 다시 막는다.
+// `MomentKernel`에 의존하지 않는다 — 커널 입력이 (파일명, 바이트)라 어댑터가 커널에서
+// 가져올 타입이 없다. 이유 없는 간선을 안 두어야 컴파일러가 그 방향을 막는다.
 let package = Package(
     name: "PhotoSource",
-    // macOS는 이제 제품 플랫폼이다 — CI가 `swift test`를 호스트로 도는 것과는 별개로,
+    // macOS는 제품 플랫폼이다 — `swift test`가 호스트(macOS)로 도는 것과는 별개로,
     // 앱의 macOS 하한과 같은 값을 든다.
     platforms: [.iOS(.v26), .macOS(.v26)],
     products: [

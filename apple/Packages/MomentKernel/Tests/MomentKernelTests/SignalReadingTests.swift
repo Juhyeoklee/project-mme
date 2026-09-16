@@ -48,7 +48,7 @@ struct SignalReadingTests {
     }
 
     @Test func 실물이_쓰는_종료_NUL을_떼어낸다() {
-        // **합성 픽스처만으로는 못 잡았던 자리다** — 실물 211/211 대조로 잡혔다 (2026-08-03).
+        // **합성 픽스처만으로는 못 잡았던 자리다** — 실물 211/211 대조로 잡혔다.
         let bytes = PNGFixture.png(width: 100, height: 50, text: [
             ("Location Display Name", "반호르"),
             ("Camera Position", "<-7.285239, 12.22528, -87.03957>"),

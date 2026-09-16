@@ -29,7 +29,7 @@ struct RecordImageView: View {
 
     var body: some View {
         // ⚠️ **빈 바탕도 여백도 비워 둔다** — 색을 깔면 세로 사진 좌우와 로딩 칸에서
-        // 지면보다 어두운 띠가 드러난다 (2026-08-13 실기기).
+        // 지면보다 어두운 띠가 드러난다.
         PhotoTile(image: image, fills: fills, cornerRadius: cornerRadius,
                   emptyColor: .clear, matteColor: .clear)
             .frame(width: size?.width, height: size?.height)

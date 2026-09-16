@@ -56,7 +56,7 @@ extension PaperKind {
 /// 잉크 8색의 값과 이름. **목록 자체는 문서가 든다** — 저장되는 값이다.
 extension InkColor {
     /// 마커 진하기의 기본값과 범위. **색을 두 벌 만들지 않는다** — 같은 8색을 이 값으로 깐다.
-    /// 0.4는 형광펜처럼 겹쳐 그었을 때 아래 글자가 읽히는 값이다 (세션 판단 2026-08-18).
+    /// 0.4는 형광펜처럼 겹쳐 그었을 때 아래 글자가 읽히는 값이다.
     static let markerOpacity: Double = 0.4
     /// `11-O1`이 다루는 백분율. **0은 안 준다** — 안 보이는 잉크는 고장으로 읽힌다.
     static let markerOpacityRange: ClosedRange<CGFloat> = 10...100

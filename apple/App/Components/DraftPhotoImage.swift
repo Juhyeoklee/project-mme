@@ -15,7 +15,7 @@ struct DraftPhotoImage: View {
     /// `true`면 칸을 채우고 넘치는 만큼 잘린다.
     var fills = true
     /// 사진 자리에 바탕을 까는가. ⚠️ **캔버스는 안 깐다** — 투명한 이미지 뒤에서 회색 상자로
-    /// 드러나고, 구운 쪽에는 없어 저장한 뒤에만 사라지는 것처럼 보인다(2026-08-18 실기기).
+    /// 드러나고, 구운 쪽에는 없어 저장한 뒤에만 사라지는 것처럼 보인다.
     var paintsBackdrop = true
 
     @Environment(\.recordStore) private var store

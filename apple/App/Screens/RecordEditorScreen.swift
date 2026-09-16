@@ -1,7 +1,7 @@
 // `09` 기록 작성기 — 사진을 확정하고 설명을 쓴다. **모든 기록이 여기서 시작한다.**
 //
 // ⚠️ **시스템 네비 바를 쓰지 않는다** — iOS 26의 유리 바는 `UINavigationBarAppearance`를
-// 무시하고, 타이틀이 흰색으로 뒤집혀 밝은 지면에서 사라진다(2026-08-11 실측).
+// 무시하고, 타이틀이 흰색으로 뒤집혀 밝은 지면에서 사라진다.
 
 import MomentKernel
 import PhotoSource
@@ -59,7 +59,7 @@ struct RecordEditorScreen: View {
                     grid(width: contentWidth)
                     caption
                 }
-                // ⚠️ 밑줄이 툴바에 닿으면 「선」이 아니라 「경계」로 읽힌다 (2026-08-11 실기기).
+                // ⚠️ 밑줄이 툴바에 닿으면 「선」이 아니라 「경계」로 읽힌다.
                 .padding(.bottom, 24)
                 .readableWidth()
             }
@@ -69,7 +69,7 @@ struct RecordEditorScreen: View {
         }
         .paneBackground()
         // ⚠️ **머리를 직접 그리므로 시스템 바를 숨긴다** — iPad 2단의 지면에서는 빈 바가
-        // 위쪽 ~145pt를 그대로 먹어 화면이 그만큼 짧아진다(2026-08-11 시뮬레이터 실측).
+        // 위쪽 ~145pt를 그대로 먹어 화면이 그만큼 짧아진다.
         .toolbar(.hidden, for: .navigationBar)
         .threadBinding(.detail)
         .safeAreaInset(edge: .bottom) { toolbar }
@@ -80,7 +80,7 @@ struct RecordEditorScreen: View {
             OccurredAtSheet(initial: draft.occurredAt) { draft.setOccurredAt($0) }
         }
         // ⚠️ **화면 뿌리에 매단다** — iOS 26은 시트를 **매단 뷰**를 앵커로 잡아서, 버튼에 달면
-        // iPhone에서까지 팝오버가 된다(2026-08-13 실물). 결정은 화면 전체에 걸린 것이다.
+        // iPhone에서까지 팝오버가 된다. 결정은 화면 전체에 걸린 것이다.
         .confirmationDialog(Wording.discardTitle, isPresented: $isConfirmingCancel,
                             titleVisibility: .visible) { discardActions }
         .alert(Wording.saveFailed, isPresented: saveFailed) {
@@ -101,7 +101,7 @@ struct RecordEditorScreen: View {
                     Button(Wording.cancel) { requestDiscard() }
                         .buttonStyle(PlainActionStyle())
                         // ⚠️ **유리를 씌우기 전에 탭 대상 높이로 맞춘다** — 버튼 자기 패딩에
-                        // 맡기면 옆에 선 글리프 원(44 프레임)보다 12pt 낮게 앉는다(2026-08-13 실측).
+                        // 맡기면 옆에 선 글리프 원(44 프레임)보다 12pt 낮게 앉는다.
                         .frame(height: Layout.hitTarget)
                         .glassEffect(.regular, in: .capsule)
                     Spacer(minLength: 0)
@@ -320,7 +320,7 @@ private struct OccurredAtSheet: View {
     var body: some View {
         NavigationStack {
             // ⚠️ 그래픽 달력은 시트 하나를 다 쓴다 — `.medium`에 넣으면 열리자마자 잘려 있어
-            // 스크롤해야 보인다(2026-08-11 실기기).
+            // 스크롤해야 보인다.
             ScrollView {
                 DatePicker(Wording.editOccurredAt, selection: $date)
                     .datePickerStyle(.graphical)

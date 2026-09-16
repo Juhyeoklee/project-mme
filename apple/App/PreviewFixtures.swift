@@ -14,7 +14,7 @@ import UniformTypeIdentifiers
 @MainActor
 enum Fixture {
     // ⚠️ **전부 `static let`이다** — 매번 새로 만들면 `store`의 객체 신원이 갱신마다 바뀌어
-    // `.task` → 상태 변경 → 갱신의 무한 루프가 된다(2026-08-04 실측).
+    // `.task` → 상태 변경 → 갱신의 무한 루프가 된다.
     static let inputs = makeInputs()
     static let classification = Classifier.classify(inputs)
     /// 화소 크기는 **커널이 `IHDR`에서 읽은 값을 되쓴다** — 실물에서는 라이브러리가 주는
@@ -31,7 +31,7 @@ enum Fixture {
     /// 「원본」이라 줄이면 거짓이 된다.
     static let originalBytes: OriginalBytesLoader = { asset in
         // ⚠️ 진짜 어댑터를 태우면 안 된다 — 합성 자산의 `id`가 PhotoKit에 없어 던지고,
-        // `-fixture`로는 저장 경로를 한 번도 못 밟게 된다(2026-08-14에 겪었다).
+        // `-fixture`로는 저장 경로를 한 번도 못 밟게 된다.
         guard let data = await syntheticPNG(pixels: max(asset.pixelWidth, asset.pixelHeight),
                                             aspect: aspect(of: asset),
                                             hue: hue(of: asset.id))
@@ -304,7 +304,7 @@ private enum PNG {
         data += Array(keyword.utf8)          // 번역된 키워드 = 키워드 (실물이 그렇다)
         data.append(0)
         data += Array(value.utf8)
-        data.append(0)                       // 규격에 없는 종료 NUL — 실물 211/211 (2026-08-03)
+        data.append(0)                       // 규격에 없는 종료 NUL — 실물 211/211
         return data
     }
 

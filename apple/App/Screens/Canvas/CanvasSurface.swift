@@ -142,7 +142,7 @@ struct CanvasSurface: View {
     /// 탭과 끌기를 한 인식기가 진다.
     private var pointerGesture: some Gesture {
         // ⚠️ **가르지 마라** — 탭 인식기를 따로 두면 드래그·핀치가 실패하기를 기다렸다
-        // 발화해서, 고른 것을 바꾸는 일이 한 박자 늦는다(2026-08-18 실물).
+        // 발화해서, 고른 것을 바꾸는 일이 한 박자 늦는다.
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 pressed = value.startLocation
@@ -301,7 +301,7 @@ struct LiveTransform: Equatable {
 
     /// 종이 밖으로 **완전히** 나가지 못하게 붙든다. **자리를 내는 셋이 전부 여기를 지난다.**
     static func kept(_ frame: CGRect) -> CGRect {
-        // ⚠️ 빼면 잃는다 — 완전히 밀어낸 요소는 못 짚고 굽기에도 안 담긴다 (2026-08-19 실기기).
+        // ⚠️ 빼면 잃는다 — 완전히 밀어낸 요소는 못 짚고 굽기에도 안 담긴다.
         var kept = frame
         let x = min(grip, frame.width), y = min(grip, frame.height)
         kept.origin.x = min(max(frame.minX, x - frame.width), Layout.canvasSize.width - x)
@@ -484,7 +484,7 @@ enum CanvasCorner: CaseIterable {
 
 /// `11-C6` 선택 표시 — 테두리 · 모서리 핸들 넷 · 회전 핸들.
 ///
-/// ⚠️ **히트 영역이 44보다 훨씬 좁다** (사용자 판정 2026-08-18). 44는 손가락 놓는 자리와
+/// ⚠️ **히트 영역이 44보다 훨씬 좁다**. 44는 손가락 놓는 자리와
 /// 그대로 겹쳐, 두 손가락으로 키우려 하면 핸들이 먼저 물어 크기와 회전이 엉킨다.
 /// **정밀 포인터(마우스 · 트랙패드 · 펜슬 끝)만 닿는 크기**이고, 손가락 쪽 길은 두 손가락이
 /// 따로 갖고 있어 이 좁힘이 기능을 막지 않는다.

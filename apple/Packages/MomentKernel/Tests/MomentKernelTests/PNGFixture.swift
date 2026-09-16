@@ -57,7 +57,7 @@ enum PNGFixture {
         return bytes
     }
 
-    /// `gameStyle`이 기본값인 이유 — **실물이 이렇다**(2026-08-03): 번역된 키워드에 키워드를
+    /// `gameStyle`이 기본값인 이유 — **실물이 이렇다**: 번역된 키워드에 키워드를
     /// 되풀이하고 규격에 없는 **종료 NUL을 하나 더** 쓴다. 규격 형태도 읽혀야 해 둘 다 시험한다.
     static func itxt(keyword: String, value: String, compressed: Bool,
                      gameStyle: Bool = true) -> [UInt8] {

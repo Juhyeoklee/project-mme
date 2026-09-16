@@ -92,7 +92,7 @@ struct HighlighterSweep: Shape {
     }
 
     /// 낱말을 덮는 굵은 획. ⚠️ **글자 높이를 안 따라간다** — 마커 촉의 굵기는 활자가 아니라
-    /// 펜이 정하는 값이고, 글자에 맞추면 획이 얇아져 배경 칩처럼 읽힌다(2026-08-13 실물).
+    /// 펜이 정하는 값이고, 글자에 맞추면 획이 얇아져 배경 칩처럼 읽힌다.
     private static func swipe(_ thickness: CGFloat, _ center: CGFloat) -> HighlighterStroke.Swipe {
         HighlighterStroke.Swipe(from: -0.02, to: 1.02, center: center, thickness: thickness,
                                 tilt: -1.5, headCut: 3, tailCut: 2)

@@ -47,7 +47,7 @@ struct InkOptions: View {
             VStack(alignment: .leading, spacing: 14) {
                 if let stroke {
                     // ⚠️ **미리보기 하나가 줄 전부를 진다** — 줄마다 두면 왼쪽이 그만큼
-                    // 어긋나거나 빈 칸이 생긴다(pen 실치수 비교 2026-08-18).
+                    // 어긋나거나 빈 칸이 생긴다(pen 실치수 비교).
                     HStack(spacing: 10) {
                         preview(rows: stroke == .marker ? 2 : 1)
                         VStack(spacing: 10) {
@@ -83,7 +83,7 @@ struct InkOptions: View {
         let dot = min(width, min(Layout.hitTarget, height) - 6)
         Group {
             // 지우개는 색이 없다 — 옅은 회색 원과 또렷한 테두리가 「지우는 자리」의 크기를
-            // 말한다. ⚠️ 테두리만 남기면 유리 위에서 사실상 안 보인다(2026-08-18 실기기).
+            // 말한다. ⚠️ 테두리만 남기면 유리 위에서 사실상 안 보인다.
             if stroke?.usesInk == false {
                 Circle()
                     .fill(Palette.placeholder)

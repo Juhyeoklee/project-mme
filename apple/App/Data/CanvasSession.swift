@@ -69,7 +69,7 @@ final class CanvasSession: Identifiable {
     /// 안 그러면 지금 안 보이는 페이지가 조용히 바뀐다.
     func change(_ body: (inout [CanvasPage]) -> Void) {
         // ⚠️ **사본을 고쳐서 되쓴다** — `&document.pages`를 그대로 넘기면 문서가 잠긴 채로
-        // 클로저가 돌고, 그 안에서 문서를 읽는 순간 프로세스가 죽는다(2026-08-18 실물).
+        // 클로저가 돌고, 그 안에서 문서를 읽는 순간 프로세스가 죽는다.
         let before = document.pages
         let shown = pageIndex
         var pages = before
@@ -91,7 +91,7 @@ final class CanvasSession: Identifiable {
     /// 획을 갈아 끼우고 되돌리기에 등록한다. **되돌리면 그 페이지로 데려간다.**
     private func apply(strokes data: Data?, page id: UUID) {
         // ⚠️ **PencilKit 스택에 안 맡긴다** — 그쪽 되돌리기는 그림이 아니라 뷰에 걸려 있어,
-        // 페이지를 넘긴 뒤 되돌리면 이전 그림이 지금 페이지에 써 넣어진다(2026-08-18 실기기).
+        // 페이지를 넘긴 뒤 되돌리면 이전 그림이 지금 페이지에 써 넣어진다.
         let before = document.strokes[id]
         guard before != data else { return }
         document.strokes[id] = data

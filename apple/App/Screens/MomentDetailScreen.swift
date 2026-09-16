@@ -2,7 +2,7 @@
 // **탭 대상이 하나다** — 어느 셀을 눌러도 `06`으로 간다. 연사는 여기서 펴지지 않는다.
 //
 // ⚠️ **시스템 네비 바를 쓰지 않는다** — iOS 26의 유리 바는 배경색을 주면 large title을
-// 통째로 안 그린다(2026-08-11 탐침). 머리는 직접 그린다.
+// 통째로 안 그린다. 머리는 직접 그린다.
 
 import MomentKernel
 import PhotoSource
@@ -40,7 +40,7 @@ struct MomentDetailScreen: View {
             .contentMargins(.top, Layout.largeTitleHeaderHeight, for: .scrollContent)
             .tracksHeaderCollapse($collapse)
             // ⚠️ **격자가 이 값을 되먹인다** — 격자가 받은 폭보다 넓어지면 값이 상한까지
-            // 기어오른다 (2026-08-12 실측: 간격 하나가 더 껴서 패스마다 6씩 늘었다).
+            // 기어오른다 (간격 하나가 더 껴서 패스마다 6씩 늘었다).
             .measuresContentWidth($contentWidth)
             header
         }
@@ -117,7 +117,7 @@ struct MomentDetailScreen: View {
             .accessibilityLabel(Wording.missingOriginalsLabel)
             .popover(isPresented: $explainsMissing) {
                 // ⚠️ **폭을 주고 세로로 자라게 해야 한다** — 안 주면 팝오버가 제 크기를 못 잡아
-                // 두 줄째부터 잘린다 (2026-08-19 실기기).
+                // 두 줄째부터 잘린다.
                 Text(Wording.missingOriginals(count))
                     .font(Typography.subtitle)
                     .foregroundStyle(Palette.onCallout)
