@@ -252,7 +252,8 @@ extension PHAsset {
         guard let filename = (resources.first { $0.type == .photo }
                               ?? resources.first)?.originalFilename else { return nil }
         return SourceAsset(id: localIdentifier, filename: filename,
-                           pixelWidth: pixelWidth, pixelHeight: pixelHeight)
+                           pixelWidth: pixelWidth, pixelHeight: pixelHeight,
+                           creationDate: creationDate)
     }
 }
 

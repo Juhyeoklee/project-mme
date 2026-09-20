@@ -408,7 +408,7 @@ private struct StoredImage: Codable {
         case .source(let assetID, let capturedAt):
             origin = Self.sourceOrigin
             self.assetID = assetID
-            self.capturedAt = capturedAt.stamp
+            self.capturedAt = capturedAt?.stamp
         case .imported:
             origin = Self.importedOrigin
         case .baked:
@@ -419,8 +419,14 @@ private struct StoredImage: Codable {
     var image: RecordImage? {
         switch origin {
         case Self.sourceOrigin:
-            guard let assetID, let capturedAt, let clock = WallClock(stamp: capturedAt)
-            else { return nil }
+            // ⚠️ 시각은 **없어도 되지만 깨져 있으면 안 된다** — 문자열이 있는데 못 읽히면
+            // 저장이 손상된 것이라 조용히 시각 없는 사진으로 내려앉히지 않는다.
+            guard let assetID else { return nil }
+            var clock: WallClock?
+            if let capturedAt {
+                guard let parsed = WallClock(stamp: capturedAt) else { return nil }
+                clock = parsed
+            }
             return RecordImage(id: id, fileExtension: fileExtension,
                                origin: .source(assetID: assetID, capturedAt: clock))
         case Self.importedOrigin:

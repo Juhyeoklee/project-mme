@@ -10,15 +10,13 @@ import SwiftUI
 
 struct PhotoViewerScreen: View {
     let library: MomentLibrary
-    /// 시각을 못 읽은 사진이 나왔을 때 크롬이 기댈 자리. 넘길 목록은 `photos`가 정한다.
-    let moment: Moment
     let photos: [Int]
     let start: Int
 
     var body: some View {
         ImageViewer(count: photos.count,
                     start: photos.firstIndex(of: start) ?? 0,
-                    topLine: { Wording.time(timeOfPhoto(at: $0)) },
+                    topLine: { timeOfPhoto(at: $0).map(Wording.time) ?? "" },
                     bottomLine: { Wording.position($0, of: photos.count) }) { position in
             AssetImage(asset: library.asset(at: photos[position]),
                        pixels: Layout.fullPixels,
@@ -34,19 +32,19 @@ struct PhotoViewerScreen: View {
     }
 
     /// **지금 보고 있는 그 사진의 시각이다** — 옆의 `06-N3`이 사진 단위라 짝이 맞는다.
-    private func timeOfPhoto(at position: Int) -> WallClock {
-        guard photos.indices.contains(position),
-              let at = library.capturedAt(at: photos[position]) else { return moment.start }
-        return at
+    /// ⚠️ **없으면 자리를 비운다.** 날짜만 가진 사진에는 시각이 없고, 묶음의 다른 값으로
+    /// 메우면 그 사진이 안 가진 시각을 화면이 말하게 된다.
+    private func timeOfPhoto(at position: Int) -> WallClock? {
+        guard photos.indices.contains(position) else { return nil }
+        return library.capturedAt(at: photos[position])
     }
 }
 
 #if DEBUG
 #Preview("06 전체화면") {
     PhotoViewerScreen(library: Fixture.library,
-                      moment: Fixture.momentWithBurst,
-                      photos: Fixture.momentWithBurst.photoIndices,
-                      start: Fixture.momentWithBurst.photoIndices[0])
+                      photos: Fixture.groupWithBurst.photoIndices,
+                      start: Fixture.groupWithBurst.photoIndices[0])
         .environment(Fixture.store)
 }
 #endif

@@ -1,4 +1,4 @@
-// `04-C` 순간 카드.
+// `04-C` 순간 카드이자 `04-D` 날짜만 묶음. **둘이 한 카드다** — 요약 줄만 갈린다.
 //
 // ⚠️ **스트립 규칙은 행이지 장수가 아니다** — 폭이 장수를 정한다. iPhone과 iPad 가로 pane이
 // 둘 다 3장/행이라 6칸이 같아 보이지만, 그건 계산의 결과지 전제가 아니다. 6을 박지 마라.
@@ -8,7 +8,7 @@ import PhotoSource
 import SwiftUI
 
 struct MomentCard: View {
-    let moment: Moment
+    let group: PhotoGroup
     /// 커널 인덱스 → 자산. 프리뷰에서는 전부 `nil`을 돌려주는 클로저가 들어온다.
     let assetAt: (Int) -> SourceAsset?
     /// 좌우 여백을 뺀 값.
@@ -20,13 +20,18 @@ struct MomentCard: View {
         VStack(alignment: .leading, spacing: Spacing.cellGap) {
             // ⚠️ **둘이 붙어 한 줄로 읽혀야 한다** — 양끝으로 벌리면 시각과 장수가 서로 다른
             // 것을 말하는 두 줄이 된다. 크기가 달라 baseline으로 맞춘다.
+            // ⚠️ **날짜만 묶음은 장수 하나뿐이다** — 시각 자리를 장수가 쓰고 오른쪽은 빈다.
+            // 시각이 없는 까닭을 여기 적으면 날짜 헤더가 이미 말한 장수를 한 번 더 말하면서
+            // 카드가 「실패 알림」으로 읽힌다. **시각이 아니라는 것은 값의 모양이 말한다.**
             HStack(alignment: .firstTextBaseline, spacing: Spacing.momentGap) {
-                Text(Wording.time(moment.start))
+                Text(group.start.map(Wording.time) ?? Wording.images(group.photoCount))
                     .font(Typography.time)
                     .foregroundStyle(Palette.label)
-                Text(Wording.counts(photos: moment.photoCount, scenes: moment.sceneCount))
-                    .font(Typography.subtitle)
-                    .foregroundStyle(Palette.secondaryLabel)
+                if group.isPlaced {
+                    Text(Wording.counts(photos: group.photoCount, scenes: group.sceneCount))
+                        .font(Typography.subtitle)
+                        .foregroundStyle(Palette.secondaryLabel)
+                }
             }
             .fixedSize()
             .highlighted(isSelected, seed: seed)
@@ -38,13 +43,13 @@ struct MomentCard: View {
         .contentShape(.rect)
     }
 
-    /// 획의 신원. **순간의 첫 사진 첨자를 쓴다** — 목록이 다시 분류돼도 같은 순간이면 같은 획이다.
-    private var seed: UInt64 { UInt64(truncatingIfNeeded: moment.photoIndices.first ?? 0) &+ 7 }
+    /// 획의 신원. **묶음의 신원을 쓴다** — 목록이 다시 분류돼도 같은 묶음이면 같은 획이다.
+    private var seed: UInt64 { UInt64(truncatingIfNeeded: group.id) &+ 7 }
 
     // MARK: - `04-C3` 스트립
 
     private var strip: some View {
-        let plan = Self.plan(sceneCount: moment.sceneCount, width: stripWidth)
+        let plan = Self.plan(sceneCount: group.sceneCount, width: stripWidth)
         return VStack(alignment: .leading, spacing: Spacing.thumbnailGap) {
             ForEach(Array(plan.rows.enumerated()), id: \.offset) { _, row in
                 HStack(spacing: Spacing.thumbnailGap) {
@@ -53,7 +58,7 @@ struct MomentCard: View {
                         case .scene(let sceneIndex):
                             // ⚠️ 사진이 아니라 **장면 대표 컷**을 넣는다 —
                             // 사진을 앞에서부터 넣으면 스트립이 연사로만 채워질 수 있다.
-                            AssetImage(asset: assetAt(moment.scenes[sceneIndex].representative),
+                            AssetImage(asset: assetAt(group.scenes[sceneIndex][0]),
                                        pixels: Layout.thumbnailPixels,
                                        fills: true,
                                        cornerRadius: Radius.thumbnail,

@@ -1,4 +1,4 @@
-// `05` 순간 상세 — 한 순간의 사진 전체를 벽돌쌓기 격자로 본다.
+// `05` 순간 상세 — 한 묶음의 사진 전체를 벽돌쌓기 격자로 본다.
 // **탭 대상이 하나다** — 어느 셀을 눌러도 `06`으로 간다. 연사는 여기서 펴지지 않는다.
 //
 // ⚠️ **시스템 네비 바를 쓰지 않는다** — iOS 26의 유리 바는 배경색을 주면 large title을
@@ -10,7 +10,8 @@ import SwiftUI
 
 struct MomentDetailScreen: View {
     let library: MomentLibrary
-    let moment: Moment
+    /// 순간이거나 날짜만 가진 묶음이다. **격자는 둘을 구분하지 않는다.**
+    let group: PhotoGroup
     /// 편집기가 뜰 자리는 `RootView`가 정한다 — 화면은 초안을 넣기만 한다.
     var editing: Binding<RecordDraft?>
 
@@ -51,13 +52,11 @@ struct MomentDetailScreen: View {
         // ⚠️ macOS에는 전체화면 덮기가 없어 시트가 된다 — **몰입형이 아니다.**
         #if os(iOS)
         .fullScreenCover(item: $viewing) { run in
-            PhotoViewerScreen(library: library, moment: moment,
-                              photos: run.photos, start: run.start)
+            PhotoViewerScreen(library: library, photos: run.photos, start: run.start)
         }
         #else
         .sheet(item: $viewing) { run in
-            PhotoViewerScreen(library: library, moment: moment,
-                              photos: run.photos, start: run.start)
+            PhotoViewerScreen(library: library, photos: run.photos, start: run.start)
         }
         #endif
     }
@@ -78,14 +77,14 @@ struct MomentDetailScreen: View {
             .frame(height: Layout.hitTarget)
 
             // `05-N2` — **숫자라 액센트 서체를 안 쓴다.** 자릿수가 흔들린다.
-            Text(Wording.detailTitle(moment.start))
+            Text(title)
                 .font(Typography.plexTitle(Typography.headerLarge))
                 .foregroundStyle(Palette.label)
                 .lineLimit(1)
                 .collapsingLargeTitle(collapse)
 
             HStack(spacing: 6) {
-                Text(Wording.counts(photos: moment.photoCount, scenes: moment.sceneCount))
+                Text(Wording.counts(photos: group.photoCount, scenes: group.sceneCount))
                     .font(Typography.subtitle)
                     .foregroundStyle(Palette.secondaryLabel)
                 missingMark
@@ -104,7 +103,7 @@ struct MomentDetailScreen: View {
     @ViewBuilder
     private var missingMark: some View {
         // ⚠️ 활자로 세운다 — lucide에 맞는 글리프가 없다. 생기면 갈아 끼운다.
-        let count = library.missingOriginalCount(in: moment)
+        let count = library.missingOriginalCount(in: group.photoIndices)
         if count > 0 {
             Button { explainsMissing = true } label: {
                 Text(verbatim: "!")
@@ -150,9 +149,15 @@ struct MomentDetailScreen: View {
     /// 접히면 같은 날짜·시각이 네비 관례대로 가운데에 선다.
     /// ⚠️ **활자 크기를 보간하지 않는다** — 자리가 옮겨가는 것이라 두 라벨을 교차시킨다.
     private var collapsedTitle: Text {
-        Text(Wording.detailTitle(moment.start))
+        Text(title)
             .font(Typography.time)
             .foregroundStyle(Palette.label)
+    }
+
+    /// ⚠️ **시각이 없으면 날짜에서 멈춘다** — 없는 시각을 0시로 지어내면 그 값이 화면에서
+    /// 사실처럼 읽힌다.
+    private var title: String {
+        group.start.map(Wording.detailTitle) ?? Wording.detailTitle(group.day)
     }
 
     // MARK: - `05-T` 기록 만들기
@@ -175,10 +180,9 @@ struct MomentDetailScreen: View {
         .padding(.bottom, 24)
     }
 
-    /// 이 순간이 속한 날짜는 커널이 안다 — 새벽 컷오프 때문에 시각에서 되짚으면 어긋난다.
+    /// 이 묶음이 속한 날짜는 묶음이 들고 있다 — 새벽 컷오프 때문에 시각에서 되짚으면 어긋난다.
     private func draft() -> RecordDraft? {
-        guard let day = library.days.first(where: { $0.moments.contains(moment) }) else { return nil }
-        return RecordDraft.from(moment: moment, day: day.date, library: library)
+        RecordDraft.from(group: group, library: library)
     }
 
     // MARK: - `05-G` 격자
@@ -276,10 +280,8 @@ struct MomentDetailScreen: View {
     }
 
     private var cells: [Cell] {
-        moment.scenes.map { scene in
-            Cell(photoIndex: scene.representative,
-                 scene: scene.photoIndices,
-                 aspect: aspect(of: scene.representative))
+        group.scenes.map { scene in
+            Cell(photoIndex: scene[0], scene: scene, aspect: aspect(of: scene[0]))
         }
     }
 
@@ -345,14 +347,25 @@ struct PhotoRun: Identifiable, Hashable {
 #if DEBUG
 #Preview("05 연사 있는 순간") {
     NavigationStack {
-        MomentDetailScreen(library: Fixture.library, moment: Fixture.momentWithBurst, editing: .constant(nil))
+        MomentDetailScreen(library: Fixture.library, group: Fixture.groupWithBurst,
+                           editing: .constant(nil))
     }
     .environment(Fixture.store)
 }
 
 #Preview("05 1장짜리 순간") {
     NavigationStack {
-        MomentDetailScreen(library: Fixture.library, moment: Fixture.singlePhotoMoment, editing: .constant(nil))
+        MomentDetailScreen(library: Fixture.library,
+                           group: Fixture.group(Fixture.singlePhotoMoment),
+                           editing: .constant(nil))
+    }
+    .environment(Fixture.store)
+}
+
+#Preview("05 날짜만 가진 묶음") {
+    NavigationStack {
+        MomentDetailScreen(library: Fixture.library, group: Fixture.dateOnlyGroup,
+                           editing: .constant(nil))
     }
     .environment(Fixture.store)
 }

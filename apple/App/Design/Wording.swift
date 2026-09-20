@@ -29,10 +29,16 @@ enum Wording {
     /// `05-G4`.
     static let collapse = "접기"
 
-    /// `순간 128개 · 1,204장`.
+    /// `순간 128개 · 1,204장`. ⚠️ **순간이 0이면 장수만 말한다** — 시각을 못 얻은 사진만
+    /// 있는 소스에서 「순간 0개」가 세는 것은 없는 것이고, 그 줄은 실패의 보고로 읽힌다.
     static func summary(moments: Int, photos: Int) -> String {
-        "순간 \(moments.formatted())개 · \(photos.formatted())장"
+        moments == 0 ? "\(photos.formatted())장"
+                     : "순간 \(moments.formatted())개 · \(photos.formatted())장"
     }
+
+    /// `10`의 시각 구분 헤더가 날짜만 가진 묶음에 다는 라벨.
+    /// ⚠️ **`04`·`05`는 안 쓴다** — 거기는 날짜와 장수가 이미 서 있어 같은 말이 두 번 된다.
+    static let noCaptureTime = "찍힌 시각 모름"
 
     /// `12장 · 8장면`.
     static func counts(photos: Int, scenes: Int) -> String {
@@ -58,6 +64,11 @@ enum Wording {
     /// `05-N2` — `7월 26일 18:05`. 날짜 헤더와 달리 요일이 없다.
     static func detailTitle(_ clock: WallClock) -> String {
         "\(clock.month)월 \(clock.day)일 \(time(clock))"
+    }
+
+    /// `05-N2` 날짜만 가진 묶음 — **시각을 지어내지 않는다.** 날짜에서 멈춘다.
+    static func detailTitle(_ day: CalendarDay) -> String {
+        "\(day.month)월 \(day.day)일"
     }
 
     /// `06-N3` — `3 / 12`.

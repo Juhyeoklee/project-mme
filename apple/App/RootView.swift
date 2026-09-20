@@ -60,7 +60,7 @@ struct RootView: View {
     @State private var pendingExit: (() -> Void)?
     /// 지우려는 기록. ⚠️ **iPad에서만 채워진다** — iPhone은 부른 화면이 자기가 시트를 띄운다.
     @State private var pendingDelete: Record?
-    @State private var selectedMoment: Moment?
+    @State private var selectedGroup: PhotoGroup?
     @State private var selectedRecord: Record?
     @State private var editing: RecordDraft?
     #if os(iOS)
@@ -346,7 +346,7 @@ struct RootView: View {
     private var momentsTab: some View {
         if sizeClass == .regular {
             twoPanes(list: MomentListScreen(library: library,
-                                            selection: guardingEditor(effectiveMoment),
+                                            selection: guardingEditor(effectiveGroup),
                                             editing: $editing,
                                             onOpenSettings: { showsSettings = true },
                                             onChooseSource: { Task { await changeSource() } }),
@@ -357,9 +357,9 @@ struct RootView: View {
                                  onOpenSettings: { settingsPath.append(.settings) },
                                  onChooseSource: { Task { await changeSource() } })
                     .tabBar(selection: $tab)
-                    .navigationDestination(for: Moment.self) { moment in
+                    .navigationDestination(for: PhotoGroup.self) { group in
                         // 뒤로 버튼은 시스템이 붙여준다. iPad는 pane 교체라 안 붙어 분기가 없다.
-                        MomentDetailScreen(library: library, moment: moment, editing: $editing)
+                        MomentDetailScreen(library: library, group: group, editing: $editing)
                     }
                     .navigationDestination(for: SettingsRoute.self) { route in
                         settingsDestination(route)
@@ -385,8 +385,8 @@ struct RootView: View {
     private var momentPane: some View {
         if let draft = editing {
             editor(draft)
-        } else if let moment = effectiveMoment.wrappedValue {
-            MomentDetailScreen(library: library, moment: moment, editing: $editing)
+        } else if let group = effectiveGroup.wrappedValue {
+            MomentDetailScreen(library: library, group: group, editing: $editing)
         } else {
             Color.clear
         }
@@ -472,9 +472,9 @@ struct RootView: View {
 
     /// ⚠️ **목록과 지면이 같은 값을 봐야 한다** — 아무것도 안 고른 상태에서도 지면은 첫 항목을
     /// 보여주므로, 그 사실을 목록에 돌려주지 않으면 **선택 표시가 아무 데도 안 붙는다.**
-    private var effectiveMoment: Binding<Moment?> {
-        Binding(get: { selectedMoment ?? library.days.first?.moments.first },
-                set: { selectedMoment = $0 })
+    private var effectiveGroup: Binding<PhotoGroup?> {
+        Binding(get: { selectedGroup ?? library.days.first?.groups.first },
+                set: { selectedGroup = $0 })
     }
 
     /// ⚠️ **고른 기록이 사라졌으면 최신으로 되돌아간다** — 지운 기록을 계속 붙들면 우측

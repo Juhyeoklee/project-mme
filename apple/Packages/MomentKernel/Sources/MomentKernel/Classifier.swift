@@ -40,15 +40,24 @@ public struct Settings: Sendable, Hashable {
     public static let `default` = Settings()
 }
 
-/// `MomentKernel`의 입구. **(파일명, 바이트) 컬렉션 → 날짜·순간·장면 구조.**
+/// `MomentKernel`의 입구. **(파일명, 바이트?, 달력 날짜?) 컬렉션 → 날짜·순간·장면 구조.**
 ///
 /// 순수 함수다 — 상태도 부작용도 없고, 플랫폼·시간대·로케일을 모른다.
 /// 같은 사진 집합이면 어느 기기에서든 같은 결과가 나온다 (`MOM-07` · 약속 `C5`).
 public enum Classifier {
     /// 사진 집합을 날짜·순간·장면으로 분류한다.
     ///
-    /// **부분 입력 계약** — 바이트 없는 사진은 **시각만** 갖고 시간 경계에만
-    /// 참여한다. 출력은 **입력 집합만의 함수**다 (`MOM-07` · 약속 `C5`).
+    /// **부분 입력 계약 — 가진 것이 적을수록 적게 참여한다.**
+    ///
+    /// | 가진 것 | 참여하는 것 |
+    /// |---|---|
+    /// | 시각 + 신호 | 전부 |
+    /// | 시각만 | 날짜 · 시간 경계 (장소 분할과 연사 접기에 불참) |
+    /// | 날짜만 | **날짜뿐** — 그 날의 `Day.dateOnlyPhotos`로 선다 |
+    /// | 아무것도 없음 | 없다 — `unplaced`로 빠져 어느 날에도 안 선다 |
+    ///
+    /// **시각의 출처는 둘이고 순서가 있다** — 파일명이 먼저고, 얻었으면 `calendarDay`는 안 본다.
+    /// 출력은 **입력 집합만의 함수**다 (`MOM-07` · 약속 `C5`).
     ///
     /// ⚠️ 바이트를 채워 다시 부르면 **장소 경계는 재계산된다 — 순간이 합쳐질 수도 있다**
     ///. 군집이 사슬로 이어지기 때문이다. **시간 경계와 순서만 안 바뀐다.**
@@ -59,12 +68,16 @@ public enum Classifier {
         let readings = inputs.map { SignalReader.read($0) }
 
         var placed: [Placed] = []
+        var dateOnly: [Dated] = []
         var unplaced: [Int] = []
         for (index, reading) in readings.enumerated() {
             if let at = reading.capturedAt {
                 placed.append(Placed(index: index, at: at,
                                      filename: inputs[index].filename,
                                      signals: reading.signals))
+            } else if let day = inputs[index].calendarDay {
+                dateOnly.append(Dated(index: index, day: day,
+                                      filename: inputs[index].filename))
             } else {
                 unplaced.append(index)
             }
@@ -86,7 +99,8 @@ public enum Classifier {
             }
         }
 
-        return Classification(days: groupIntoDays(moments, cutoffHour: settings.dayCutoffHour),
+        return Classification(days: groupIntoDays(moments, dateOnly: dateOnly,
+                                                  cutoffHour: settings.dayCutoffHour),
                               readings: readings,
                               unplaced: unplaced)
     }
@@ -98,6 +112,13 @@ public enum Classifier {
         let at: WallClock
         let filename: String
         let signals: CaptureSignals?
+    }
+
+    /// 날짜밖에 못 얻은 사진 하나. 시간축에 못 서므로 `Placed`와 갈라 둔다.
+    struct Dated {
+        let index: Int
+        let day: CalendarDay
+        let filename: String
     }
 
     /// `MOM-01` — 촬영 시간이 크게 벌어지는 지점에서 나눈다.
@@ -264,20 +285,34 @@ public enum Classifier {
 
     /// `MOM-05` `MOM-06` — 날짜는 **순간의 첫 사진** 시각으로 정한다. 순간이 시간상
     /// 연속 구간이므로(`MOM-03`) 한 순간이 두 날짜로 찢어지지 않는다.
-    static func groupIntoDays(_ moments: [Moment], cutoffHour: Int) -> [Day] {
-        var order: [CalendarDay] = []
-        var byDate: [CalendarDay: [Moment]] = [:]
+    ///
+    /// ⚠️ **새벽 컷오프는 순간만 탄다.** 날짜만 가진 사진은 시각이 없어 새벽인지 알 수 없으므로
+    /// 받은 날짜 그대로 선다 — 미는 쪽을 택하면 없는 시각을 발명하는 것이 된다.
+    static func groupIntoDays(_ moments: [Moment], dateOnly: [Dated],
+                              cutoffHour: Int) -> [Day] {
+        var momentsByDate: [CalendarDay: [Moment]] = [:]
         for moment in moments {
-            let date = moment.start.calendarDay(shiftedBackBy: cutoffHour)
-            if byDate[date] == nil {
-                order.append(date)
-                byDate[date] = []
-            }
-            byDate[date]!.append(moment)
+            momentsByDate[moment.start.calendarDay(shiftedBackBy: cutoffHour), default: []]
+                .append(moment)
         }
-        // `moments`가 시각 오름차순이므로 뒤집으면 최신 먼저가 된다.
-        return order.reversed().map { date in
-            Day(date: date, moments: byDate[date]!.reversed())
+        var datedByDate: [CalendarDay: [Dated]] = [:]
+        for item in dateOnly {
+            datedByDate[item.day, default: []].append(item)
+        }
+
+        // ⚠️ 날짜를 **정렬해서** 꺼낸다 — `Dictionary` 순회는 결정적이지 않고, 갈래가 둘이라
+        // 「처음 나온 순서」로는 두 갈래를 하나의 축에 세울 수 없다.
+        let dates = Set(momentsByDate.keys).union(datedByDate.keys).sorted(by: >)
+        return dates.map { date in
+            // `moments`가 시각 오름차순이므로 뒤집으면 최신 먼저가 된다.
+            Day(date: date,
+                moments: (momentsByDate[date] ?? []).reversed(),
+                dateOnlyPhotos: (datedByDate[date] ?? [])
+                    .sorted {
+                        $0.filename != $1.filename ? $0.filename < $1.filename
+                                                   : $0.index < $1.index
+                    }
+                    .map(\.index))
         }
     }
 }

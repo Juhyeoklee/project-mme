@@ -70,6 +70,41 @@ struct RecordStoreTests {
         #expect(read.images == [fromSource, imported])
     }
 
+    @Test func 시각_없는_소스_사진도_왕복한다() throws {
+        // 날짜만 가진 묶음의 사진이다 — 소스 안에서 왔는데 파일명에서 시각을 못 얻었다.
+        let store = makeStore()
+        let image = RecordImage(id: UUID(), fileExtension: "jpg",
+                                origin: .source(assetID: "asset-1", capturedAt: nil))
+        let written = record(at: try clock(8, 3, 18, 5), images: [image])
+
+        try store.save(written, imageData: [image.id: bytes("a")])
+        let read = try #require(try store.all().first)
+
+        #expect(read.images == [image])
+        #expect(read.images[0].assetID == "asset-1")
+        #expect(read.images[0].capturedAt == nil)
+    }
+
+    @Test func 사진의_시각_문자열이_깨지면_기록을_안_읽고_던진다() throws {
+        // ⚠️ **없는 것과 깨진 것은 다르다** — 깨진 값을 「시각 없음」으로 내려앉히면
+        // 손상이 정상처럼 읽힌다. 2월 30일, 형태는 맞고 값이 범위 밖인 갈래다.
+        let store = makeStore()
+        let id = UUID()
+        let manifest = """
+        {"schemaVersion": \(RecordStore.schemaVersion), "id": "\(id.uuidString)",
+         "occurredAt": "2026080318050000", "caption": "", "status": "published",
+         "updatedAt": 0,
+         "images": [{"id": "\(UUID().uuidString)", "fileExtension": "png",
+                     "origin": "source", "assetID": "asset-1",
+                     "capturedAt": "2026023012000000"}]}
+        """
+        try write(manifest, forRecord: id, in: store)
+
+        // 갈래까지 본다 — 사진 한 장을 조용히 빼고 나머지를 읽으면 기록이 말없이 줄어든다.
+        #expect(throws: RecordStoreError.malformed(file: "record.json",
+                                                   reason: "값이 범위 밖")) { try store.all() }
+    }
+
     @Test func 초안_상태가_보존된다() throws {
         let store = makeStore()
         let image = sourceImage(assetID: "asset-1", at: try clock(8, 3, 18, 5))

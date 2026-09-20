@@ -186,22 +186,18 @@ struct RecordDraftTests {
         #expect(draft.saveState == .editing)
     }
 
-    // MARK: - 순간에서 시작하기
+    // MARK: - 묶음에서 시작하기
 
     @Test func 연사_장면은_대표_한_장만_담긴다() throws {
-        let moment = Fixture.momentWithBurst
-        let sourceDay = try #require(Fixture.library.days.first {
-            $0.moments.contains(moment)
-        })
+        let group = Fixture.groupWithBurst
 
-        let draft = RecordDraft.from(moment: moment, day: sourceDay.date,
-                                     library: Fixture.library)
+        let draft = try #require(RecordDraft.from(group: group, library: Fixture.library))
 
-        #expect(draft.photos.count == moment.scenes.count)
-        #expect(draft.photos.count < moment.photoCount)
+        #expect(draft.photos.count == group.sceneCount)
+        #expect(draft.photos.count < group.photoCount)
     }
 
-    @Test func 날짜에서_시작하면_그_날_모든_순간이_시간_오름차순으로_담긴다() throws {
+    @Test func 날짜에서_시작하면_그_날_사진_전부가_시간_오름차순으로_담긴다() throws {
         let sourceDay = try #require(Fixture.library.days.first)
 
         let draft = try #require(RecordDraft.from(day: sourceDay, library: Fixture.library))
@@ -209,19 +205,33 @@ struct RecordDraftTests {
         // 커널은 최신 먼저로 준다 — 뒤집는 자리가 깨지면 하루 서사가 거꾸로 읽힌다.
         let times = draft.photos.compactMap(\.capturedAt)
         #expect(times == times.sorted())
-        #expect(draft.photos.count == sourceDay.moments.reduce(0) { $0 + $1.scenes.count })
+        #expect(draft.photos.count
+                == sourceDay.moments.reduce(0) { $0 + $1.scenes.count }
+                 + sourceDay.dateOnlyPhotos.count)
     }
 
     @Test func 이_순간_꼬리는_순간에서_시작했을_때만_붙는다() throws {
         let sourceDay = try #require(Fixture.library.days.first)
         let moment = try #require(sourceDay.moments.first)
 
-        let fromMoment = RecordDraft.from(moment: moment, day: sourceDay.date,
-                                          library: Fixture.library)
+        let fromMoment = try #require(
+            RecordDraft.from(group: PhotoGroup(moment: moment, day: sourceDay.date),
+                             library: Fixture.library))
         let fromDay = try #require(RecordDraft.from(day: sourceDay, library: Fixture.library))
 
         #expect(fromMoment.startsFromMoment)
         #expect(!fromDay.startsFromMoment)
+    }
+
+    @Test func 날짜만_가진_묶음은_이_순간_꼬리를_못_단다() throws {
+        // 가리킬 시각이 없다. 발생일시는 그 날 0시에서 시작하고 `09-N4`가 고친다.
+        let group = Fixture.dateOnlyGroup
+
+        let draft = try #require(RecordDraft.from(group: group, library: Fixture.library))
+
+        #expect(!draft.startsFromMoment)
+        #expect(draft.day == group.day)
+        #expect(draft.photos.count == group.photoCount)
     }
 
     // MARK: - `ARC-06` 고치러 들어가기

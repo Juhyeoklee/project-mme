@@ -3,7 +3,7 @@
 // **커널 입력 = 사진별 (파일명, 바이트)**. 바이트가 선택값인 이유는 `PhotoInput`에.
 // **커널에 식별자 개념이 없다** — 출력은 입력 배열의 인덱스고, 원본과 잇는 일은 `App`이 한다.
 
-/// 사진 한 장의 입력.
+/// 사진 한 장의 입력. **파일명 · 바이트? · 달력 날짜?** 셋이다.
 ///
 /// **바이트는 없을 수 있다** — `R8`(원본이 iCloud에만 있을 때의 극단 지연) 때문에 2패스로 도는데
 /// **파일명은 1패스에 전량 들어오기** 때문이다. 계약은 `Classifier.classify(_:settings:)`에.
@@ -11,10 +11,17 @@ public struct PhotoInput: Sendable, Hashable {
     public let filename: String
     /// `nil` = 아직 안 읽었다. 다음 패스에서 채워진다.
     public let bytes: [UInt8]?
+    /// **시각의 둘째 출처다 — 파일명이 먼저고, 얻었으면 이 값은 안 쓴다.**
+    ///
+    /// ⚠️ **이 값을 만드는 과정도 계약이다** — 라이브러리가 든 시점을 달력 날짜로 꾸는 일은
+    /// 넘기는 쪽이 하고, **어느 시간대로 꿨는가에 따라 날짜가 달라진다**(`MOM-07`이 기기의
+    /// 시간대를 타도록 허용한 유일한 자리). 다른 언어 구현은 그 과정까지 재현해야 한다.
+    public let calendarDay: CalendarDay?
 
-    public init(filename: String, bytes: [UInt8]? = nil) {
+    public init(filename: String, bytes: [UInt8]? = nil, calendarDay: CalendarDay? = nil) {
         self.filename = filename
         self.bytes = bytes
+        self.calendarDay = calendarDay
     }
 }
 
@@ -113,7 +120,8 @@ public enum SignalStatus: Sendable, Hashable {
 /// 사진 한 장을 읽은 결과. 두 사실이 **서로 독립**이다 —
 /// 시각은 파일명에서, 신호는 바이트에서 온다.
 public struct PhotoReading: Sendable, Hashable {
-    /// `nil`이면 시간축에 놓을 수 없다 → `Classification.unplaced`.
+    /// `nil`이면 시간축에 놓을 수 없다 — 날짜를 가졌으면 `Day.dateOnlyPhotos`로,
+    /// 그것마저 없으면 `Classification.unplaced`로 간다.
     public let capturedAt: WallClock?
     /// `nil`이면 장소 분할과 연사 접기에 **참여하지 않는다**. 이유는 `signalStatus`.
     public let signals: CaptureSignals?

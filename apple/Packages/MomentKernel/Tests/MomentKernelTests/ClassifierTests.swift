@@ -17,6 +17,12 @@ private func photo(_ stamp: String,
                                                      fieldOfView: fieldOfView) : nil)
 }
 
+/// 파일명에서는 시각을 못 얻고 달력 날짜만 딸려 온 사진.
+private func dated(_ name: String, _ year: Int, _ month: Int, _ day: Int) -> PhotoInput {
+    PhotoInput(filename: name, bytes: nil,
+               calendarDay: CalendarDay(year: year, month: month, day: day))
+}
+
 private extension Classification {
     /// 모든 순간을 시간 오름차순으로 편다. 날짜 묶음을 신경 쓰지 않는 검사용.
     var allMoments: [Moment] {
@@ -227,7 +233,7 @@ struct ClassifierTests {
 
     // MARK: - 읽지 못한 사진
 
-    @Test func 시각을_못_얻은_사진은_unplaced로_빠진다() {
+    @Test func 시각도_날짜도_못_얻은_사진은_unplaced로_빠진다() {
         let result = Classifier.classify([
             photo("2026080213000000"),
             PhotoInput(filename: "IMG_0001.HEIC", bytes: nil),
@@ -237,6 +243,81 @@ struct ClassifierTests {
         #expect(result.photoCount == 2)
         #expect(result.readings.count == 3)
         #expect(result.readings[1].capturedAt == nil)
+    }
+
+    // MARK: - 날짜만 가진 사진
+
+    @Test func 날짜만_가진_사진은_그_날짜의_별도_묶음으로_선다() {
+        let result = Classifier.classify([
+            photo("2026080213000000"),
+            dated("IMG_0001.HEIC", 2026, 8, 2),
+        ])
+        #expect(result.unplaced.isEmpty)
+        #expect(result.days.count == 1)
+        #expect(result.days[0].dateOnlyPhotos == [1])
+        #expect(result.days[0].momentCount == 1)
+        #expect(result.days[0].photoCount == 2)
+    }
+
+    @Test func 날짜만_가진_사진은_순간에_안_섞인다() {
+        let result = Classifier.classify([
+            photo("2026080213000000"),
+            dated("IMG_0001.HEIC", 2026, 8, 2),
+        ])
+        #expect(result.momentCount == 1)
+        #expect(result.allMoments[0].photoIndices == [0])
+    }
+
+    @Test func 파일명에서_시각을_얻으면_달력_날짜는_안_쓴다() {
+        // 시각의 출처는 둘이고 **파일명이 먼저다** — 엉뚱한 날짜를 딸려 보내도 안 진다.
+        let named = photo("2026080213000000")
+        let result = Classifier.classify([
+            PhotoInput(filename: named.filename, bytes: named.bytes,
+                       calendarDay: CalendarDay(year: 1999, month: 1, day: 1)),
+        ])
+        #expect(result.days.count == 1)
+        #expect(result.days[0].date == CalendarDay(year: 2026, month: 8, day: 2))
+        #expect(result.days[0].dateOnlyPhotos.isEmpty)
+    }
+
+    @Test func 순간이_하나도_없는_날도_하루로_선다() {
+        let result = Classifier.classify([
+            dated("IMG_0002.HEIC", 2026, 8, 3),
+            dated("IMG_0001.HEIC", 2026, 8, 2),
+        ])
+        #expect(result.momentCount == 0)
+        #expect(result.photoCount == 2)
+        // 최신 먼저.
+        #expect(result.days.map(\.date) == [CalendarDay(year: 2026, month: 8, day: 3),
+                                            CalendarDay(year: 2026, month: 8, day: 2)])
+        #expect(result.days[0].moments.isEmpty)
+    }
+
+    @Test func 날짜만_가진_사진은_새벽_컷오프를_안_탄다() {
+        // 시각이 없어 새벽인지 알 수 없다 — 받은 날짜 그대로 선다.
+        let result = Classifier.classify([
+            photo("2026080302000000"),                 // 3일 새벽 2시 → 2일에 붙는다
+            dated("IMG_0001.HEIC", 2026, 8, 3),
+        ])
+        #expect(result.days.count == 2)
+        #expect(result.days[0].date == CalendarDay(year: 2026, month: 8, day: 3))
+        #expect(result.days[0].dateOnlyPhotos == [1])
+        #expect(result.days[0].moments.isEmpty)
+        #expect(result.days[1].date == CalendarDay(year: 2026, month: 8, day: 2))
+        #expect(result.days[1].momentCount == 1)
+    }
+
+    @Test func 날짜만_묶음은_입력_순서를_안_탄다() {
+        // `MOM-07` — 시각이 없으니 파일명으로 줄 세운다.
+        let a = dated("IMG_0003.HEIC", 2026, 8, 2)
+        let b = dated("IMG_0001.HEIC", 2026, 8, 2)
+        let c = dated("IMG_0002.HEIC", 2026, 8, 2)
+        func names(_ inputs: [PhotoInput]) -> [String] {
+            Classifier.classify(inputs).days[0].dateOnlyPhotos.map { inputs[$0].filename }
+        }
+        let expected = ["IMG_0001.HEIC", "IMG_0002.HEIC", "IMG_0003.HEIC"]
+        #expect(names([a, b, c]) == expected)
+        #expect(names([c, b, a]) == expected)
     }
 
     @Test func 신호가_없는_사진은_경계를_만들지_않는다() {

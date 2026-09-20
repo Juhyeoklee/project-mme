@@ -88,7 +88,8 @@ struct PhotoAddSheet: View {
 
     /// **꼬리를 다는 것은 「이 순간」 하나뿐이다.** 나머지는 시각만 쓴다.
     private func header(_ group: MomentGroup) -> some View {
-        Text(Wording.momentBreak(group.start, isOrigin: group.isOrigin))
+        Text(group.start.map { Wording.momentBreak($0, isOrigin: group.isOrigin) }
+             ?? Wording.noCaptureTime)
             .font(Typography.sectionLabel)
             .foregroundStyle(Palette.secondaryLabel)
             .padding(.top, 12)
@@ -153,12 +154,17 @@ struct PhotoAddSheet: View {
     /// `REC-05` 후보 — **같은 날의 소스 안 사진 전체 · 시간 오름차순.**
     private static func makeGroups(library: MomentLibrary, draft: RecordDraft) -> [MomentGroup] {
         guard let day = library.days.first(where: { $0.date == draft.day }) else { return [] }
-        return day.moments.reversed().enumerated().map { offset, moment in
+        let placed = day.moments.reversed().enumerated().map { offset, moment in
             MomentGroup(id: offset,
                         start: moment.start,
                         isOrigin: draft.startsFromMoment && moment.start == draft.start,
                         photos: RecordDraft.photos(at: moment.photoIndices, library: library))
         }
+        // 시각이 없는 것들은 줄 세울 수 없어 맨 뒤에 한 묶음으로 선다.
+        guard !day.dateOnlyPhotos.isEmpty else { return placed }
+        return placed + [MomentGroup(id: placed.count, start: nil, isOrigin: false,
+                                     photos: RecordDraft.photos(at: day.dateOnlyPhotos,
+                                                                library: library))]
     }
 
     private func toggle(_ assetID: String) {
@@ -189,8 +195,9 @@ private struct ImportedDraft: Identifiable {
 /// 한 순간의 후보들. 시각 구분 헤더가 이 단위로 선다.
 private struct MomentGroup: Identifiable {
     let id: Int
-    let start: WallClock
-    /// 기록이 시작된 그 순간인가.
+    /// `nil`이면 날짜만 가진 묶음이다 — 구분 헤더가 시각 대신 까닭을 단다.
+    let start: WallClock?
+    /// 기록이 시작된 그 순간인가. **날짜만 묶음은 못 단다** — 가리킬 시각이 없다.
     let isOrigin: Bool
     let photos: [DraftPhoto]
 }

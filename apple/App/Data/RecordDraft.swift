@@ -15,7 +15,8 @@ struct DraftPhoto: Identifiable, Hashable, Sendable {
     var isIncluded: Bool
 
     enum Origin: Hashable, Sendable {
-        case source(asset: SourceAsset, capturedAt: WallClock)
+        /// ⚠️ **시각은 없을 수 있다** — 날짜만 가진 묶음의 사진이 그렇다.
+        case source(asset: SourceAsset, capturedAt: WallClock?)
         case imported(fileExtension: String)
         /// `ARC-06` — 이미 저장된 기록의 이미지. **바이트가 기록 디렉터리에 있어 다시 읽지
         /// 않는다**, 그래서 원본이 앨범에서 사라졌어도 고칠 수 있다.
@@ -37,7 +38,7 @@ struct DraftPhoto: Identifiable, Hashable, Sendable {
         }
     }
 
-    /// 소스 안에서 온 사진만 값이 있다 — 가져온 사진의 촬영 정보는 읽지 않는다.
+    /// 시각을 얻은 소스 안 사진만 값이 있다 — 가져온 사진의 촬영 정보는 읽지 않는다.
     var capturedAt: WallClock? {
         switch origin {
         case .source(_, let capturedAt): capturedAt
@@ -272,19 +273,35 @@ final class RecordDraft: Identifiable {
 }
 
 extension RecordDraft {
-    /// 순간 하나에서 시작한다 (`REC-01`). **연사는 대표 한 장만 담긴다** (`REC-03`).
-    static func from(moment: Moment, day: CalendarDay, library: MomentLibrary) -> RecordDraft {
-        RecordDraft(day: day, start: moment.start, startsFromMoment: true,
-                    photos: photos(at: moment.scenes.map(\.representative), library: library))
+    /// 묶음 하나에서 시작한다 (`REC-01`). **연사는 대표 한 장만 담긴다** (`REC-03`).
+    ///
+    /// ⚠️ **날짜만 가진 묶음은 「이 순간」 꼬리를 못 단다** — 가리킬 시각이 없다.
+    /// 발생일시는 그 날의 첫 시각에서 시작하고, 사용자가 `09-N4`로 고친다.
+    static func from(group: PhotoGroup, library: MomentLibrary) -> RecordDraft? {
+        guard let start = group.start ?? dayStart(group.day) else { return nil }
+        return RecordDraft(day: group.day, start: start, startsFromMoment: group.isPlaced,
+                           photos: photos(at: group.scenes.map { $0[0] }, library: library))
     }
 
-    /// 날짜 하나에서 시작한다 (`REC-02`) — 그 날 **모든 순간**의 사진이 대상이다.
-    /// ⚠️ 순간 목록은 최신 먼저라 **뒤집어 담는다** — 사진은 시간 오름차순으로 놓인다.
+    /// 날짜 하나에서 시작한다 (`REC-02`) — 그 날 **사진 전부**가 대상이다.
+    /// ⚠️ 순간 목록은 최신 먼저라 **뒤집어 담는다** — 사진은 시간 오름차순으로 놓이고,
+    /// 시각이 없어 줄 세울 수 없는 것들이 그 뒤에 온다.
     static func from(day: Day, library: MomentLibrary) -> RecordDraft? {
-        guard let earliest = day.moments.last else { return nil }
         let indices = day.moments.reversed().flatMap { $0.scenes.map(\.representative) }
-        return RecordDraft(day: day.date, start: earliest.start, startsFromMoment: false,
+                    + day.dateOnlyPhotos
+        guard !indices.isEmpty,
+              let start = day.moments.last?.start ?? dayStart(day.date) else { return nil }
+        return RecordDraft(day: day.date, start: start, startsFromMoment: false,
                            photos: photos(at: indices, library: library))
+    }
+
+    /// 시각을 못 얻은 묶음이 기댈 자리. **그 날의 0시다** — 지어낸 값이라 `09-N4`가 고친다.
+    ///
+    /// ⚠️ **달력에 없는 날짜면 `nil`이다.** `CalendarDay`는 범위를 안 막으므로 여기가
+    /// 막는 자리다 — 대신 지어낸 날짜를 세우면 그 값이 화면에서 사실처럼 읽힌다.
+    private static func dayStart(_ day: CalendarDay) -> WallClock? {
+        WallClock(year: day.year, month: day.month, day: day.day,
+                  hour: 0, minute: 0, second: 0, hundredth: 0)
     }
 
     /// `SRC-05` — 소스를 못 얻었을 때의 유일한 길 (`P3`가 막은 진입점이 아니다).
@@ -322,13 +339,14 @@ extension RecordDraft {
                     canvas: record.canvas)
     }
 
-    /// 커널 인덱스를 화면이 다루는 사진으로 옮긴다. 시각을 못 얻은 사진은 애초에 순간에 없다.
+    /// 커널 인덱스를 화면이 다루는 사진으로 옮긴다.
+    /// **시각이 없다고 버리지 않는다** — 날짜만 가진 묶음의 사진도 기록에 담긴다.
     static func photos(at indices: [Int], library: MomentLibrary) -> [DraftPhoto] {
         indices.compactMap { index in
-            guard let asset = library.asset(at: index),
-                  let capturedAt = library.capturedAt(at: index) else { return nil }
+            guard let asset = library.asset(at: index) else { return nil }
             return DraftPhoto(id: UUID(),
-                              origin: .source(asset: asset, capturedAt: capturedAt),
+                              origin: .source(asset: asset,
+                                              capturedAt: library.capturedAt(at: index)),
                               isIncluded: true)
         }
     }

@@ -57,12 +57,14 @@ struct RecordImage: Identifiable, Hashable, Sendable {
         ///
         /// ⚠️ `assetID`는 **참조가 아니라 출처 표지다.** 이미지를 다시 읽는 데 쓰지 않는다 —
         /// 쓰기 시작하면 원본이 사라진 기록이 깨지고, 복사로 산 성질을 도로 잃는다.
-        case source(assetID: String, capturedAt: WallClock)
+        /// ⚠️ **시각은 없을 수 있다** — 소스 안에서 왔어도 파일명에서 시각을 못 얻은
+        /// 사진이 있다. 그런 사진은 날짜만 가진 묶음으로 서고, 기록에도 그대로 실린다.
+        case source(assetID: String, capturedAt: WallClock?)
         /// `REC-10` 직접 가져오기. 촬영 정보를 읽지 않으므로 시각이 없다.
         case imported
     }
 
-    /// 소스 안에서 왔으면 그 촬영시각.
+    /// 소스 안에서 왔고 시각을 얻었으면 그 촬영시각.
     var capturedAt: WallClock? {
         if case .source(_, let capturedAt) = origin { return capturedAt }
         return nil

@@ -20,12 +20,17 @@ public struct SourceAsset: Sendable, Hashable, Identifiable {
     /// 0이면 라이브러리가 크기를 모른다는 뜻이다.
     public let pixelWidth: Int
     public let pixelHeight: Int
+    /// 라이브러리가 아는 촬영 시점. **열거 시점에 오고 시간대가 없는 절대 시각이다** —
+    /// 달력 날짜로 꾸는 일은 이 모듈 밖이다(꾸는 시간대가 커널 입력의 생산 과정에 든다).
+    public let creationDate: Date?
 
-    public init(id: String, filename: String, pixelWidth: Int, pixelHeight: Int) {
+    public init(id: String, filename: String, pixelWidth: Int, pixelHeight: Int,
+                creationDate: Date? = nil) {
         self.id = id
         self.filename = filename
         self.pixelWidth = pixelWidth
         self.pixelHeight = pixelHeight
+        self.creationDate = creationDate
     }
 }
 

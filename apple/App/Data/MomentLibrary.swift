@@ -59,7 +59,11 @@ final class MomentLibrary {
     /// 커널 인덱스 ↔ 자산. **`inputs`와 같은 길이·같은 순서다** — 이 대응이 깨지면 전부 어긋난다.
     private(set) var assets: [SourceAsset] = []
     private var inputs: [PhotoInput] = []
-    /// 바이트를 아직 못 정한 사진. 진행률의 분자는 `assets.count - pending.count`다.
+    /// 바이트를 읽을 사진 — **파일명에서 시각을 얻은 것만이다.** 날짜만 가진 사진은 장소
+    /// 분할에도 연사 접기에도 못 들어가 그 바이트가 결과를 못 바꾸므로, 안 읽어야
+    /// `R8`의 원격 대기(한 장 상한 20초)를 **쓸 데 없는 사진 수만큼** 안 문다.
+    private var byteCandidates: [Int] = []
+    /// 바이트를 아직 못 정한 사진. 진행률의 분모는 `byteCandidates`다.
     private var pending: Set<Int> = []
     /// 끝내 원본을 못 받은 사진 (`R8`). **`05`가 이 값으로 표시를 세운다.**
     private(set) var missingOriginals: Set<Int> = []
@@ -160,6 +164,7 @@ final class MomentLibrary {
         assets = []
         inputs = []
         readings = []
+        byteCandidates = []
         pending = []
         missingOriginals = []
         momentCount = 0
@@ -245,13 +250,15 @@ final class MomentLibrary {
             phase = .blocked("\(error)")
             return false
         }
-        inputs = assets.map { PhotoInput(filename: $0.filename) }
-        pending = Set(inputs.indices)
+        inputs = assets.map(Self.input(from:))
         missingOriginals = []
         reclassify()
-        probeSource()
-        guard !assets.isEmpty else {
-            phase = .ready
+        // 시각을 얻었는지는 커널이 판정한다 — 파일명 규칙을 이쪽이 다시 알면 출처가 둘이 된다.
+        byteCandidates = readings.indices.filter { readings[$0].capturedAt != nil }
+        pending = Set(byteCandidates)
+        probeSource("1패스")
+        guard !byteCandidates.isEmpty else {
+            finish()
             return false
         }
         return true
@@ -265,9 +272,9 @@ final class MomentLibrary {
         var remote: [Int] = []
         // 문이 열려 있으면 로컬 판정을 건너뛴다 — 원본이 다 로컬인 기기에서는 그래야 원격을 밟는다.
         if slowSource.isOn {
-            remote = Array(assets.indices)
+            remote = byteCandidates
         } else {
-            for index in assets.indices {
+            for index in byteCandidates {
                 if isStale(epoch) { return }
                 if await load(index, epoch: epoch, allowingNetwork: false) == false {
                     remote.append(index)
@@ -350,33 +357,53 @@ final class MomentLibrary {
         resolve(index)
     }
 
-    private func missing(in moment: Moment) -> Int {
-        missingOriginals.isEmpty ? 0 : moment.photoIndices.count { missingOriginals.contains($0) }
+    /// `05`가 묻는다 — 이 묶음에 원본을 못 받은 사진이 몇 장인가.
+    func missingOriginalCount(in photoIndices: [Int]) -> Int {
+        missingOriginals.isEmpty ? 0 : photoIndices.count { missingOriginals.contains($0) }
     }
-
-    /// `05`가 묻는다 — 이 순간에 원본을 못 받은 사진이 몇 장인가.
-    func missingOriginalCount(in moment: Moment) -> Int { missing(in: moment) }
 
     private func resolve(_ index: Int) {
         pending.remove(index)
-        progress = assets.isEmpty ? 0 : Double(assets.count - pending.count) / Double(assets.count)
+        let total = byteCandidates.count
+        progress = total == 0 ? 1 : Double(total - pending.count) / Double(total)
     }
 
     /// ⚠️ **`-sourceprobe`로만 켠다** — 소스마다 어느 층에서 끊기는지 본다.
-    private func probeSource() {
+    /// **한 줄이 기준선 표의 한 행이다** — 사람이 그대로 옮겨 적으므로 열을 함부로 바꾸지 않는다.
+    private func probeSource(_ stage: String) {
         #if DEBUG
         // 시각은 파일명에서 오므로 이름 규칙이 안 맞으면 사진이 시간축에 아예 안 놓인다.
         guard ProcessInfo.processInfo.arguments.contains("-sourceprobe") else { return }
         let timed = readings.count { $0.capturedAt != nil }
         let signalled = readings.count { $0.signals != nil }
-        NSLog("[소스탐침] \(sourceName ?? "이름없음") · 사진 \(assets.count)장 · "
-              + "시각 \(timed) · 신호 \(signalled) · 순간 \(momentCount)")
+        let scenes = days.reduce(0) { $0 + $1.moments.reduce(0) { $0 + $1.sceneCount } }
+        let folded = days.reduce(0) {
+            $0 + $1.moments.reduce(0) { $0 + $1.scenes.count { $0.isFolded } }
+        }
+        let dateOnly = days.reduce(0) { $0 + $1.dateOnlyPhotos.count }
+        NSLog("[소스탐침·\(stage)] \(sourceName ?? "이름없음") · 사진 \(assets.count) · "
+              + "신호 \(signalled) · 시각없음 \(assets.count - timed) · 날짜만 \(dateOnly) · "
+              + "날짜 \(days.count) · 순간 \(momentCount) · 장면 \(scenes) · 접힌장면 \(folded) · "
+              + "바이트대상 \(byteCandidates.count)")
+        guard stage == "1패스" else { return }
         for (index, reading) in readings.enumerated().prefix(6) {
             NSLog("[소스탐침] \(assets[index].filename) → 시각 "
                   + "\(reading.capturedAt.map { "\($0.month)/\($0.day) \($0.hour):\($0.minute)" } ?? "없음")"
                   + " · 신호 \(reading.signalStatus)")
         }
         #endif
+    }
+
+    /// 자산 하나를 커널 입력으로 꾼다. **바이트는 여기서 안 붙는다** — 2패스가 채운다.
+    ///
+    /// ⚠️ **커널 입력값의 생산 과정도 계약이다.** 라이브러리가 주는 절대 시각을
+    /// **기기의 현재 달력·시간대로** 달력 날짜로 꾼다 — `MOM-07`이 기기를 타도록
+    /// 허용한 유일한 자리고, 다른 언어 구현은 이 과정까지 재현해야 한다.
+    private static func input(from asset: SourceAsset) -> PhotoInput {
+        PhotoInput(filename: asset.filename, calendarDay: asset.creationDate.map { date in
+            let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+            return CalendarDay(year: parts.year!, month: parts.month!, day: parts.day!)
+        })
     }
 
     /// **커널을 부르는 유일한 자리.** 넘기는 것은 언제나 `inputs` 전체다.
@@ -392,9 +419,10 @@ final class MomentLibrary {
     private func finish() {
         phase = .ready
         progress = 1
+        probeSource("끝")
         // 분류가 끝나면 바이트는 쓸 곳이 없다 — 211장이면 170MB다.
         // 재분류에 전량이 동시에 필요하므로 줄일 수 있는 것은 들고 있는 기간뿐이다.
-        inputs = assets.map { PhotoInput(filename: $0.filename) }
+        inputs = assets.map(Self.input(from:))
     }
 }
 

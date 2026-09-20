@@ -10,8 +10,8 @@ import SwiftUI
 
 struct MomentListScreen: View {
     let library: MomentLibrary
-    /// iPad 2단에서 우측 pane이 보고 있는 순간. iPhone에서는 `nil`을 넘긴다.
-    var selection: Binding<Moment?>?
+    /// iPad 2단에서 우측 pane이 보고 있는 묶음. iPhone에서는 `nil`을 넘긴다.
+    var selection: Binding<PhotoGroup?>?
     /// 편집기가 뜰 자리는 `RootView`가 정한다 — 화면은 초안을 넣기만 한다.
     var editing: Binding<RecordDraft?>
     /// `13`을 여는 길. **뼈대가 진다** — iPhone은 밀고 들어가고 iPad는 창 가운데 판으로 뜬다.
@@ -138,8 +138,8 @@ struct MomentListScreen: View {
                         } action: { minY in
                             trackTopDay(index: index, headerMinY: minY)
                         }
-                    ForEach(day.moments, id: \.photoIndices.first) { moment in
-                        row(day: day, moment: moment)
+                    ForEach(day.groups) { group in
+                        row(group)
                     }
                     Color.clear.frame(height: Spacing.dayGap)
                 }
@@ -158,22 +158,22 @@ struct MomentListScreen: View {
         .refreshable { await library.refresh() }
     }
 
-    private func row(day: Day, moment: Moment) -> some View {
-        let card = MomentCard(moment: moment,
+    private func row(_ group: PhotoGroup) -> some View {
+        let card = MomentCard(group: group,
                               assetAt: library.asset(at:),
                               stripWidth: stripWidth,
                               retryToken: library.generation,
-                              isSelected: selection?.wrappedValue == moment)
+                              isSelected: selection?.wrappedValue == group)
             .padding(.bottom, Spacing.momentGap)
             .padding(.leading, Spacing.listLeading)
             .padding(.trailing, Spacing.screenMargin)
 
         return Group {
             if let selection {
-                Button { selection.wrappedValue = moment } label: { card }
+                Button { selection.wrappedValue = group } label: { card }
                     .buttonStyle(.plain)
             } else {
-                NavigationLink(value: moment) { card }
+                NavigationLink(value: group) { card }
                     .buttonStyle(.plain)
             }
         }
@@ -187,7 +187,7 @@ struct MomentListScreen: View {
             Text(Wording.dateHeader(day.date))
                 .font(Typography.date)
                 .foregroundStyle(Palette.label)
-            Text(Wording.summary(moments: day.moments.count, photos: day.photoCount))
+            Text(Wording.summary(moments: day.momentCount, photos: day.photoCount))
                 .font(Typography.subtitle)
                 .foregroundStyle(Palette.secondaryLabel)
         }

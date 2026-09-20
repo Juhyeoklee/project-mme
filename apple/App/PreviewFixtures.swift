@@ -21,9 +21,12 @@ enum Fixture {
     /// 값이라 출처가 다르지만, 합성 데이터에서 둘을 따로 적으면 배치와 그림이 어긋난다.
     static let assets = inputs.enumerated().map { index, input in
         let signals = classification.readings[index].signals
+        // 날짜만 가진 사진은 바이트를 안 읽어 `IHDR`이 없다 — 실물에서는 라이브러리가 크기를
+        // 주므로 그쪽에 맞춰 세워 둔다. 0으로 두면 격자가 전부 정사각으로 눕는다.
         return SourceAsset(id: "preview-\(index)", filename: input.filename,
-                           pixelWidth: signals?.pixelWidth ?? 0,
-                           pixelHeight: signals?.pixelHeight ?? 0)
+                           pixelWidth: signals?.pixelWidth ?? 1600,
+                           pixelHeight: signals?.pixelHeight ?? 1200,
+                           creationDate: nil)
     }
     static let store = makeStore()
 
@@ -86,7 +89,19 @@ enum Fixture {
     /// 열 수를 장면 수에 맞추는 규칙이 실제로 화면 폭 한 장이 되는지.
     static let singlePhotoMoment = allMoments.first { $0.photoCount == 1 } ?? allMoments[0]
 
+    /// `05`가 순간으로 열릴 때.
+    static let groupWithBurst = group(momentWithBurst)
+    /// `05`가 **날짜만 가진 묶음**으로 열릴 때 — 시각도 연사 배지도 없는 판이다.
+    static let dateOnlyGroup = classification.days
+        .compactMap { PhotoGroup(dateOnly: $0.dateOnlyPhotos, day: $0.date) }
+        .first ?? groupWithBurst
+
     private static let allMoments = classification.days.flatMap(\.moments)
+
+    static func group(_ moment: Moment) -> PhotoGroup {
+        let day = classification.days.first { $0.moments.contains(moment) }
+        return PhotoGroup(moment: moment, day: day?.date ?? moment.start.calendarDay)
+    }
 
     /// 합성 기록 넷. **실제 저장소에 실제 파일로 쓴다** — 화면들이 전부 디스크에서 읽으므로
     /// 메모리 목업으로는 경로가 하나도 안 태워진다.
@@ -110,9 +125,9 @@ enum Fixture {
     #if os(iOS)
     /// `11`을 글이 놓인 채로 연다 — 글꼴 2종과 인스펙터를 눌러보지 않고 관측하는 문.
     @MainActor
-    static func canvasWithText(day: CalendarDay) -> CanvasSession? {
-        let draft = RecordDraft.from(moment: momentWithBurst, day: day, library: library)
-        guard let first = draft.included.first else { return nil }
+    static func canvasWithText() -> CanvasSession? {
+        guard let draft = RecordDraft.from(group: groupWithBurst, library: library),
+              let first = draft.included.first else { return nil }
         var handwriting = CanvasText(face: .handwriting, ink: .sumi)
         handwriting.string = "그날의 노을"
         var serif = CanvasText(face: .serif, ink: .navy)
@@ -204,13 +219,22 @@ enum Fixture {
             add(String(format: "202607251%02d000", offset + 40), "던바튼", x)
         }
 
-        return photos.map { photo in
+        let placed = photos.map { photo in
             PhotoInput(filename: "MabinogiMobile_\(photo.stamp)00.png",
                        bytes: PNG.capture(width: photo.portrait ? 738 : 1600,
                                           height: photo.portrait ? 1600 : 738,
                                           zone: photo.zone,
                                           position: photo.position))
         }
+        // 이름 규칙이 안 맞아 달력 날짜만 얻은 사진 — 게임 앨범에 섞여 들어온 카메라 사진이다.
+        // 7월 26일은 순간과 **함께** 서는 날이고, 7월 24일은 **순간이 하나도 없는** 날이다.
+        func dated(_ index: Int, _ month: Int, _ day: Int) -> PhotoInput {
+            PhotoInput(filename: "IMG_\(4000 + index).HEIC", bytes: nil,
+                       calendarDay: CalendarDay(year: 2026, month: month, day: day))
+        }
+        return placed
+            + (0..<5).map { dated($0, 7, 26) }
+            + (5..<9).map { dated($0, 7, 24) }
     }
 
     private static func makeStore() -> ImageStore {

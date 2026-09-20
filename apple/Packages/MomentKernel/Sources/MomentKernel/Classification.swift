@@ -26,13 +26,24 @@ public struct Moment: Sendable, Hashable {
     public var sceneCount: Int { scenes.count }
 }
 
-/// 하루치 순간들 (`MOM-05`). 자정을 넘겨 이어진 촬영은 전날에 붙는다 (`MOM-06`).
+/// 하루치 (`MOM-05`). 자정을 넘겨 이어진 촬영은 전날에 붙는다 (`MOM-06`).
+///
+/// **담는 것이 둘이고 섞이지 않는다** — 시간축에 선 순간들과, 날짜밖에 못 얻어
+/// 시간축에 못 선 사진들이다. **둘 중 하나만 있는 날도 하루다.**
 public struct Day: Sendable, Hashable {
     public let date: CalendarDay
     /// **최신 먼저.**
     public let moments: [Moment]
+    /// 시각을 못 얻어 시간축에 못 선 사진들. 순간이 아니므로 `moments`에 안 섞는다.
+    ///
+    /// **파일명 오름차순이다** — 시각이 없어 시간으로 줄 세울 수 없는데, 입력 순서를 타면
+    /// 기기마다 순서가 달라져 `MOM-07`이 깨진다.
+    public let dateOnlyPhotos: [Int]
 
-    public var photoCount: Int { moments.reduce(0) { $0 + $1.photoCount } }
+    public var photoCount: Int {
+        moments.reduce(0) { $0 + $1.photoCount } + dateOnlyPhotos.count
+    }
+    public var momentCount: Int { moments.count }
 }
 
 /// 분류 결과 전체.
@@ -41,10 +52,10 @@ public struct Classification: Sendable, Hashable {
     public let days: [Day]
     /// 입력과 **같은 길이·같은 순서**. 사진별로 무엇을 읽었고 무엇을 못 읽었는지.
     public let readings: [PhotoReading]
-    /// 파일명에서 시각을 못 얻어 시간축에 놓지 못한 사진의 입력 인덱스. 오름차순.
+    /// **시각도 날짜도 못 얻어 어느 날에도 못 선** 사진의 입력 인덱스. 오름차순.
     /// **제품 규칙은 여기 없다** — 커널은 사실만 준다.
     public let unplaced: [Int]
 
     public var photoCount: Int { days.reduce(0) { $0 + $1.photoCount } }
-    public var momentCount: Int { days.reduce(0) { $0 + $1.moments.count } }
+    public var momentCount: Int { days.reduce(0) { $0 + $1.momentCount } }
 }

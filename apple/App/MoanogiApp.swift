@@ -110,22 +110,20 @@ struct MoanogiApp: App {
     private var rootScreen: some View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        if usesFixture, arguments.contains("11-text"), let day = Fixture.library.days.first {
-            canvasFixture(withText: true, day: day.date)
-        } else if usesFixture, arguments.contains("11"), let day = Fixture.library.days.first {
-            canvasFixture(withText: false, day: day.date)
+        if usesFixture, arguments.contains("11-text") {
+            canvasFixture(withText: true)
+        } else if usesFixture, arguments.contains("11") {
+            canvasFixture(withText: false)
         } else if usesFixture, arguments.contains("09-mixed") {
             root(editing: Fixture.mixedDraft)
         } else if usesFixture, arguments.contains("10-empty") {
             root(editing: Fixture.mixedDraft, opensPhotoAdd: true)
-        } else if usesFixture, arguments.contains("10"), let day = Fixture.library.days.first {
-            root(editing: .from(moment: Fixture.momentWithBurst, day: day.date,
-                                library: Fixture.library),
+        } else if usesFixture, arguments.contains("10") {
+            root(editing: .from(group: Fixture.groupWithBurst, library: Fixture.library),
                  opensPhotoAdd: true)
-        } else if usesFixture, arguments.contains("09"), let day = Fixture.library.days.first {
+        } else if usesFixture, arguments.contains("09") {
             // 사진이 여럿인 순간으로 연다 — 1장짜리로는 격자도 스크롤도 안 보인다.
-            root(editing: .from(moment: Fixture.momentWithBurst, day: day.date,
-                                library: Fixture.library))
+            root(editing: .from(group: Fixture.groupWithBurst, library: Fixture.library))
         } else if usesFixture, arguments.contains("14") {
             root(opensDepth: .terms)
         } else if usesFixture, arguments.contains("13-A") {
@@ -141,13 +139,16 @@ struct MoanogiApp: App {
         } else if usesFixture, arguments.contains("07") {
             root(tab: .records)
         } else if usesFixture, arguments.contains("06") {
-            PhotoViewerScreen(library: Fixture.library, moment: Fixture.momentWithBurst,
-                              photos: Fixture.momentWithBurst.photoIndices,
-                              start: Fixture.momentWithBurst.photoIndices[0])
+            PhotoViewerScreen(library: Fixture.library,
+                              photos: Fixture.groupWithBurst.photoIndices,
+                              start: Fixture.groupWithBurst.photoIndices[0])
         } else if usesFixture, arguments.contains("05") {
             NavigationStack {
+                // `-fixture 05 dateonly`는 시각이 없는 묶음으로 연다.
                 MomentDetailScreen(library: Fixture.library,
-                                   moment: Fixture.momentWithBurst, editing: .constant(nil))
+                                   group: arguments.contains("dateonly")
+                                          ? Fixture.dateOnlyGroup : Fixture.groupWithBurst,
+                                   editing: .constant(nil))
             }
         } else {
             root()
@@ -168,13 +169,15 @@ struct MoanogiApp: App {
 
     /// `-fixture 11` 문. ⚠️ 캔버스가 없는 플랫폼에서는 최상위가 그대로 뜬다.
     @ViewBuilder
-    private func canvasFixture(withText: Bool, day: CalendarDay) -> some View {
+    private func canvasFixture(withText: Bool) -> some View {
         #if os(iOS)
         if withText {
-            root(canvas: Fixture.canvasWithText(day: day))
+            root(canvas: Fixture.canvasWithText())
+        } else if let draft = RecordDraft.from(group: Fixture.groupWithBurst,
+                                               library: Fixture.library) {
+            root(canvas: .opening(draft, in: shownRecords.store))
         } else {
-            root(canvas: .opening(.from(moment: Fixture.momentWithBurst, day: day,
-                                        library: Fixture.library), in: shownRecords.store))
+            root()
         }
         #else
         root()

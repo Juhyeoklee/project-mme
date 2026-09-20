@@ -46,6 +46,11 @@ struct WordingTests {
 
     // MARK: - 계약
 
+    @Test func 순간이_0이면_장수만_말한다() {
+        // 「순간 0개」가 세는 것은 없는 것이고, 그 줄은 실패의 보고로 읽힌다.
+        #expect(Wording.summary(moments: 0, photos: 2406) == "2,406장")
+    }
+
     @Test func 장면_수가_장수와_같으면_같은_말을_두_번_하지_않는다() {
         // `BRW-03`은 조건 없이 셋을 요구하지만, 연사 묶음이 없으면 장면 수가 정보를 더하지 않는다.
         #expect(Wording.counts(photos: 2, scenes: 2) == "2장")
