@@ -133,7 +133,7 @@ enum Fixture {
         var serif = CanvasText(face: .serif, ink: .navy)
         serif.string = "해가 지는 걸 보려고 계속 달렸다. 도착한 곳은 아무것도 없는 모래 언덕이었다."
         // 첫 요소가 진입 직후 선택된다 — 손글씨를 앞에 두어 `11-I`가 그 상태로 열린다.
-        let page = CanvasPage(paper: .dots, elements: [
+        let page = CanvasPage(paper: PaperStyle(color: .ivory, pattern: .dots), elements: [
             CanvasElement(content: .text(handwriting),
                           frame: handwriting.box(at: CGPoint(x: 600, y: 400), width: 300)),
             CanvasElement(content: .photo(imageID: first.id),

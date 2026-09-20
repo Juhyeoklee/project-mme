@@ -18,7 +18,7 @@ private func document(pages: Int = 1, photo: RecordImage? = nil) -> CanvasDocume
                       frame: CGRect(x: 200, y: 150, width: 520, height: 390))
     }
     return CanvasDocument(pages: (0..<pages).map { _ in
-        CanvasPage(paper: .dots, elements: element.map { [$0] } ?? [])
+        CanvasPage(paper: PaperStyle(), elements: element.map { [$0] } ?? [])
     }, sources: photo.map { [$0] } ?? [])
 }
 

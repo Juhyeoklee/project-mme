@@ -257,6 +257,9 @@ enum Wording {
     /// `11-O1` 마커 — **「투명도」가 아니라 「진하기」다.** 100이 어느 쪽인지 헷갈리지 않는다.
     static let inkOpacity = "진하기"
     static let inkColor = "색"
+    /// `11-O2` 종이의 두 축.
+    static let paperPattern = "무늬"
+    static let paperColor = "색"
     /// `11-I1` 글꼴 2종 — **역할 이름이지 서체 이름이 아니다.**
     static let handwritingFace = "손글씨"
     static let serifFace = "반듯한 것"

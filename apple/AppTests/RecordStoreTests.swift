@@ -241,7 +241,7 @@ struct RecordStoreTests {
     @Test func 캔버스를_붙여_저장하면_페이지와_획이_그대로_돌아온다() throws {
         let store = makeStore()
         let image = sourceImage(assetID: "asset-1", at: try clock(8, 3, 18, 5))
-        let page = CanvasPage(paper: .lines,
+        let page = CanvasPage(paper: PaperStyle(color: .gray, pattern: .lines),
                               elements: [CanvasElement(content: .photo(imageID: image.id),
                                                        frame: CGRect(x: 10, y: 20,
                                                                      width: 300, height: 200),
@@ -289,6 +289,29 @@ struct RecordStoreTests {
 
         let loaded = try #require(try store.all().first)
         #expect(loaded.canvas?.sources.map(\.id) == [imageID])
+    }
+
+    /// ⚠️ **옛 낱말 하나가 색과 무늬 둘을 진다** — 안 풀면 판 3 이하의 캔버스가 전부
+    /// 기본 종이로 리셋된다. ⚠️ **`plain`의 색은 그 시절 값이 여섯에서 빠져 제일 가까운
+    /// 것이 받는다.**
+    @Test(arguments: [("grid", PaperStyle(color: .white, pattern: .grid)),
+                      ("dots", PaperStyle(color: .ivory, pattern: .dots)),
+                      ("lines", PaperStyle(color: .gray, pattern: .lines)),
+                      ("plain", PaperStyle(color: .olive, pattern: .plain))])
+    func 판_3의_종이_한_낱말이_색과_무늬로_풀린다(word: String, style: PaperStyle) throws {
+        let store = makeStore()
+        let id = UUID()
+        let manifest = """
+        {"schemaVersion": 3, "id": "\(id.uuidString)",
+         "occurredAt": "2026080318050000", "caption": "", "status": "published",
+         "updatedAt": 0, "images": [],
+         "canvas": {"pages": [{"id": "\(UUID().uuidString)", "paper": "\(word)",
+                               "elements": []}], "strokes": {}, "sources": []}}
+        """
+        try write(manifest, forRecord: id, in: store)
+
+        let loaded = try #require(try store.all().first)
+        #expect(loaded.canvas?.pages.first?.paper == style)
     }
 
     @Test func 판_1로_쓰인_기록은_캔버스_없이_읽힌다() throws {

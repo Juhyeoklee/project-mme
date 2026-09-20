@@ -22,8 +22,8 @@ struct RecordStore: Sendable {
     let root: URL
 
     /// 이 판이 쓰는 저장 형식. 읽을 때 더 큰 번호를 만나면 던진다.
-    /// **판 2가 캔버스 문서를, 판 3이 그 재료 사진을 더했다.**
-    static let schemaVersion = 3
+    /// **판 2가 캔버스 문서를, 판 3이 그 재료 사진을, 판 4가 종이의 둘째 축을 더했다.**
+    static let schemaVersion = 4
 
     private static let manifestName = "record.json"
     private static let imagesDirectoryName = "images"
@@ -291,20 +291,46 @@ private struct StoredCanvas: Codable {
 
 private struct StoredPage: Codable {
     var id: UUID
-    var paper: String
+    /// 판 3까지의 종이 — 색과 무늬가 한 낱말에 묶여 있었다. 판 4 파일에는 없다.
+    var paper: String?
+    /// 판 4에서 생겼다. 둘 다 있어야 종이가 선다.
+    var paperColor: String?
+    var paperPattern: String?
     var elements: [StoredElement]
 
     init(_ page: CanvasPage) {
         id = page.id
-        paper = page.paper.rawValue
+        paperColor = page.paper.color.rawValue
+        paperPattern = page.paper.pattern.rawValue
         elements = page.elements.map(StoredElement.init)
     }
 
     var page: CanvasPage? {
-        guard let paper = PaperKind(rawValue: paper) else { return nil }
+        guard let paper = paperStyle else { return nil }
         let elements = self.elements.compactMap(\.element)
         guard elements.count == self.elements.count else { return nil }
         return CanvasPage(id: id, paper: paper, elements: elements)
+    }
+
+    /// 고정 페어링이던 시절의 낱말 넷을 두 축으로 푼다. **버리면 판 3 이하의 캔버스가
+    /// 전부 기본 종이로 리셋된다.**
+    ///
+    /// ⚠️ **`plain`의 색만 그대로가 아니다** — 그 시절 값이 여섯 색에서 빠져, 제일 가까운
+    /// 것이 받는다. 나머지 셋은 옛 값이 여섯 안에 그대로 있다.
+    private var paperStyle: PaperStyle? {
+        if let paperColor, let paperPattern {
+            guard let color = PaperColor(rawValue: paperColor),
+                  let pattern = PaperPattern(rawValue: paperPattern)
+            else { return nil }
+            return PaperStyle(color: color, pattern: pattern)
+        }
+        switch paper {
+        case "grid": return PaperStyle(color: .white, pattern: .grid)
+        case "dots": return PaperStyle(color: .ivory, pattern: .dots)
+        case "lines": return PaperStyle(color: .gray, pattern: .lines)
+        case "plain": return PaperStyle(color: .olive, pattern: .plain)
+        default: return nil
+        }
     }
 }
 

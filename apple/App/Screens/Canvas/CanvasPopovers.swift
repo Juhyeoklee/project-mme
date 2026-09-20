@@ -62,17 +62,11 @@ struct InkOptions: View {
                             }
                         }
                     }
-                    if stroke.usesInk { label(Wording.inkColor) }
+                    if stroke.usesInk { popoverLabel(Wording.inkColor) }
                 }
                 if stroke?.usesInk ?? true { colors }
             }
         }
-    }
-
-    private func label(_ text: String) -> some View {
-        Text(text)
-            .font(Typography.note)
-            .foregroundStyle(Palette.secondaryLabel)
     }
 
     /// 실치수 미리보기 — 굵기와 진하기가 함께 만드는 점이라 줄 전부의 왼쪽에 하나만 선다.
@@ -117,37 +111,93 @@ struct InkOptions: View {
     }
 }
 
-/// `11-O2` 종이 고르기.
+/// 줄의 이름 — 팝오버 둘이 같은 자를 쓴다.
+private func popoverLabel(_ text: String) -> some View {
+    Text(text)
+        .font(Typography.note)
+        .foregroundStyle(Palette.secondaryLabel)
+}
+
+/// `11-O2` 종이 고르기. **축이 둘이라 2단이다** — 무늬 줄과 색 줄, 그리고 지금 조합.
+///
+/// ⚠️ **무늬 썸네일은 지금 색으로 칠한다** — 흰 바탕에 그리면 고를 때 보이는 것과
+/// 종이에 앉는 것이 달라진다.
 struct PaperPicker: View {
     let session: CanvasSession
 
     @Environment(\.accentSet) private var accentSet
 
+    private static let previewSize = CGSize(width: 96, height: 64)
+    private static let patternSize = CGSize(width: 68, height: 48)
+    private static let colorSize = CGSize(width: 44, height: 28)
+    /// 썸네일이 무늬를 요약하는 배수.
+    private static let thumbnailScale: CGFloat = 0.5
+
+    private var paper: PaperStyle { session.page.paper }
+
     var body: some View {
         CanvasPopoverCard {
-            HStack(spacing: 10) {
-                ForEach(PaperKind.allCases, id: \.self) { candidate in
-                    Button { choose(candidate) } label: {
-                        CanvasPaperView(paper: candidate, patternScale: 0.5)
-                            .frame(width: 66, height: 50)
-                            .clipShape(.rect(cornerRadius: Radius.thumbnail))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: Radius.thumbnail)
-                                    .strokeBorder(
-                                        candidate == session.page.paper
-                                            ? accentSet.accent : Palette.placeholder,
-                                        lineWidth: candidate == session.page.paper ? 2 : 1)
-                            }
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    // ⚠️ **미리보기도 요약 간격이다** — 실치수로 그리면 96×64 안에 무늬가
+                    // 몇 개 안 들어와, 조합을 말하라고 둔 자리가 색만 말한다.
+                    tile(paper, size: Self.previewSize, isSelected: false,
+                         patternScale: Self.thumbnailScale)
+                    Text(paper.name)
+                        .font(Typography.subtitle)
+                        .foregroundStyle(Palette.label)
+                }
+                popoverLabel(Wording.paperPattern)
+                HStack(spacing: 10) {
+                    ForEach(PaperPattern.allCases, id: \.self) { candidate in
+                        let style = PaperStyle(color: paper.color, pattern: candidate)
+                        Button { choose(style) } label: {
+                            tile(style, size: Self.patternSize,
+                                 isSelected: candidate == paper.pattern,
+                                 patternScale: Self.thumbnailScale)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(candidate.name)
+                        .accessibilityAddTraits(candidate == paper.pattern ? [.isSelected] : [])
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(candidate.name)
-                    .accessibilityAddTraits(candidate == session.page.paper ? [.isSelected] : [])
+                }
+                popoverLabel(Wording.paperColor)
+                HStack(spacing: 8) {
+                    ForEach(PaperColor.allCases, id: \.self) { candidate in
+                        Button { choose(PaperStyle(color: candidate, pattern: paper.pattern)) } label: {
+                            chip(candidate)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(candidate.name)
+                        .accessibilityAddTraits(candidate == paper.color ? [.isSelected] : [])
+                    }
                 }
             }
         }
     }
 
-    private func choose(_ paper: PaperKind) {
+    private func tile(_ style: PaperStyle, size: CGSize, isSelected: Bool,
+                      patternScale: CGFloat) -> some View {
+        CanvasPaperView(paper: style, patternScale: patternScale)
+            .frame(width: size.width, height: size.height)
+            .clipShape(.rect(cornerRadius: Radius.thumbnail))
+            .overlay { border(isSelected) }
+    }
+
+    private func chip(_ candidate: PaperColor) -> some View {
+        RoundedRectangle(cornerRadius: Radius.thumbnail)
+            .fill(candidate.color)
+            .frame(width: Self.colorSize.width, height: Self.colorSize.height)
+            .overlay { border(candidate == paper.color) }
+    }
+
+    private func border(_ isSelected: Bool) -> some View {
+        RoundedRectangle(cornerRadius: Radius.thumbnail)
+            .strokeBorder(isSelected ? accentSet.accent : Palette.placeholder,
+                          lineWidth: isSelected ? 2 : 1)
+    }
+
+    private func choose(_ paper: PaperStyle) {
         let index = session.pageIndex
         session.change { $0[index].paper = paper }
     }

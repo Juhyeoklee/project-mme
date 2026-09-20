@@ -42,11 +42,11 @@ struct CanvasDocument: Hashable, Sendable {
 /// (`PKCanvasView`는 페이지당 그림 하나를 진다).
 struct CanvasPage: Identifiable, Hashable, Sendable {
     let id: UUID
-    var paper: PaperKind
+    var paper: PaperStyle
     /// **배열 순서가 곧 겹침 순서다** — 뒤에 있는 것이 위에 그려진다 (`CAN-06`).
     var elements: [CanvasElement]
 
-    init(id: UUID = UUID(), paper: PaperKind = .dots, elements: [CanvasElement] = []) {
+    init(id: UUID = UUID(), paper: PaperStyle = PaperStyle(), elements: [CanvasElement] = []) {
         self.id = id
         self.paper = paper
         self.elements = elements
@@ -178,10 +178,31 @@ enum InkColor: String, CaseIterable, Hashable, Sendable {
     case white
 }
 
-/// 종이 4종 (`CAN-08`). **색과 패턴이 고정 페어링**이라 고르는 축이 하나다.
-enum PaperKind: String, CaseIterable, Hashable, Sendable {
+/// 종이 한 장의 외형 (`CAN-08`). **축이 둘이고 금지 조합이 없다.**
+struct PaperStyle: Hashable, Sendable {
+    var color: PaperColor
+    var pattern: PaperPattern
+
+    init(color: PaperColor = .ivory, pattern: PaperPattern = .dots) {
+        self.color = color
+        self.pattern = pattern
+    }
+}
+
+/// 종이 색 6종 (`CAN-08`).
+enum PaperColor: String, CaseIterable, Hashable, Sendable {
+    case white
+    case ivory
+    case gray
+    case navy
+    case olive
+    case rose
+}
+
+/// 종이 무늬 4종 (`CAN-08`).
+enum PaperPattern: String, CaseIterable, Hashable, Sendable {
+    case plain
     case grid
     case dots
     case lines
-    case plain
 }
