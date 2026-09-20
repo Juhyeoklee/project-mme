@@ -16,6 +16,7 @@ struct MoanogiApp: App {
 
     /// 지금의 읽기 권한. **`01`이 설지를 이 값이 정한다** — 시스템이 이미 「물어봤는가」를
     /// 들고 있어 온보딩을 봤다는 플래그를 따로 저장하지 않는다.
+    @Environment(\.scenePhase) private var scenePhase
     @State private var access = Self.startingAccess
     /// 부분 접근 — 시스템 피커를 다시 여는 방아쇠.
     @State private var picksMorePhotos = false
@@ -59,6 +60,12 @@ struct MoanogiApp: App {
                 .limitedLibraryPicker(isPresented: $picksMorePhotos)
                 .task { load() }
                 .onChange(of: albumID) { load() }
+                // 파수꾼과 같은 문으로 들어간다 (`SRC-03`) — **둘 다 필요하다.** 앱이 잠든
+                // 동안의 변경은 통지가 늦거나 안 오고, 떠 있는 동안의 변경은 복귀가 안 온다.
+                .onChange(of: scenePhase) { _, now in
+                    guard now == .active, !usesFixture else { return }
+                    library.sourceMayHaveChanged()
+                }
         }
     }
 

@@ -72,6 +72,48 @@ import Testing
     #expect(gate.open() == false)
 }
 
+// ⚠️ **파수꾼이 실제로 통지를 받는지는 여기서 못 본다** — 라이브러리에 등록해야 하고
+// 사진이 실제로 들어와야 한다 (판정: 실기기·시뮬레이터 관측). 여기가 지는 것은 신호가
+// 부르는 쪽으로 그대로 건너가는가 하나다.
+@Test func 파수꾼은_통지를_삼키지_않고_그대로_넘긴다() {
+    let count = Counter()
+    let watch = SourceWatch { count.tick() }
+
+    watch.photoLibraryDidChange(PHChange())
+    watch.photoLibraryDidChange(PHChange())
+
+    // 묶는 일은 부르는 쪽 몫이다 — 여기서 묶으면 통지 횟수라는 사실이 사라진다.
+    #expect(count.value == 2)
+}
+
+@Test func 권한이_없으면_파수꾼이_안_걸린다() {
+    // 테스트 프로세스에는 사진 권한이 없다. **`start()`가 조용히 아무 일도 안 해야** 한다 —
+    // 권한 없이 등록하면 라이브러리가 열리고 `SRC-07`(요청 전에 설명)이 뚫린다.
+    #expect(AlbumPhotoSource.currentAccess().canRead == false)
+
+    let watch = SourceWatch {}
+    watch.start()
+
+    #expect(watch.isWatching == false)
+}
+
+private final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func tick() {
+        lock.lock()
+        defer { lock.unlock() }
+        count += 1
+    }
+
+    var value: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return count
+    }
+}
+
 @Test func 조각으로_도착한_바이트가_순서대로_모인다() {
     let sink = ByteSink()
     sink.append(Data([0x89, 0x50]))

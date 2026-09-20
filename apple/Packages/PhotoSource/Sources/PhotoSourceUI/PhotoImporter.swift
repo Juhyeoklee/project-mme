@@ -80,13 +80,35 @@ import Photos
 private struct LimitedLibraryPicker: UIViewControllerRepresentable {
     @Binding var isPresented: Bool
 
+    func makeCoordinator() -> Shown { Shown() }
     func makeUIViewController(context: Context) -> UIViewController { UIViewController() }
 
     func updateUIViewController(_ controller: UIViewController, context: Context) {
-        guard isPresented, controller.presentedViewController == nil else { return }
-        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: controller)
+        guard isPresented, !context.coordinator.isShowing else { return }
+        context.coordinator.isShowing = true
+        // ⚠️ **심은 자리가 아니라 맨 위에서 띄운다** — 이 손잡이를 부르는 버튼은 시트 안에
+        // 산다(`02`). 심은 컨트롤러에서 띄우려 하면 그 시트에 가려 아무 일도 안 일어난다.
+        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: controller.topmost)
         // 닫히는 것을 알려주는 손잡이가 없다 — 띄운 즉시 내린 것으로 친다.
-        DispatchQueue.main.async { isPresented = false }
+        DispatchQueue.main.async {
+            isPresented = false
+            context.coordinator.isShowing = false
+        }
+    }
+
+    /// ⚠️ **한 번 띄우는 동안 `updateUIViewController`가 여러 번 온다** — 깃발이 없으면
+    /// 방금 띄운 피커 **위에** 또 띄운다. `isPresented`를 내리는 것만으로는 늦다.
+    final class Shown {
+        var isShowing = false
+    }
+}
+
+private extension UIViewController {
+    /// 지금 화면 맨 위에 선 컨트롤러.
+    var topmost: UIViewController {
+        var top: UIViewController = self
+        while let next = top.presentedViewController { top = next }
+        return top
     }
 }
 #endif

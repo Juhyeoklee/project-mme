@@ -45,6 +45,45 @@ struct PhotoGroupTests {
         #expect(group.id == moment.photoIndices[0])
     }
 
+    // MARK: - 고른 묶음을 재분류 너머로 잇는다 (`SRC-03`)
+
+    @Test func 고른_묶음의_첫_사진으로_그_묶음을_다시_찾는다() throws {
+        let groups = Fixture.classification.days.flatMap(\.groups)
+        let chosen = try #require(groups.dropFirst().first)
+
+        #expect(groups.group(containing: chosen.id) == chosen)
+    }
+
+    /// 새 사진이 들어오면 순간이 쪼개진다 — 고른 묶음은 사라지고 그 사진은 다른 묶음에 든다.
+    @Test func 묶음이_쪼개지면_첫_사진이_간_쪽으로_따라간다() throws {
+        let day = try #require(Fixture.classification.days.first { $0.moments.contains { $0.photoCount > 1 } })
+        let moment = try #require(day.moments.first { $0.photoCount > 1 })
+        let whole = PhotoGroup(moment: moment, day: day.date)
+        // 같은 사진들이 한 장씩 갈라진 뒤.
+        let split = moment.photoIndices.map { PhotoGroup(dateOnly: [$0], day: day.date)! }
+
+        let found = try #require(split.group(containing: whole.id))
+
+        #expect(found.photoIndices == [whole.id])
+    }
+
+    /// 반대 방향 — 묶음이 합쳐져 고른 사진이 더 이상 첫 사진이 아니게 되는 자리.
+    @Test func 첫_사진이_아니게_돼도_품은_묶음을_찾는다() throws {
+        let day = try #require(Fixture.classification.days.first)
+        let moment = try #require(day.moments.first { $0.photoCount > 1 })
+        let group = PhotoGroup(moment: moment, day: day.date)
+        let notFirst = try #require(group.photoIndices.dropFirst().first)
+
+        #expect([group].group(containing: notFirst) == group)
+    }
+
+    @Test func 소스에서_사라진_사진은_어느_묶음에도_안_든다() {
+        let groups = Fixture.classification.days.flatMap(\.groups)
+        let gone = (groups.flatMap(\.photoIndices).max() ?? 0) + 1
+
+        #expect(groups.group(containing: gone) == nil)
+    }
+
     @Test func 순간_묶음은_그_순간의_장면과_사진을_그대로_든다() throws {
         let day = try #require(Fixture.classification.days.first)
         let moment = try #require(day.moments.first)

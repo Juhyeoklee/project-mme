@@ -38,24 +38,56 @@ public struct AlbumPhotoSource: Sendable {
 
     // MARK: - 자산 열거
 
-    /// 앨범 안의 사진을 최신순으로 열거한다. **정렬에만 촬영 시각을 쓰고 값은 안 내보낸다** —
-    /// `SourceAsset`에 날짜 자리가 없다.
+    /// 앨범 안의 사진을 최신순으로 열거한다.
     ///
     /// **이름을 얻은 사진은 전부 넘긴다.**
+    ///
+    /// ⚠️ **첨자는 이 목록 안에서만 뜻이 있고 열거할 때마다 달라진다** — 최신순이라 새 사진이
+    /// 앞에 붙으면 뒤가 전부 밀린다. 첨자로 사진을 붙들어 두는 자리가 있으면 `SRC-03`에 깨진다.
     public func assets() throws -> [SourceAsset] {
         let access = Self.currentAccess()
         guard access.canRead else { throw PhotoSourceError.accessNotGranted(access) }
 
         let collection = try collection()
-        let options = PHFetchOptions()
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
-
         var result: [SourceAsset] = []
-        PHAsset.fetchAssets(in: collection, options: options).enumerateObjects { asset, _, _ in
+        PHAsset.fetchAssets(in: collection, options: Self.imageOptions).enumerateObjects { asset, _, _ in
             if let asset = asset.sourceAsset { result.append(asset) }
         }
         return result
+    }
+
+    /// 같은 사진들의 식별자만. **`assets()`보다 훨씬 싸다** — 자산마다 리소스를 묻지 않는다.
+    ///
+    /// 소스가 정말 바뀌었는지 대조하는 데만 쓴다 (`SRC-03`). 라이브러리는 무엇이 바뀌었는지
+    /// 안 가리고 통지하므로, 무관한 변경에 전량 열거를 무는 것을 이 대조가 막는다.
+    ///
+    /// ⚠️ **`assets()`가 이름 없는 사진을 버리는 것과 달리 여기는 안 버린다.** 대조에는 그
+    /// 차이가 안 걸린다 — 거르는 판정이 자산마다 결정적이라, 식별자가 같으면 거른 결과도 같다.
+    public func assetIDs() throws -> [String] {
+        let access = Self.currentAccess()
+        guard access.canRead else { throw PhotoSourceError.accessNotGranted(access) }
+        return Self.identifiers(PHAsset.fetchAssets(in: try collection(), options: Self.imageOptions))
+    }
+
+    /// 부분 접근에서의 같은 것. ⚠️ **`permittedAssets()`와 같은 이유로 `.limited`에서만 연다.**
+    public static func permittedAssetIDs() throws -> [String] {
+        let access = currentAccess()
+        guard access == .limited else { throw PhotoSourceError.accessNotGranted(access) }
+        return identifiers(PHAsset.fetchAssets(with: imageOptions))
+    }
+
+    private static func identifiers(_ fetched: PHFetchResult<PHAsset>) -> [String] {
+        var result: [String] = []
+        fetched.enumerateObjects { asset, _, _ in result.append(asset.localIdentifier) }
+        return result
+    }
+
+    /// 사진만, 최신 먼저. **열거하는 네 자리가 같은 값을 써야** 식별자 대조가 성립한다.
+    private static var imageOptions: PHFetchOptions {
+        let options = PHFetchOptions()
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
+        return options
     }
 
     /// 사용자가 허용한 사진 전부. **부분 접근에는 앨범이 없어 이 집합이 곧 컨테이너다.**
@@ -66,12 +98,8 @@ public struct AlbumPhotoSource: Sendable {
         let access = currentAccess()
         guard access == .limited else { throw PhotoSourceError.accessNotGranted(access) }
 
-        let options = PHFetchOptions()
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        options.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
-
         var result: [SourceAsset] = []
-        PHAsset.fetchAssets(with: options).enumerateObjects { asset, _, _ in
+        PHAsset.fetchAssets(with: imageOptions).enumerateObjects { asset, _, _ in
             if let asset = asset.sourceAsset { result.append(asset) }
         }
         return result

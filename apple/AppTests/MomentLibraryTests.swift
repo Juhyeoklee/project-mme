@@ -1,5 +1,7 @@
-// 소스를 갈아 끼우는 계약 (`SRC-01` `SRC-04` `SRC-08`). 사진 라이브러리 없이 도는 자리만 본다.
+// 소스를 갈아 끼우고 (`SRC-01` `SRC-04` `SRC-08`), 소스에 사진이 드는 (`SRC-03`) 계약.
+// 사진 라이브러리 없이 도는 자리만 본다.
 
+import PhotoSource
 import Testing
 @testable import Moanogi
 
@@ -59,5 +61,37 @@ struct MomentLibraryTests {
         let before = library.generation
         library.use(albumID: "다른-앨범")
         #expect(library.generation > before)
+    }
+
+    // MARK: - 새 사진이 들어온다 (`SRC-03`)
+
+    @Test func 자산_식별자로_지금의_첨자를_되물을_수_있다() throws {
+        let library = seeded()
+        let asset = try #require(Fixture.assets.first)
+
+        let index = try #require(library.index(of: asset.id))
+
+        #expect(library.asset(at: index)?.id == asset.id)
+    }
+
+    /// **`SRC-03`이 깨뜨리는 전제가 여기 있다** — 자산은 최신순이라 새 사진이 앞에 붙고
+    /// 뒤가 전부 밀린다. 첨자로 사진을 붙들어 둔 자리는 그때 다른 사진을 가리킨다.
+    @Test func 새_사진이_앞에_붙으면_같은_사진의_첨자가_밀린다() throws {
+        let asset = try #require(Fixture.assets.first)
+        let before = try #require(seeded().index(of: asset.id))
+
+        let arrived = SourceAsset(id: "새-사진", filename: "새.png", pixelWidth: 0, pixelHeight: 0)
+        let reloaded = MomentLibrary.preview(Fixture.classification,
+                                             assets: [arrived] + Fixture.assets)
+
+        #expect(reloaded.index(of: asset.id) == before + 1)
+        #expect(reloaded.index(of: arrived.id) == 0)
+    }
+
+    @Test func 소스에서_사라진_사진은_첨자를_못_얻는다() {
+        let library = seeded()
+        library.use(albumID: "다른-앨범")
+
+        #expect(library.index(of: Fixture.assets[0].id) == nil)
     }
 }

@@ -60,7 +60,11 @@ struct RootView: View {
     @State private var pendingExit: (() -> Void)?
     /// 지우려는 기록. ⚠️ **iPad에서만 채워진다** — iPhone은 부른 화면이 자기가 시트를 띄운다.
     @State private var pendingDelete: Record?
-    @State private var selectedGroup: PhotoGroup?
+    /// 고른 묶음을 **그 첫 사진의 자산 식별자로** 든다 (`SRC-03`).
+    ///
+    /// ⚠️ **`PhotoGroup`을 그대로 들면 안 된다** — 새 사진이 들어오면 첨자가 밀려 들고 있던
+    /// 값이 **다른 사진들을 가리킨다.** 기록이 `effectiveRecord`에서 id로 되묻는 것과 같은 이유다.
+    @State private var selectedAnchor: String?
     @State private var selectedRecord: Record?
     @State private var editing: RecordDraft?
     #if os(iOS)
@@ -193,6 +197,12 @@ struct RootView: View {
         }
         .task { await offerSource() }
         .onChange(of: library.phase) { Task { await offerSource() } }
+        // 부분 접근의 `사진 더 고르기`가 결과를 바로 보이는 자리다 — 후보는 시트를 올릴 때
+        // 뜬 사본이라, 사진이 늘어도 다시 읽지 않으면 스트립이 옛것에 머문다.
+        .onChange(of: library.sourceRevision) {
+            guard showsSource else { return }
+            Task { candidates = await sourceCandidates() }
+        }
         .task {
             if opensSettings || opensDepth != nil {
                 let depth = opensDepth.map(SettingsRoute.init)
@@ -472,9 +482,23 @@ struct RootView: View {
 
     /// ⚠️ **목록과 지면이 같은 값을 봐야 한다** — 아무것도 안 고른 상태에서도 지면은 첫 항목을
     /// 보여주므로, 그 사실을 목록에 돌려주지 않으면 **선택 표시가 아무 데도 안 붙는다.**
+    ///
+    /// ⚠️ **고른 묶음이 사라졌으면 최신으로 되돌아간다** — 소스에 사진이 들어오면 분류가 다시
+    /// 서고(`SRC-03`) 묶음이 쪼개지거나 합쳐진다. 고른 사진이 어느 묶음에 들었는지는
+    /// **새 분류가 답한다.**
     private var effectiveGroup: Binding<PhotoGroup?> {
-        Binding(get: { selectedGroup ?? library.days.first?.groups.first },
-                set: { selectedGroup = $0 })
+        Binding(get: { group(anchoredAt: selectedAnchor) ?? library.days.first?.groups.first },
+                set: { selectedAnchor = $0.flatMap { library.asset(at: $0.id)?.id } })
+    }
+
+    /// 그 자산이 지금 든 묶음. **날짜를 하나씩 보고 찾으면 그만둔다** — 묶음을 세우는 값이
+    /// 싸지 않은데 이 값은 지면을 그릴 때마다 필요하다.
+    private func group(anchoredAt assetID: String?) -> PhotoGroup? {
+        guard let assetID, let index = library.index(of: assetID) else { return nil }
+        for day in library.days {
+            if let found = day.groups.group(containing: index) { return found }
+        }
+        return nil
     }
 
     /// ⚠️ **고른 기록이 사라졌으면 최신으로 되돌아간다** — 지운 기록을 계속 붙들면 우측

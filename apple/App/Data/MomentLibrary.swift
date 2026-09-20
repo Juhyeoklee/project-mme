@@ -53,10 +53,18 @@ final class MomentLibrary {
     /// 재분류할 때마다 오른다. **썸네일 재시도의 방아쇠다** — 실패를 캐시하지 않는 대신
     /// 이 값으로 다시 묻는다.
     private(set) var generation = 0
+    /// 소스의 구성이 바뀐 횟수 (`SRC-03`). **`generation`과 다르다** — 이쪽은 사진이 들고
+    /// 난 것만 세고, 2패스가 바이트를 채우며 돌리는 재분류에는 안 오른다.
+    /// **`02`가 떠 있는 채로 사진이 늘면 후보를 다시 읽는 방아쇠다.**
+    private(set) var sourceRevision = 0
 
     // MARK: - 안쪽
 
     /// 커널 인덱스 ↔ 자산. **`inputs`와 같은 길이·같은 순서다** — 이 대응이 깨지면 전부 어긋난다.
+    ///
+    /// ⚠️ **첨자는 이 배열 안에서만 뜻이 있고 소스가 바뀌면 다시 선다** (`SRC-03`). 자산은
+    /// 최신순이라 새 사진이 앞에 붙으면 뒤가 전부 밀린다 — 화면이 사진 하나를 재분류 너머로
+    /// 붙들려면 첨자가 아니라 **식별자**로 붙들고 `index(of:)`로 되묻어야 한다.
     private(set) var assets: [SourceAsset] = []
     private var inputs: [PhotoInput] = []
     /// 바이트를 읽을 사진 — **파일명에서 시각을 얻은 것만이다.** 날짜만 가진 사진은 장소
@@ -71,6 +79,21 @@ final class MomentLibrary {
     /// 지금 소스를 읽는 어댑터. ⚠️ **원본 바이트와 썸네일도 이것을 본다** — 인스턴스가
     /// 하나라야 소스를 바꾼 뒤에 낡은 앨범을 든 사본이 남지 않는다.
     private(set) var source: AlbumPhotoSource
+    /// 자산 식별자 → 첨자. `assets`와 함께 선다.
+    private var indexByAssetID: [String: Int] = [:]
+    /// 마지막으로 읽은 소스의 식별자 목록. **`assets`에서 못 얻는다** — 이름을 못 얻은 사진이
+    /// `assets`에서만 빠져 두 목록의 길이가 다를 수 있다. 대조가 그 차이에 걸리면
+    /// 무관한 변경마다 전량 재실행이 된다.
+    private var lastSourceIDs: [String] = []
+
+    /// 라이브러리 변경을 알려주는 파수꾼 (`SRC-03`). **`start()`가 처음 걸고 그 뒤로 산다.**
+    private var watch: SourceWatch?
+    /// 몰려 오는 통지를 묶는 자리.
+    private var settleTask: Task<Void, Never>?
+    /// 통지가 그친 것으로 치는 시간. 게임 스크린샷은 연사로 들어오고 라이브러리는 **장마다**
+    /// 통지한다 — 낱개로 받으면 한 연사에 재분류가 수십 번 돈다.
+    private let changeSettle: Duration = .milliseconds(400)
+
     private let settings: Settings
     private var task: Task<Void, Never>?
     /// 지금 유효한 실행의 번호. ⚠️ **취소만으로는 앞 실행의 쓰기를 못 막는다** — PhotoKit의
@@ -126,6 +149,12 @@ final class MomentLibrary {
         assets.indices.contains(index) ? assets[index] : nil
     }
 
+    /// 그 자산이 지금 몇 번째인가. 없으면 `nil` — 소스에서 사라진 사진이다.
+    ///
+    /// **`asset(at:)`의 반대 방향이고, 있는 이유가 다르다** — 이쪽은 첨자가 다시 서는 것을
+    /// 건너뛰려고 있다. 화면이 고른 사진을 재분류 너머로 잇는 유일한 길이다.
+    func index(of assetID: String) -> Int? { indexByAssetID[assetID] }
+
     /// 그 사진 한 장의 촬영 시각. 순간에 들어간 사진이면 항상 값이 있다 —
     /// 시각을 못 얻은 사진은 애초에 `Classification.unplaced`로 빠진다.
     func capturedAt(at index: Int) -> WallClock? {
@@ -162,6 +191,8 @@ final class MomentLibrary {
     private func clear() {
         days = []
         assets = []
+        indexByAssetID = [:]
+        lastSourceIDs = []
         inputs = []
         readings = []
         byteCandidates = []
@@ -177,6 +208,7 @@ final class MomentLibrary {
 
     /// 아직 도는 것이 없을 때만 시작한다.
     func start() {
+        watchSource()
         guard task == nil else { return }
         let epoch = beginRun()
         task = Task { [weak self] in
@@ -196,6 +228,59 @@ final class MomentLibrary {
             await laterPasses(epoch)
             release(epoch)
         }
+    }
+
+    // MARK: - 소스가 바뀐다 (`SRC-03`)
+
+    /// 파수꾼을 건다. **`start()`가 부를 때마다 다시 시도한다** — 첫 호출은 권한을 묻기 전이라
+    /// 조용히 안 걸리고, 권한을 얻고 돌아오는 경로가 같은 문으로 다시 들어온다.
+    private func watchSource() {
+        if watch == nil {
+            watch = SourceWatch { [weak self] in
+                // ⚠️ 통지가 오는 큐는 보장이 없다 — 주 액터로 건너온다.
+                Task { @MainActor in
+                    // 문이 둘이라 **어느 쪽이 일했는지 로그로만 갈린다** — 파수꾼이 죽어도
+                    // 복귀 문이 가려 주어, 안 보고 지나가면 절반이 죽은 채로 산다.
+                    self?.probeSource("파수꾼")
+                    self?.sourceMayHaveChanged()
+                }
+            }
+        }
+        watch?.start()
+    }
+
+    /// 소스가 바뀌었을 수 있다는 신호. **파수꾼과 포그라운드 복귀가 같은 문으로 들어온다** —
+    /// 앱이 잠든 동안의 변경은 통지가 늦거나 안 오므로 문이 둘이라야 한다.
+    ///
+    /// **바뀌었는지는 여기서 안 본다.** 통지가 그치기를 기다렸다가 한 번만 대조한다.
+    func sourceMayHaveChanged() {
+        settleTask?.cancel()
+        let settle = changeSettle
+        settleTask = Task { [weak self] in
+            try? await Task.sleep(for: settle)
+            guard !Task.isCancelled else { return }
+            await self?.reloadIfChanged()
+        }
+    }
+
+    /// 정말 바뀌었을 때만 다시 돈다. **라이브러리는 무엇이 바뀌었는지 안 가리고 통지한다** —
+    /// 대조 없이 돌면 다른 앨범에서 사진 한 장을 지워도 우리 목록이 통째로 다시 선다.
+    ///
+    /// ⚠️ **증분이 아니라 전량 재실행이다** — `finish()`가 바이트를 버려서(211장 170MB)
+    /// 새 사진 한 장만 읽어 얹을 수가 없다. 1패스가 1.4초라 목록은 곧 다시 선다.
+    private func reloadIfChanged() async {
+        let access = AlbumPhotoSource.currentAccess()
+        guard access.canRead else { return }
+        do {
+            let current = access == .limited
+                ? try AlbumPhotoSource.permittedAssetIDs()
+                : try source.assetIDs()
+            guard current != lastSourceIDs else { return }
+        } catch {
+            // 앨범이 사라졌거나 권한이 막혔다. 그 판정은 `firstPass`의 것이라 그대로 넘긴다.
+        }
+        sourceRevision += 1
+        await refresh()
     }
 
     /// ⚠️ 끝난 실행은 **자리를 비운다** — 안 비우면 `start()`가 영영 no-op이 되어,
@@ -235,13 +320,20 @@ final class MomentLibrary {
         progress = 0
 
         do {
+            // ⚠️ **식별자를 먼저 읽는다** — 두 열거 사이에 사진이 들어오면 순서가 결말을 가른다.
+            // 이 순서면 목록에만 든 사진이 생겨 다음 대조가 한 번 헛돌 뿐이지만, 뒤집으면
+            // **대조가 「안 바뀌었다」고 답해 그 사진이 영영 안 들어온다.**
             if access == .limited {
+                lastSourceIDs = try AlbumPhotoSource.permittedAssetIDs()
                 assets = try AlbumPhotoSource.permittedAssets()
                 sourceName = nil
             } else {
+                lastSourceIDs = try source.assetIDs()
                 assets = try source.assets()
                 sourceName = try source.title()
             }
+            indexByAssetID = Dictionary(assets.enumerated().map { ($1.id, $0) },
+                                        uniquingKeysWith: { first, _ in first })
         } catch PhotoSourceError.albumNotFound {
             // 고른 앨범이 사라졌다. **저장은 안 지운다** — 앨범이 돌아오면 그대로 산다.
             phase = .needsSource
@@ -436,6 +528,8 @@ extension MomentLibrary {
         let library = MomentLibrary(albumID: "preview")
         library.sourceName = "합성 앨범"
         library.assets = assets
+        library.indexByAssetID = Dictionary(assets.enumerated().map { ($1.id, $0) },
+                                            uniquingKeysWith: { first, _ in first })
         library.days = classification.days
         library.readings = classification.readings
         library.momentCount = classification.momentCount

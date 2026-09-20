@@ -50,6 +50,20 @@ struct PhotoGroup: Hashable, Identifiable {
     var sceneCount: Int { scenes.count }
 }
 
+extension Array where Element == PhotoGroup {
+    /// 그 사진을 품은 묶음. 고른 묶음을 **재분류 너머로 잇는 자리다** (`SRC-03`).
+    ///
+    /// ⚠️ **묶음의 신원(`id`)으로 못 찾는다** — 새 사진이 앞에 붙으면 첨자가 전부 밀려
+    /// 같은 `id`가 다른 사진을 가리킨다. 그래서 찾는 것은 묶음이 아니라 **사진 한 장**이고,
+    /// 그 사진이 어느 묶음에 들었는지는 새 분류가 답한다.
+    ///
+    /// **묶음이 쪼개지거나 합쳐져도 따라간다** — 고른 묶음의 첫 사진이 어디로 갔든 그쪽이다.
+    func group(containing index: Int) -> PhotoGroup? {
+        // 대개는 첫 사진 그대로다. 그때 훑지 않는다.
+        first { $0.id == index } ?? first { $0.photoIndices.contains(index) }
+    }
+}
+
 extension Day {
     /// 이 날이 세우는 덩어리 전부. **순간이 먼저고 날짜만 묶음이 맨 뒤다** — 시각이 없는
     /// 것을 시간축 사이에 끼우면 목록의 순서가 거짓말이 된다.
