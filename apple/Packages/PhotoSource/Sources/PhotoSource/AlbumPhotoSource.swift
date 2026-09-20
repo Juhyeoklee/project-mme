@@ -41,7 +41,7 @@ public struct AlbumPhotoSource: Sendable {
     /// 앨범 안의 사진을 최신순으로 열거한다. **정렬에만 촬영 시각을 쓰고 값은 안 내보낸다** —
     /// `SourceAsset`에 날짜 자리가 없다.
     ///
-    /// **이름을 얻은 사진은 전부 넘긴다**).
+    /// **이름을 얻은 사진은 전부 넘긴다.**
     public func assets() throws -> [SourceAsset] {
         let access = Self.currentAccess()
         guard access.canRead else { throw PhotoSourceError.accessNotGranted(access) }
