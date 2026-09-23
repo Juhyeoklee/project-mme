@@ -126,11 +126,11 @@ struct MoanogiApp: App {
         } else if usesFixture, arguments.contains("10-empty") {
             root(editing: Fixture.mixedDraft, opensPhotoAdd: true)
         } else if usesFixture, arguments.contains("10") {
-            root(editing: .from(group: Fixture.groupWithBurst, library: Fixture.library),
+            root(editing: .from(group: Fixture.groupWithBurst, library: shownLibrary),
                  opensPhotoAdd: true)
         } else if usesFixture, arguments.contains("09") {
             // 사진이 여럿인 순간으로 연다 — 1장짜리로는 격자도 스크롤도 안 보인다.
-            root(editing: .from(group: Fixture.groupWithBurst, library: Fixture.library))
+            root(editing: .from(group: Fixture.groupWithBurst, library: shownLibrary))
         } else if usesFixture, arguments.contains("14") {
             root(opensDepth: .terms)
         } else if usesFixture, arguments.contains("13-A") {
@@ -146,13 +146,13 @@ struct MoanogiApp: App {
         } else if usesFixture, arguments.contains("07") {
             root(tab: .records)
         } else if usesFixture, arguments.contains("06") {
-            PhotoViewerScreen(library: Fixture.library,
+            PhotoViewerScreen(library: shownLibrary,
                               photos: Fixture.groupWithBurst.photoIndices,
                               start: Fixture.groupWithBurst.photoIndices[0])
         } else if usesFixture, arguments.contains("05") {
             NavigationStack {
                 // `-fixture 05 dateonly`는 시각이 없는 묶음으로 연다.
-                MomentDetailScreen(library: Fixture.library,
+                MomentDetailScreen(library: shownLibrary,
                                    group: arguments.contains("dateonly")
                                           ? Fixture.dateOnlyGroup : Fixture.groupWithBurst,
                                    editing: .constant(nil))
@@ -181,7 +181,7 @@ struct MoanogiApp: App {
         if withText {
             root(canvas: Fixture.canvasWithText())
         } else if let draft = RecordDraft.from(group: Fixture.groupWithBurst,
-                                               library: Fixture.library) {
+                                               library: shownLibrary) {
             root(canvas: .opening(draft, in: shownRecords.store))
         } else {
             root()
@@ -263,7 +263,11 @@ struct MoanogiApp: App {
 
     private var shownLibrary: MomentLibrary {
         #if DEBUG
-        usesFixture ? Fixture.library : library
+        guard usesFixture else { return library }
+        // `-missing`은 **`R8`의 끝을 시뮬레이터에서 보는 문이다** — `-slowsource`는 실제 앨범
+        // 경로에만 걸려서 합성 데이터로는 한 번도 안 돈다.
+        return ProcessInfo.processInfo.arguments.contains("-missing")
+            ? Fixture.missingLibrary : Fixture.library
         #else
         library
         #endif

@@ -94,4 +94,34 @@ struct MomentLibraryTests {
 
         #expect(library.index(of: Fixture.assets[0].id) == nil)
     }
+
+    // MARK: - 원본을 끝내 못 받은 사진 (`R8`)
+
+    /// **화면이 묻는 길이다** — 초안은 첨자가 아니라 자산을 쥐고 재분류 너머로 산다.
+    @Test func 원본을_못_받은_사진은_자산_식별자로_가려진다() throws {
+        let missing = try #require(Fixture.assets.first)
+        let received = try #require(Fixture.assets.last)
+        let library = MomentLibrary.preview(Fixture.classification, assets: Fixture.assets,
+                                            missingOriginals: [0])
+
+        #expect(library.isMissingOriginal(missing.id))
+        #expect(!library.isMissingOriginal(received.id))
+    }
+
+    /// 소스에서 사라진 사진은 첨자가 없다 — **「못 받았다」가 아니라 「모른다」다.**
+    @Test func 소스에_없는_자산은_못_받은_것으로_치지_않는다() {
+        let library = MomentLibrary.preview(Fixture.classification, assets: Fixture.assets,
+                                            missingOriginals: [0])
+
+        #expect(!library.isMissingOriginal("소스에-없는-자산"))
+    }
+
+    /// `05`의 연사 셀이 여러 장을 대표하므로 **셈이 배지의 계약이다.**
+    @Test func 못_받은_장수는_넘긴_사진_중에서만_센다() {
+        let library = MomentLibrary.preview(Fixture.classification, assets: Fixture.assets,
+                                            missingOriginals: [0, 1, 5])
+
+        #expect(library.missingOriginalCount(in: [0, 1, 2]) == 2)
+        #expect(library.missingOriginalCount(in: [2, 3]) == 0)
+    }
 }

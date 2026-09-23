@@ -19,11 +19,8 @@ struct LegalScreen: View {
     /// 층이 셋이 된다.
     private var clauses: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(Wording.effectiveDate)
-                .font(Typography.note)
-                .foregroundStyle(Palette.disabled)
             ForEach(document.clauses.indices, id: \.self) { index in
-                Spacer().frame(height: 20)
+                if index > 0 { Spacer().frame(height: 20) }
                 Text(document.clauses[index].heading)
                     .font(Typography.sectionLabel)
                     .foregroundStyle(Palette.label)

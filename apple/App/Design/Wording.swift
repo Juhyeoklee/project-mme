@@ -26,6 +26,13 @@ enum Wording {
     }
     static let missingOriginalsLabel = "원본을 못 받은 사진 있음"
 
+    /// `09` 저장이 막힐 사진 (`R8`). ⚠️ **`05`와 말하는 것이 다르다** — 저장은 원본을 복사해야
+    /// 하고 (`P5`), **「한 장만 못 받아도 통째로」는 `RecordDraft.resolvePhotos`가 정한다.**
+    /// 부분 성공을 들이면 이 문구가 먼저 거짓이 된다.
+    static func missingOriginalsOnSave(_ count: Int) -> String {
+        "표시된 사진 \(count)장은 원본을 아직 못 받아왔어요.\n한 장이라도 못 받으면 저장이 안 되니, 빼거나 잠시 뒤에 저장해 주세요."
+    }
+
     /// `05-G4`.
     static let collapse = "접기"
 
@@ -141,7 +148,6 @@ enum Wording {
     /// ⚠️ **잠정 문안이다** — 실제 조항은 배포 앞에 확정한다.
     /// ⚠️ **화면에 뜨는 줄이라 앱 말투다** — 이모지와 내부 어휘를 안 쓴다.
     static let provisionalNotice = "아직 확정된 문안이 아니에요"
-    static let effectiveDate = "시행일 2026년 0월 0일"
 
     static let terms = LegalDocument(title: termsRow, clauses: [
         .init(heading: "제1조 (목적)",

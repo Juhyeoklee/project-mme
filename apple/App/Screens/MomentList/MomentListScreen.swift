@@ -59,7 +59,10 @@ struct MomentListScreen: View {
                     Spacer(minLength: 0)
                     // **아이콘들이 유리 하나를 나눠 쓴다** — 낱개로 띄우면 알약이 흩어진다.
                     HStack(spacing: 0) {
-                        iconButton(Glyph.createRecord, label: Wording.createRecord) { startRecord() }
+                        // `04-B3` — 목록이 비면 넘길 사진이 없다. ⚠️ **순간 수로 재지 않는다** —
+                        // 날짜만 가진 묶음도 `REC-02`의 대상이라 순간이 0인 날에서도 초안이 선다.
+                        iconButton(Glyph.createRecord, label: Wording.createRecord,
+                                   isEnabled: !library.days.isEmpty) { startRecord() }
                         settingsSlot
                     }
                     .glassEffect(.regular, in: .capsule)
@@ -80,14 +83,15 @@ struct MomentListScreen: View {
     }
 
     /// 머리의 아이콘 하나. **유리는 이 뷰가 아니라 묶음이 진다.**
-    private func iconButton(_ glyph: String, label: String,
+    private func iconButton(_ glyph: String, label: String, isEnabled: Bool = true,
                             action: @escaping () -> Void) -> some View {
         Button(action: action) {
                 GlyphIcon(glyph)
                 .frame(width: Layout.hitTarget, height: Layout.hitTarget)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(accentSet.accent)
+        .foregroundStyle(isEnabled ? accentSet.accent : Palette.disabled)
+        .disabled(!isEnabled)
         .accessibilityLabel(label)
     }
 
@@ -236,19 +240,13 @@ struct MomentListScreen: View {
     private var empty: some View {
         let needsSource = library.phase == .needsSource
         let unplaced = !library.assets.isEmpty
-        VStack(spacing: 20) {
-            Text(needsSource ? Wording.sourceUnset
-                 : unplaced ? Wording.noMomentsHere : Wording.empty)
-                .font(Typography.emptyState)
-                .foregroundStyle(Palette.secondaryLabel)
-                .multilineTextAlignment(.center)
+        EmptyState(message: needsSource ? Wording.sourceUnset
+                   : unplaced ? Wording.noMomentsHere : Wording.empty) {
             if needsSource || unplaced {
                 Button(Wording.chooseAlbum, action: onChooseSource)
                     .buttonStyle(PrimaryActionStyle())
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
         // ⚠️ **화면이 아니라 「빈 자리」의 가운데다** — 화면 기준으로 잡으면 탭 바가 아래를
         // 먹어 덩어리가 처진다.
         .containerRelativeFrame(.vertical, alignment: .center) { height, _ in height }

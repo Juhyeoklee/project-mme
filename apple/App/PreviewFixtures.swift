@@ -64,6 +64,11 @@ enum Fixture {
     ]
 
     static let library = MomentLibrary.preview(classification, assets: assets)
+    /// `R8` 표시(`05-N4` `05-G5` · `09-N5` `09-G5`)를 시뮬레이터에서 보는 유일한 문 — 실물에서는
+    /// iCloud 원본이 안 와야 나는 상태라 합성 앨범으로는 그 경로를 한 번도 안 밟는다.
+    /// **원격 실패를 흉내 내지 않고 그 결과만 세운다.**
+    static let missingLibrary = MomentLibrary.preview(classification, assets: assets,
+                                                      missingOriginals: [0, 1, 5])
     /// 첫 분류 진행 중 — `04-A1` 진행바가 뜨고 부제 숫자가 올라가는 상태.
     static let working = MomentLibrary.preview(classification, assets: assets,
                                                phase: .readingRemote, progress: 0.42)

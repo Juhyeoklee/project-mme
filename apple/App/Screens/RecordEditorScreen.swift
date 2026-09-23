@@ -121,10 +121,13 @@ struct RecordEditorScreen: View {
             dateTitle(Typography.plexTitle(Typography.headerLarge))
                 .collapsingLargeTitle(collapse)
 
-            Text(subtitle)
-                .font(Typography.subtitle)
-                .foregroundStyle(Palette.secondaryLabel)
-                .collapsingSummary(collapse)
+            HStack(spacing: 6) {
+                Text(subtitle)
+                    .font(Typography.subtitle)
+                    .foregroundStyle(Palette.secondaryLabel)
+                missingMark
+            }
+            .collapsingSummary(collapse)
         }
         .padding(.top, 12)
         .padding(.bottom, 10)
@@ -132,6 +135,23 @@ struct RecordEditorScreen: View {
         .padding(.trailing, Spacing.screenMargin)
         .readableWidth()
         .headerScrim()
+    }
+
+    /// `09-N5` — 담긴 사진 중 원본을 끝내 못 받은 것이 있을 때만 선다 (`R8`).
+    /// ⚠️ **뺀 사진은 안 센다** — 저장이 건드리는 것은 담긴 것뿐이라, 세면 배지 수와 안 맞는다.
+    @ViewBuilder
+    private var missingMark: some View {
+        let count = draft.included.count(where: isMissing)
+        if count > 0 {
+            MissingNote(message: Wording.missingOriginalsOnSave(count))
+        }
+    }
+
+    /// 이 사진의 원본을 못 받았나. **소스에서 온 것만 해당한다** — 가져온 바이트와 저장된
+    /// 파일은 이미 손에 있어 저장이 네트워크를 안 탄다.
+    private func isMissing(_ photo: DraftPhoto) -> Bool {
+        guard let assetID = photo.asset?.id else { return false }
+        return library.isMissingOriginal(assetID)
     }
 
     /// `09-N1` — 같은 결정이 이탈 확인과 한 자리에서 뜨도록 iPad는 최상위에 넘긴다.
@@ -184,6 +204,7 @@ struct RecordEditorScreen: View {
                 RecordPhotoTile(isIncluded: photo.isIncluded) { image(of: photo) }
                     .aspectRatio(1, contentMode: .fit)
                     .contentShape(.rect)
+                    .overlay(alignment: .topTrailing) { missingBadge(photo) }
                     .onTapGesture { draft.toggle(photo.id) }
             }
             addPhotosCell
@@ -191,6 +212,15 @@ struct RecordEditorScreen: View {
         .padding(.leading, leadingMargin)
         .padding(.trailing, Spacing.screenMargin)
         .padding(.top, 10)
+    }
+
+    /// `09-G5` — 이 사진의 원본을 못 받았다 (`R8`).
+    /// **설명은 안 진다** — 왜인지는 머리의 `09-N5`가 한 번만 말한다.
+    @ViewBuilder
+    private func missingBadge(_ photo: DraftPhoto) -> some View {
+        if photo.isIncluded, isMissing(photo) {
+            MissingBadge(count: 1).padding(8)
+        }
     }
 
     /// `09-G2` — 격자의 마지막 칸이다.

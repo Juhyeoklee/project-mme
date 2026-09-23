@@ -161,11 +161,8 @@ struct RecordListScreen: View {
     /// `07-E1`. 읽기 실패도 이 자리를 쓴다.
     @ViewBuilder
     private var emptyOrFailure: some View {
-        Text(records.loadFailed ? Wording.recordsFailed : Wording.recordsEmpty)
-            .font(records.loadFailed ? Typography.body : Typography.emptyState)
-            .foregroundStyle(Palette.secondaryLabel)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 44)
+        EmptyState(records.loadFailed ? Wording.recordsFailed : Wording.recordsEmpty,
+                   font: records.loadFailed ? Typography.body : Typography.emptyState)
     }
 
     // MARK: - 조각

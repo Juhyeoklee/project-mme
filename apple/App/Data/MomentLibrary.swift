@@ -73,8 +73,9 @@ final class MomentLibrary {
     private var byteCandidates: [Int] = []
     /// 바이트를 아직 못 정한 사진. 진행률의 분모는 `byteCandidates`다.
     private var pending: Set<Int> = []
-    /// 끝내 원본을 못 받은 사진 (`R8`). **`05`가 이 값으로 표시를 세운다.**
-    private(set) var missingOriginals: Set<Int> = []
+    /// 끝내 원본을 못 받은 사진 (`R8`). **화면은 이 집합을 직접 안 본다** — 묻는 길이
+    /// `missingOriginalCount(in:)`과 `isMissingOriginal(_:)` 둘이다.
+    private var missingOriginals: Set<Int> = []
 
     /// 지금 소스를 읽는 어댑터. ⚠️ **원본 바이트와 썸네일도 이것을 본다** — 인스턴스가
     /// 하나라야 소스를 바꾼 뒤에 낡은 앨범을 든 사본이 남지 않는다.
@@ -454,6 +455,13 @@ final class MomentLibrary {
         missingOriginals.isEmpty ? 0 : photoIndices.count { missingOriginals.contains($0) }
     }
 
+    /// 그 자산의 원본을 끝내 못 받았나 (`R8`). **`09`처럼 첨자가 아니라 자산을 쥔 쪽이 쓴다** —
+    /// 초안은 재분류 너머로 사는데 첨자는 소스가 바뀌면 다시 선다 (`SRC-03`).
+    func isMissingOriginal(_ assetID: String) -> Bool {
+        guard let index = index(of: assetID) else { return false }
+        return missingOriginals.contains(index)
+    }
+
     private func resolve(_ index: Int) {
         pending.remove(index)
         let total = byteCandidates.count
@@ -524,7 +532,8 @@ extension MomentLibrary {
     static func preview(_ classification: Classification,
                         assets: [SourceAsset],
                         phase: Phase = .ready,
-                        progress: Double = 1) -> MomentLibrary {
+                        progress: Double = 1,
+                        missingOriginals: Set<Int> = []) -> MomentLibrary {
         let library = MomentLibrary(albumID: "preview")
         library.sourceName = "합성 앨범"
         library.assets = assets
@@ -536,6 +545,7 @@ extension MomentLibrary {
         library.photoCount = classification.photoCount
         library.phase = phase
         library.progress = progress
+        library.missingOriginals = missingOriginals
         return library
     }
 }

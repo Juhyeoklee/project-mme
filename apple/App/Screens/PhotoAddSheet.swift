@@ -76,11 +76,7 @@ struct PhotoAddSheet: View {
     @ViewBuilder
     private var emptyLine: some View {
         if groups.isEmpty, imported.isEmpty {
-            Text(Wording.noPhotosToAdd)
-                .font(Typography.emptyState)
-                .foregroundStyle(Palette.secondaryLabel)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 44)
+            EmptyState(Wording.noPhotosToAdd)
         }
     }
 
