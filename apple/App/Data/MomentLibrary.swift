@@ -97,8 +97,8 @@ final class MomentLibrary {
 
     private let settings: Settings
     private var task: Task<Void, Never>?
-    /// 지금 유효한 실행의 번호. ⚠️ **취소만으로는 앞 실행의 쓰기를 못 막는다** — PhotoKit의
-    /// 바이트 요청이 취소를 안 받아, 죽은 실행이 `await`에서 되살아나 새 배열에 쓴다.
+    /// 지금 유효한 실행의 번호. ⚠️ **취소만으로는 앞 실행의 쓰기를 못 막는다** — 바이트 요청에
+    /// 취소 핸들러를 안 걸어 `Task` 취소가 요청에 안 닿고, 죽은 실행이 `await`에서 되살아나 새 배열에 쓴다.
     private var epoch = 0
 
     /// 원격 한 장에 거는 상한. 중앙 1.7초, 최악 441초.
@@ -219,7 +219,7 @@ final class MomentLibrary {
         }
     }
 
-    /// `04` 아래로 당기기. 전부 다시 돈다 — `M1`엔 저장이 없어 증분이라는 개념 자체가 없다.
+    /// `04` 아래로 당기기. 전부 다시 돈다 — 순간은 저장되지 않아 증분이라는 개념 자체가 없다.
     /// **1패스까지만 기다린다** — 끝까지 기다리면 새로고침 표시가 원격 내내(분 단위) 매달린다.
     func refresh() async {
         let epoch = beginRun()

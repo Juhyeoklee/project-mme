@@ -16,7 +16,7 @@ struct RecordEditorScreen: View {
     let onClose: () -> Void
     /// 확인 시트를 최상위가 대신 띄운다. **iPhone은 `nil`** — 덮개가 창을 다 덮어 여기서 띄워야 한다.
     let onRequestDiscard: (() -> Void)?
-    /// `09-T` 승격. **iPhone은 `nil`** — 그 기기에는 캔버스가 없다.
+    /// `09-T` 승격. **iPhone과 macOS는 `nil`** — 캔버스가 없다.
     let onPromoteToCanvas: (() -> Void)?
 
     @State private var isAddingPhotos: Bool
@@ -269,15 +269,16 @@ struct RecordEditorScreen: View {
 
     // MARK: - `09-T` 툴바
 
-    /// `09-T` — iPad·macOS는 슬롯이 둘이라 카드가 서고, iPhone은 저장 버튼 하나만 뜬다.
+    /// `09-T` — 슬롯이 둘일 때만 카드가 서고, 하나면 저장 원판 하나만 뜬다.
+    /// `캔버스로 만들기`는 넓은 판이고 캔버스로 가는 문이 있을 때만 선다 — macOS에는 캔버스가 없다.
     @ViewBuilder
     private var toolbar: some View {
         Group {
-            if sizeClass == .regular {
+            if sizeClass == .regular, let onPromoteToCanvas {
                 FloatingBar {
-                    Button(Wording.makeCanvas) { onPromoteToCanvas?() }
+                    Button(Wording.makeCanvas, action: onPromoteToCanvas)
                         .buttonStyle(PlainActionStyle())
-                        .disabled(onPromoteToCanvas == nil || !draft.canSave)
+                        .disabled(!draft.canSave)
                     Spacer(minLength: 0)
                     saveButton(PrimaryActionStyle())
                 }
@@ -298,7 +299,7 @@ struct RecordEditorScreen: View {
             .disabled(!draft.canSave)
     }
 
-    /// `09-T` iPhone — **글리프 원판이다.** 활자를 유리에 얹으면 잉크 대비가 뒤에 오는
+    /// `09-T` 슬롯이 하나일 때 — **글리프 원판이다.** 활자를 유리에 얹으면 잉크 대비가 뒤에 오는
     /// 사진에 끌려다닌다(실측 4.82 ↔ 3.28).
     private var saveAction: some View {
         Button { Task { await save(status: .published) } } label: {

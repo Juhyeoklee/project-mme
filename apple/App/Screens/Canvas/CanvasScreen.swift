@@ -1,4 +1,4 @@
-// `11` 캔버스 에디터 — iPad·macOS 전용. 창 전체를 쓴다.
+// `11` 캔버스 에디터 — iPad 전용. 창 전체를 쓴다.
 
 #if os(iOS)
 import SwiftUI

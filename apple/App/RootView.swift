@@ -232,7 +232,7 @@ struct RootView: View {
         showsSource = true
     }
 
-    /// ⚠️ **`M3` 화면 문서가 iOS·iPadOS만 다룬다** — macOS 권한 모델은 「바」의 몫이다.
+    /// ⚠️ **macOS에서는 아무 일도 안 한다** — 앱 설정으로 보내는 URL이 iOS에만 있다.
     private func openSettings() {
         #if os(iOS)
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }

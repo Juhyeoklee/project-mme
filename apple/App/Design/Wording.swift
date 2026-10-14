@@ -20,7 +20,7 @@ enum Wording {
     static let noMomentsHere = "이 앨범에서는 순간을 못 묶었어요"
 
     /// `05` 원본을 끝내 못 받은 사진 (`R8`).
-    /// ⚠️ **문구는 잠정이다** — 오류 카피는 `M3`가 정한다.
+    /// ⚠️ **문구는 잠정이다.**
     static func missingOriginals(_ count: Int) -> String {
         "표시된 사진 \(count)장은 원본을 아직 못 받아왔어요.\n나머지는 다 받았고, 원본이 도착하면 순간이 더 정확해져요."
     }
@@ -138,7 +138,7 @@ enum Wording {
     static let termsRow = "이용약관"
     static let privacyRow = "개인정보 처리방침"
     static let versionRow = "버전"
-    /// `13-L1` — **비활성이다.** 눌러서 도달할 곳이 `M3`에는 없다.
+    /// `13-L1` — **비활성이다.** 눌러서 도달할 곳이 아직 없다.
     static let signInRow = "로그인"
     /// `13-F` 계정 슬롯. ⚠️ **계정 상태가 바뀌면 이 자리의 내용이 바뀐다.**
     static let accountUnavailable = ["로그인은 추후 제공 예정이에요", "계정 없이도 전부 쓸 수 있어요"]
@@ -201,7 +201,7 @@ enum Wording {
     static let confirm = "확정"
     /// `09-N4`.
     static let editOccurredAt = "발생일시 수정"
-    /// `09-T`. iPad·macOS에만 선다.
+    /// `09-T`. iPad에만 선다.
     static let makeCanvas = "캔버스로 만들기"
     /// 격자의 마지막 칸이자 사진 더하기 화면의 타이틀. **같은 말이라 같은 문자열이다.**
     static let addPhotos = "사진 더하기"

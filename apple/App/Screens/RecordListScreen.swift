@@ -149,7 +149,7 @@ struct RecordListScreen: View {
                     .buttonStyle(.plain)
             }
         }
-        // ⚠️ **`07`에서만 길게 누르기가 생긴다** — `M1` 세 화면이 그것을 안 둔 근거는 `P1`
+        // ⚠️ **`07`에서만 길게 누르기가 생긴다** — 순간 화면들이 그것을 안 둔 근거는 `P1`
         // (순간은 읽기 전용)인데, 기록은 사용자가 만든 것이라 그 원칙이 안 걸린다.
         .contextMenu {
             Button(Wording.delete, role: .destructive) { requestDelete(record) }

@@ -10,7 +10,7 @@ struct PNGScan {
     var pixelHeight: Int
     /// 비압축 `iTXt`의 키워드 → 텍스트. 같은 키가 겹치면 **처음 것**이 남는다.
     var text: [String: String]
-    /// 압축된 `iTXt`를 하나라도 봤는가. **만나도 풀지 않는다** — zlib은 import 0을 깬다
+    /// 압축된 `iTXt`를 하나라도 봤는가. **만나도 풀지 않는다** — zlib은 import 0을 깬다.
     /// 만나면 새 결정이 필요하다.
     var sawCompressedText: Bool
 }
