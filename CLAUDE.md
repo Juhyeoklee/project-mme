@@ -63,9 +63,8 @@ apple/scripts/gates.sh
 
 ## 도구
 
-- **Xcode MCP `RenderPreview`** — `previewVariantOverrides`로 Color Scheme·Dynamic Type을 호출 인자로 강제할 수 있다. 동작 조건: Xcode가 프로젝트를 열고 있을 것. 콜드 ~91초 · 웜 2.5~10초
 - **프리뷰 픽스처는 `static let`** — 갱신마다 새로 만들면 객체 신원이 바뀌어 무한 갱신 루프가 되고 Xcode가 통째로 물린다
-- **`#Preview`는 상태 변형을 나란히 볼 때, `-fixture`는 흐름 안에서 볼 때.** 혼자 못 서는 화면에는 프리뷰를 안 둔다 — `09`는 초안이 있어야 뜨고 `10`은 `09` 위에만 뜬다
+- **`#Preview`는 상태 변형을 나란히 볼 때, `-fixture`는 흐름 안에서 볼 때.** 혼자 못 서는 화면에는 프리뷰를 안 둔다 — `09`는 초안이 있어야 뜨고 `10`은 `09` 위에만 뜬다. **관측은 시뮬레이터에 런치 인자로 띄우고 `xcrun simctl io <UDID> screenshot`으로 본다** — 런치 인자는 `App`에서 `grep -rn '"-'`로 찾는다
 - **실기기 배포** — `apple/scripts/deploy-device.sh`. 기기 조회 → 빌드 → 설치 → 실행
 - **편집 직후 진단은 믿는다** — `xcode-build-server` + 워크스페이스 루트의 `buildServer.json`이 `.xcodeproj` 타깃까지 인덱스를 연결한다. 진단과 빌드가 어긋나면 진단을 무시하지 말고 빌드 서버 연결부터 의심한다
 

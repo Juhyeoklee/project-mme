@@ -8,6 +8,9 @@
 #
 # 층은 안 섞는다: 게이트 여섯은 빌드와 테스트고, 대조 넷은 grep 한 줄짜리
 # 사실 확인이다. 출력이 갈려 있는 것이 요점이다.
+#
+# 대조 넷의 대상은 git이 커밋할 Swift 파일이다 — 추적 중 + 미추적, ignore는 뺀다.
+# 디렉터리를 통째로 훑으면 DerivedData 같은 git 밖 생성물이 자를 빨갛게 한다.
 
 set -uo pipefail
 
@@ -70,19 +73,23 @@ check() {
     fi
 }
 
+# git이 커밋할 Swift 파일만. 경로에 공백이 없다는 전제다 (있으면 git ls-files가 따옴표로 감싸 grep이 못 연다).
+swift_files() { git ls-files -co --exclude-standard -- "${1:-.}" | grep '\.swift$'; }
+
 check "산출물 문서 절 참조" \
-    "grep -rn '§' --include='*.swift' --exclude-dir=.build ."
+    "swift_files | xargs grep -n '§'"
 check "프로토콜·actor" \
-    "grep -rnE '^ *(public )?(protocol|actor) ' --include='*.swift' --exclude-dir=.build ."
+    "swift_files | xargs grep -nE '^ *([A-Za-z@]+ )*(protocol|actor) '"
 check "커널 throws" \
-    "grep -rn 'throws' Packages/MomentKernel/Sources"
+    "swift_files Packages/MomentKernel/Sources | xargs grep -n 'throws'"
 check "이름 없는 유틸 파일" \
-    "find . -name 'Utils.swift' -o -name 'Helpers.swift' -o -name 'Common.swift' -o -name 'Extensions.swift'"
+    "swift_files | grep -E '(^|/)(Utils|Helpers|Common|Extensions)\.swift$'"
 
 echo
 if [ ${#failed[@]} -eq 0 ]; then
     echo "✅ 전부 통과"
     exit 0
 fi
-printf '❌ 실패 %d — %s\n' "${#failed[@]}" "$(IFS='·'; echo "${failed[*]}")"
+# IFS는 첫 바이트만 쓴다 — 다바이트 구분자(·)를 IFS로 주면 깨진 글자가 찍힌다.
+printf '❌ 실패 %d — %s\n' "${#failed[@]}" "$(printf '%s · ' "${failed[@]}" | sed 's/ · $//')"
 exit 1
