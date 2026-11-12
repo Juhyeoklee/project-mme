@@ -25,6 +25,8 @@ struct RecordDetailScreen: View {
     @State private var collapse: Double = 0
     @State private var flipping: FlipStart?
     @State private var isConfirmingDelete = false
+    @State private var publishFailed = false
+    @State private var deleteFailed = false
 
     /// 지금 화면에 보이는 그 기록. 저장을 거쳐 오면 목록 쪽이 새 값을 갖는다.
     private var shown: Record {
@@ -67,6 +69,8 @@ struct RecordDetailScreen: View {
                             titleVisibility: .visible) {
             Button(Wording.delete, role: .destructive) { delete() }
         }
+        .writeFailureAlert(Wording.saveFailed, isPresented: $publishFailed)
+        .writeFailureAlert(Wording.deleteFailed, isPresented: $deleteFailed)
     }
 
     // MARK: - `08-N` 머리
@@ -196,7 +200,7 @@ struct RecordDetailScreen: View {
                 Spacer(minLength: 0)
                 // **`게시`는 편집기를 열지 않는다** — 초안 여부는 저장된 상태지 설명의
                 // 파생값이 아니라, 여기서 상태만 올려도 기록이 된다.
-                Button(Wording.publish) { records.publish(shown) }
+                Button(Wording.publish) { publish() }
                     .buttonStyle(PrimaryActionStyle())
             } else {
                 Button(Wording.flipThrough) { flipping = FlipStart(value: 0) }
@@ -233,9 +237,18 @@ struct RecordDetailScreen: View {
         RecordDraft.editing(shown)
     }
 
+    private func publish() {
+        do { try records.publish(shown) } catch { publishFailed = true }
+    }
+
+    /// ⚠️ **못 지웠으면 안 닫는다** — 닫으면 지워진 것처럼 보인다.
     private func delete() {
-        records.delete(id: shown.id)
-        if sizeClass == .compact { dismiss() }
+        do {
+            try records.delete(id: shown.id)
+            if sizeClass == .compact { dismiss() }
+        } catch {
+            deleteFailed = true
+        }
     }
 
     private var leadingMargin: CGFloat { Layout.leadingMargin(sizeClass) }

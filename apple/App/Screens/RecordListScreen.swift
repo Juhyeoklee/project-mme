@@ -20,6 +20,7 @@ struct RecordListScreen: View {
     /// 지금 네비가 말하는 달. 스티키를 걷어낸 자리를 접힌 타이틀이 대신한다.
     @State private var topMonthIndex = 0
     @State private var deleting: Record?
+    @State private var deleteFailed = false
 
     var body: some View {
         // ⚠️ **머리를 겹쳐 띄운다** — 나란히 쌓으면 콘텐츠가 머리 아래로 지나가지 못해
@@ -33,9 +34,10 @@ struct RecordListScreen: View {
             .confirmationDialog(Wording.deleteRecordTitle, isPresented: isConfirmingDelete,
                                 titleVisibility: .visible) {
                 Button(Wording.delete, role: .destructive) {
-                    if let deleting { records.delete(id: deleting.id) }
+                    if let deleting { delete(deleting) }
                 }
             }
+            .writeFailureAlert(Wording.deleteFailed, isPresented: $deleteFailed)
     }
 
     // MARK: - `07-N` 머리
@@ -171,6 +173,10 @@ struct RecordListScreen: View {
 
     private var isConfirmingDelete: Binding<Bool> {
         Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })
+    }
+
+    private func delete(_ record: Record) {
+        do { try records.delete(id: record.id) } catch { deleteFailed = true }
     }
 
     /// 같은 결정이 부른 자리마다 다른 데 서지 않게 iPad는 최상위에 넘긴다.

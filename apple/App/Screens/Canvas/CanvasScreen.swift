@@ -71,9 +71,7 @@ struct CanvasScreen: View {
                             titleVisibility: .visible) {
             cancelActions
         }
-        .alert(Wording.saveFailed, isPresented: saveFailed) {
-            Button(Wording.acknowledge) { session.draft.clearFailure() }
-        }
+        .writeFailureAlert(Wording.saveFailed, isPresented: saveFailed) { session.draft.clearFailure() }
     }
 
     // MARK: - `11-N` 상단바

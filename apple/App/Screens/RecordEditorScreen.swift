@@ -83,9 +83,7 @@ struct RecordEditorScreen: View {
         // iPhone에서까지 팝오버가 된다. 결정은 화면 전체에 걸린 것이다.
         .confirmationDialog(Wording.discardTitle, isPresented: $isConfirmingCancel,
                             titleVisibility: .visible) { discardActions }
-        .alert(Wording.saveFailed, isPresented: saveFailed) {
-            Button(Wording.acknowledge) { draft.clearFailure() }
-        }
+        .writeFailureAlert(Wording.saveFailed, isPresented: saveFailed) { draft.clearFailure() }
     }
 
     // MARK: - `09-N` 머리

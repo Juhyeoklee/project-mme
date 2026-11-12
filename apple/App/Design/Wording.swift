@@ -291,7 +291,9 @@ enum Wording {
     /// 원본을 못 읽었거나 디스크에 못 썼다.
     static let saveFailed = "저장하지 못했어요"
     static let acknowledge = "확인"
-    /// 저장소를 못 읽었다. **삭제 실패에는 안 쓴다** — 지워지지 않은 카드가 이미 결과를 말한다.
+    /// 디스크에서 못 지웠다. **`saveFailed`와 합치지 않는다** — 지우려던 사람에게 저장은 딴말이다.
+    static let deleteFailed = "지우지 못했어요"
+    /// 저장소를 못 읽었다.
     static let recordsFailed = "기록을 불러오지 못했어요"
     /// `ARC-07` 확인 한 단계.
     static let deleteRecordTitle = "이 기록을 지울까요?"

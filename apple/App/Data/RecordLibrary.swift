@@ -12,8 +12,8 @@ import MomentKernel
 final class RecordLibrary {
     /// 발생일시 역순 (`ARC-01`). 순서는 저장소가 정한다.
     private(set) var records: [Record] = []
-    /// 저장소를 못 읽었다. ⚠️ **삭제 실패는 여기 안 든다** — 그때는 카드가 그대로 남는 것이
-    /// 이미 결과를 말한다.
+    /// 저장소를 못 읽었다. ⚠️ **쓰기 실패는 여기 안 든다** — 지우기·게시는 던지고, 무엇을
+    /// 보일지는 부른 화면이 정한다.
     private(set) var loadFailed = false
 
     let store: RecordStore
@@ -35,19 +35,21 @@ final class RecordLibrary {
     }
 
     /// `ARC-07`. 지운 뒤 다시 읽는다 — 목록에서만 빼면 디스크가 실패했을 때 화면이 거짓말한다.
-    func delete(id: UUID) {
-        try? store.delete(id: id)
-        reload()
+    /// **실패해도 다시 읽고 나서 던진다.**
+    func delete(id: UUID) throws {
+        defer { reload() }
+        try store.delete(id: id)
     }
 
     /// 초안을 기록으로 올린다. 설명을 요구하지 않는다 — 초안 여부는 저장된 상태다.
     /// ⚠️ **바이트를 안 넘긴다** — 이미지가 전부 이 기록의 디렉터리에 있어 저장소가 건너뛴다.
-    func publish(_ record: Record) {
+    /// **실패해도 다시 읽고 나서 던진다.**
+    func publish(_ record: Record) throws {
+        defer { reload() }
         var published = record
         published.status = .published
         published.updatedAt = Date()
-        try? store.save(published, imageData: [:])
-        reload()
+        try store.save(published, imageData: [:])
     }
 
     /// 한 달치 기록.

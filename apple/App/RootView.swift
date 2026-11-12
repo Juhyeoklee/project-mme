@@ -60,6 +60,8 @@ struct RootView: View {
     @State private var pendingExit: (() -> Void)?
     /// 지우려는 기록. ⚠️ **iPad에서만 채워진다** — iPhone은 부른 화면이 자기가 시트를 띄운다.
     @State private var pendingDelete: Record?
+    /// 지우기가 실패했다. **`pendingDelete`처럼 iPad에서만 선다.**
+    @State private var deleteFailed = false
     /// 고른 묶음을 **그 첫 사진의 자산 식별자로** 든다 (`SRC-03`).
     ///
     /// ⚠️ **`PhotoGroup`을 그대로 들면 안 된다** — 새 사진이 들어오면 첨자가 밀려 들고 있던
@@ -195,6 +197,7 @@ struct RootView: View {
                             titleVisibility: .visible) {
             Button(Wording.delete, role: .destructive) { confirmDelete() }
         }
+        .writeFailureAlert(Wording.deleteFailed, isPresented: $deleteFailed)
         .task { await offerSource() }
         .onChange(of: library.phase) { Task { await offerSource() } }
         // 부분 접근의 `사진 더 고르기`가 결과를 바로 보이는 자리다 — 후보는 시트를 올릴 때
@@ -257,7 +260,7 @@ struct RootView: View {
     private func confirmDelete() {
         guard let record = pendingDelete else { return }
         pendingDelete = nil
-        records.delete(id: record.id)
+        do { try records.delete(id: record.id) } catch { deleteFailed = true }
     }
 
     // MARK: - 편집 중 이탈
